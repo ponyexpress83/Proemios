@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { Route } from "next";
 import { NAV_PRIMARY } from "@/config/site";
 import { Wordmark } from "@/components/ui/Wordmark";
@@ -12,14 +12,17 @@ import { cn } from "@/lib/cn";
 export function Navbar() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const [lastPath, setLastPath] = useState(pathname);
 
-  // Chiudi il menu al cambio pagina.
-  useEffect(() => {
+  // Chiudi il menu al cambio pagina (aggiustamento di stato in fase di render,
+  // pattern consigliato da React invece di un effetto).
+  if (pathname !== lastPath) {
+    setLastPath(pathname);
     setOpen(false);
-  }, [pathname]);
+  }
 
   return (
-    <header className="sticky top-0 z-50 border-b border-linea/70 bg-carta/85 backdrop-blur-md">
+    <header className="border-linea/70 bg-carta/85 sticky top-0 z-50 border-b backdrop-blur-md">
       <div className="container-editorial flex h-16 items-center justify-between gap-4">
         <Wordmark />
 
@@ -31,7 +34,7 @@ export function Navbar() {
                 key={item.href}
                 href={item.href as Route}
                 className={cn(
-                  "text-sm font-medium text-inchiostro-60 transition-colors hover:text-inchiostro",
+                  "text-inchiostro-60 hover:text-inchiostro text-sm font-medium transition-colors",
                   active && "text-inchiostro",
                 )}
               >
@@ -52,7 +55,7 @@ export function Navbar() {
 
         <button
           type="button"
-          className="grid size-10 place-items-center rounded-md border border-linea lg:hidden"
+          className="border-linea grid size-10 place-items-center rounded-md border lg:hidden"
           aria-label={open ? "Chiudi menu" : "Apri menu"}
           aria-expanded={open}
           onClick={() => setOpen((v) => !v)}
@@ -60,19 +63,19 @@ export function Navbar() {
           <span className="relative block h-3.5 w-5">
             <span
               className={cn(
-                "absolute inset-x-0 top-0 h-0.5 bg-inchiostro transition-transform",
+                "bg-inchiostro absolute inset-x-0 top-0 h-0.5 transition-transform",
                 open && "translate-y-[6px] rotate-45",
               )}
             />
             <span
               className={cn(
-                "absolute inset-x-0 top-1/2 h-0.5 -translate-y-1/2 bg-inchiostro transition-opacity",
+                "bg-inchiostro absolute inset-x-0 top-1/2 h-0.5 -translate-y-1/2 transition-opacity",
                 open && "opacity-0",
               )}
             />
             <span
               className={cn(
-                "absolute inset-x-0 bottom-0 h-0.5 bg-inchiostro transition-transform",
+                "bg-inchiostro absolute inset-x-0 bottom-0 h-0.5 transition-transform",
                 open && "-translate-y-[6px] -rotate-45",
               )}
             />
@@ -82,13 +85,13 @@ export function Navbar() {
 
       {/* Menu mobile */}
       {open && (
-        <div className="border-t border-linea bg-carta lg:hidden">
+        <div className="border-linea bg-carta border-t lg:hidden">
           <nav className="container-editorial flex flex-col py-4" aria-label="Navigazione mobile">
             {NAV_PRIMARY.map((item) => (
               <Link
                 key={item.href}
                 href={item.href as Route}
-                className="py-3 text-base font-medium text-inchiostro-80"
+                className="text-inchiostro-80 py-3 text-base font-medium"
               >
                 {item.label}
               </Link>

@@ -13,7 +13,8 @@ const variants: Record<Variant, string> = {
     "bg-inchiostro text-carta hover:bg-bronzo-scuro border border-inchiostro hover:border-bronzo-scuro",
   secondary:
     "bg-transparent text-inchiostro border border-inchiostro/25 hover:border-bronzo hover:text-bronzo-scuro",
-  ghost: "bg-transparent text-inchiostro hover:text-bronzo-scuro underline-offset-4 hover:underline",
+  ghost:
+    "bg-transparent text-inchiostro hover:text-bronzo-scuro underline-offset-4 hover:underline",
 };
 
 const sizes: Record<Size, string> = {

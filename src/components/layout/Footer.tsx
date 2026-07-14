@@ -12,14 +12,14 @@ export function Footer() {
         <div className="grid gap-12 lg:grid-cols-[1.4fr_2fr]">
           <div className="max-w-sm">
             <Wordmark tone="light" />
-            <p className="mt-4 text-sm leading-relaxed text-carta/65">{SITE.tagline}</p>
-            <p className="mt-3 text-xs text-carta/45">{SITE.etimologia}.</p>
+            <p className="text-carta/65 mt-4 text-sm leading-relaxed">{SITE.tagline}</p>
+            <p className="text-carta/45 mt-3 text-xs">{SITE.etimologia}.</p>
           </div>
 
           <div className="grid grid-cols-2 gap-8 sm:grid-cols-4">
             {NAV_FOOTER.map((col) => (
               <div key={col.titolo}>
-                <h3 className="mb-3 text-xs font-semibold uppercase tracking-[0.16em] text-bronzo-chiaro">
+                <h3 className="text-bronzo-chiaro mb-3 text-xs font-semibold tracking-[0.16em] uppercase">
                   {col.titolo}
                 </h3>
                 <ul className="space-y-2">
@@ -27,7 +27,7 @@ export function Footer() {
                     <li key={v.href}>
                       <Link
                         href={v.href as Route}
-                        className="text-sm text-carta/70 transition-colors hover:text-carta"
+                        className="text-carta/70 hover:text-carta text-sm transition-colors"
                       >
                         {v.label}
                       </Link>
@@ -40,11 +40,11 @@ export function Footer() {
         </div>
 
         {/* Formula legale sull'AI — vincolo non negoziabile */}
-        <div className="mt-14 rounded-lg border border-carta/12 bg-carta/[0.03] p-5">
-          <p className="text-sm leading-relaxed text-carta/70">{AI_DISCLAIMER}</p>
+        <div className="border-carta/12 bg-carta/[0.03] mt-14 rounded-lg border p-5">
+          <p className="text-carta/70 text-sm leading-relaxed">{AI_DISCLAIMER}</p>
         </div>
 
-        <div className="mt-10 flex flex-col gap-4 border-t border-carta/12 pt-6 text-xs text-carta/45 sm:flex-row sm:items-center sm:justify-between">
+        <div className="border-carta/12 text-carta/45 mt-10 flex flex-col gap-4 border-t pt-6 text-xs sm:flex-row sm:items-center sm:justify-between">
           <p>
             © {anno} {SITE.nome}. Tutti i diritti riservati.
           </p>

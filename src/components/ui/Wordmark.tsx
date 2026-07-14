@@ -14,7 +14,11 @@ export function Wordmark({
   const color = tone === "light" ? "text-carta" : "text-inchiostro";
   const accent = tone === "light" ? "text-bronzo-chiaro" : "text-bronzo";
   return (
-    <Link href="/" className={cn("group inline-flex items-center gap-2.5", color, className)} aria-label="Kalamos Studio — home">
+    <Link
+      href="/"
+      className={cn("group inline-flex items-center gap-2.5", color, className)}
+      aria-label="Kalamos Studio — home"
+    >
       <svg
         width="22"
         height="26"

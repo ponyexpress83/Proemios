@@ -47,7 +47,7 @@ export function SectionHeading({
       {eyebrow && (
         <p
           className={cn(
-            "mb-3 text-xs font-semibold uppercase tracking-[0.18em]",
+            "mb-3 text-xs font-semibold tracking-[0.18em] uppercase",
             isLight ? "text-bronzo-chiaro" : "text-bronzo",
           )}
         >
@@ -56,7 +56,7 @@ export function SectionHeading({
       )}
       <TitleTag
         className={cn(
-          "text-balance text-3xl leading-[1.1] font-medium sm:text-4xl",
+          "text-3xl leading-[1.1] font-medium text-balance sm:text-4xl",
           TitleTag === "h1" && "sm:text-5xl",
           isLight ? "text-carta" : "text-inchiostro",
         )}
