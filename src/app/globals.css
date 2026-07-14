@@ -1,0 +1,121 @@
+@import "tailwindcss";
+
+/* ─────────────────────────────────────────────────────────────
+   Kalamos Studio — design system
+   Direzione: editoriale-premium. Carta calda + inchiostro + bronzo.
+   ───────────────────────────────────────────────────────────── */
+@theme {
+  /* Palette */
+  --color-carta: #f7f2e8; /* avorio/crema — sfondo primario */
+  --color-carta-2: #efe6d5; /* crema più profonda — sezioni/card */
+  --color-carta-3: #e7dcc6; /* crema per contrasti tenui */
+  --color-inchiostro: #17130f; /* inchiostro quasi-nero (caldo) */
+  --color-inchiostro-80: #342d25; /* testo forte */
+  --color-inchiostro-60: #5c5347; /* testo secondario */
+  --color-inchiostro-40: #8a8073; /* testo tenue / didascalie */
+  --color-bronzo: #9a6a3a; /* accento bronzo/ottone */
+  --color-bronzo-scuro: #7c5228;
+  --color-bronzo-chiaro: #bd8f5c;
+  --color-linea: #ded2bd; /* bordi tenui su carta */
+  --color-successo: #4f6f4a;
+  --color-errore: #a2452f;
+
+  /* Tipografia */
+  --font-serif: var(--font-fraunces), Georgia, "Times New Roman", serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+
+  /* Raggi ed elevazioni */
+  --radius-sm: 0.375rem;
+  --radius-md: 0.625rem;
+  --radius-lg: 1rem;
+
+  /* Larghezza contenuto */
+  --spacing-content: 72rem;
+  --spacing-prose: 44rem;
+}
+
+/* ─── Base ─────────────────────────────────────────────────── */
+:root {
+  color-scheme: light;
+  /* Numeri old-style dove il font lo consente. */
+  font-variant-numeric: oldstyle-nums proportional-nums;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--color-carta);
+  color: var(--color-inchiostro);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Titoli: serif, con legature comuni. */
+h1,
+h2,
+h3,
+h4,
+.font-display {
+  font-family: var(--font-serif);
+  font-feature-settings: "liga" 1, "calt" 1;
+  letter-spacing: -0.015em;
+}
+
+/* Numeri tabellari per prezzi e tabelle. */
+.nums-tabular {
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+/* Selezione testo in tinta bronzo. */
+::selection {
+  background-color: color-mix(in srgb, var(--color-bronzo) 22%, transparent);
+}
+
+/* Focus ring coerente e accessibile. */
+:where(a, button, input, textarea, select, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-bronzo);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Rispetta le preferenze di riduzione del movimento. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ─── Utility di composizione ──────────────────────────────── */
+@utility container-editorial {
+  width: 100%;
+  max-width: var(--spacing-content);
+  margin-inline: auto;
+  padding-inline: 1.5rem;
+}
+
+/* Filetto decorativo (kalamos: la canna per scrivere). */
+@utility rule-bronze {
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    transparent,
+    var(--color-bronzo) 20%,
+    var(--color-bronzo) 80%,
+    transparent
+  );
+}
+
+/* Micro-interazione sobria per elementi "prodotto". */
+@utility lift {
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+}
