@@ -1,17 +1,10 @@
-import {
-  PRICING,
-  SERVIZIO_LABELS,
-  type Servizio,
-} from "@/config/pricing";
+import { PRICING, SERVIZIO_LABELS, type Servizio } from "@/config/pricing";
 import type { ProjectType } from "@/config/services";
 
 // ─── Tipi di input/output ──────────────────────────────────────────────────
 
 export type TextState =
-  | "scritto-revisionato"
-  | "scritto-da-revisionare"
-  | "bozza-incompleta"
-  | "solo-materiali";
+  "scritto-revisionato" | "scritto-da-revisionare" | "bozza-incompleta" | "solo-materiali";
 
 export type Tempistica = "standard" | "prioritaria";
 
@@ -93,11 +86,7 @@ function ghostwritingCost(parole: number): number {
 }
 
 /** Calcola il prezzo di un singolo servizio in funzione di parole/pagine. */
-function componentFor(
-  servizio: Servizio,
-  parole: number,
-  pagine: number,
-): PriceComponent {
+function componentFor(servizio: Servizio, parole: number, pagine: number): PriceComponent {
   const prezzo = (() => {
     switch (servizio) {
       case "editing":
@@ -353,10 +342,7 @@ export interface FasciaCosto {
  * manoscritto, calcolata sul conteggio parole reale del file. Usa le stesse
  * tariffe del configuratore per coerenza.
  */
-export function stimaFasciaCosto(
-  parole: number,
-  livello: LivelloIntervento,
-): FasciaCosto {
+export function stimaFasciaCosto(parole: number, livello: LivelloIntervento): FasciaCosto {
   const pagine = Math.max(1, Math.ceil(parole / PRICING.parolePerPagina));
   const produzioneBase = impaginazioneCost(pagine) + epubCost(pagine);
 

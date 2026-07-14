@@ -43,7 +43,8 @@ export const CASE_STUDIES: CaseStudy[] = [
   {
     slug: "libro-autorevolezza-consulente-finanziario",
     titolo: "Un libro che ha aperto le porte delle conferenze",
-    sottotitolo: "Come un consulente ha trasformato il suo metodo in uno strumento di posizionamento.",
+    sottotitolo:
+      "Come un consulente ha trasformato il suo metodo in uno strumento di posizionamento.",
     cliente: "Consulente finanziario indipendente",
     servizio: "libro-per-professionisti",
     sfida:
@@ -58,7 +59,8 @@ export const CASE_STUDIES: CaseStudy[] = [
       { valore: "#1", etichetta: "categoria Amazon di nicchia" },
     ],
     citazione: {
-      testo: "Non vendo più me stesso: lascio parlare il libro. Cambia completamente le conversazioni.",
+      testo:
+        "Non vendo più me stesso: lascio parlare il libro. Cambia completamente le conversazioni.",
       autore: "Consulente finanziario",
     },
   },

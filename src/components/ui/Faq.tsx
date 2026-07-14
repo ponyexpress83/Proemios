@@ -9,7 +9,7 @@ export function FaqList({ items }: { items: Faq[] }) {
   const [open, setOpen] = useState<number | null>(0);
 
   return (
-    <div className="divide-y divide-linea border-y border-linea">
+    <div className="divide-linea border-linea divide-y border-y">
       {items.map((item, i) => {
         const isOpen = open === i;
         return (
@@ -20,18 +20,23 @@ export function FaqList({ items }: { items: Faq[] }) {
               aria-expanded={isOpen}
               className="flex w-full items-center justify-between gap-6 py-5 text-left"
             >
-              <span className="font-display text-lg font-medium text-inchiostro">
+              <span className="font-display text-inchiostro text-lg font-medium">
                 {item.domanda}
               </span>
               <span
                 className={cn(
-                  "grid size-7 shrink-0 place-items-center rounded-full border border-linea text-bronzo lift",
-                  isOpen && "rotate-45 border-bronzo",
+                  "border-linea text-bronzo lift grid size-7 shrink-0 place-items-center rounded-full border",
+                  isOpen && "border-bronzo rotate-45",
                 )}
                 aria-hidden
               >
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                  <path d="M7 1v12M1 7h12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                  <path
+                    d="M7 1v12M1 7h12"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                  />
                 </svg>
               </span>
             </button>
@@ -42,7 +47,7 @@ export function FaqList({ items }: { items: Faq[] }) {
               )}
             >
               <div className="min-h-0">
-                <p className="max-w-prose leading-relaxed text-inchiostro-60">{item.risposta}</p>
+                <p className="text-inchiostro-60 max-w-prose leading-relaxed">{item.risposta}</p>
               </div>
             </div>
           </div>

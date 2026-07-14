@@ -7,12 +7,7 @@
  * in un dizionario di localizzazione senza toccare i componenti.
  */
 
-export type ProjectType =
-  | "romanzo"
-  | "saggio"
-  | "memoir"
-  | "professionale"
-  | "grafica";
+export type ProjectType = "romanzo" | "saggio" | "memoir" | "professionale" | "grafica";
 
 export interface ProcessStep {
   titolo: string;
@@ -64,10 +59,22 @@ export const SERVICES: Service[] = [
       "Chiamata di restituzione di 45 minuti",
     ],
     processo: [
-      { titolo: "Invio del manoscritto", descrizione: "Ci mandi il testo completo nel formato che preferisci." },
-      { titolo: "Lettura professionale", descrizione: "Un editor legge l'intero manoscritto, non un estratto." },
-      { titolo: "Scheda di valutazione", descrizione: "Redigiamo un documento strutturato con osservazioni puntuali." },
-      { titolo: "Restituzione", descrizione: "Ne parliamo in call: priorità, tempi, prossimi passi." },
+      {
+        titolo: "Invio del manoscritto",
+        descrizione: "Ci mandi il testo completo nel formato che preferisci.",
+      },
+      {
+        titolo: "Lettura professionale",
+        descrizione: "Un editor legge l'intero manoscritto, non un estratto.",
+      },
+      {
+        titolo: "Scheda di valutazione",
+        descrizione: "Redigiamo un documento strutturato con osservazioni puntuali.",
+      },
+      {
+        titolo: "Restituzione",
+        descrizione: "Ne parliamo in call: priorità, tempi, prossimi passi.",
+      },
     ],
     prezzo: { min: 149, max: 349 },
     faq: [
@@ -105,11 +112,26 @@ export const SERVICES: Service[] = [
       "Scheda prodotto Amazon ottimizzata",
     ],
     processo: [
-      { titolo: "Analisi e piano", descrizione: "Definiamo il livello di intervento e il calendario di lavorazione." },
-      { titolo: "Editing", descrizione: "Interveniamo sul testo con revisioni tracciate e condivise." },
-      { titolo: "Impaginazione e copertina", descrizione: "Costruiamo interni ed esterni coerenti con il genere." },
-      { titolo: "Export e validazione", descrizione: "Prepariamo file cartaceo ed EPUB conformi agli standard KDP." },
-      { titolo: "Pubblicazione", descrizione: "Carichiamo su Amazon, configuriamo ISBN, metadata e scheda." },
+      {
+        titolo: "Analisi e piano",
+        descrizione: "Definiamo il livello di intervento e il calendario di lavorazione.",
+      },
+      {
+        titolo: "Editing",
+        descrizione: "Interveniamo sul testo con revisioni tracciate e condivise.",
+      },
+      {
+        titolo: "Impaginazione e copertina",
+        descrizione: "Costruiamo interni ed esterni coerenti con il genere.",
+      },
+      {
+        titolo: "Export e validazione",
+        descrizione: "Prepariamo file cartaceo ed EPUB conformi agli standard KDP.",
+      },
+      {
+        titolo: "Pubblicazione",
+        descrizione: "Carichiamo su Amazon, configuriamo ISBN, metadata e scheda.",
+      },
     ],
     prezzo: { min: 700, max: 3500, suffix: "+" },
     inEvidenza: true,
@@ -121,11 +143,13 @@ export const SERVICES: Service[] = [
       },
       {
         domanda: "Il libro sarà pubblicato a mio nome?",
-        risposta: "Sì. Tu resti l'autore e il titolare dei diritti; noi curiamo la produzione e la pubblicazione.",
+        risposta:
+          "Sì. Tu resti l'autore e il titolare dei diritti; noi curiamo la produzione e la pubblicazione.",
       },
       {
         domanda: "Posso usare un mio ISBN invece del vostro?",
-        risposta: "Certo. Gestiamo sia l'ISBN gratuito di KDP sia un ISBN di tua proprietà, se preferisci.",
+        risposta:
+          "Certo. Gestiamo sia l'ISBN gratuito di KDP sia un ISBN di tua proprietà, se preferisci.",
       },
     ],
     prefillProjectType: "romanzo",
@@ -146,11 +170,20 @@ export const SERVICES: Service[] = [
       "Pubblicazione su Amazon KDP con ISBN e metadata",
     ],
     processo: [
-      { titolo: "Ascolto", descrizione: "Ci racconti la storia e ci consegni tutti i materiali disponibili." },
+      {
+        titolo: "Ascolto",
+        descrizione: "Ci racconti la storia e ci consegni tutti i materiali disponibili.",
+      },
       { titolo: "Struttura", descrizione: "Costruiamo l'indice e il filo narrativo del libro." },
-      { titolo: "Scrittura", descrizione: "Scriviamo i capitoli, con la tua voce, sottoponendoli alla tua approvazione." },
+      {
+        titolo: "Scrittura",
+        descrizione: "Scriviamo i capitoli, con la tua voce, sottoponendoli alla tua approvazione.",
+      },
       { titolo: "Revisione", descrizione: "Affiniamo insieme, capitolo per capitolo." },
-      { titolo: "Pubblicazione", descrizione: "Impaginiamo, progettiamo la copertina e pubblichiamo." },
+      {
+        titolo: "Pubblicazione",
+        descrizione: "Impaginiamo, progettiamo la copertina e pubblichiamo.",
+      },
     ],
     prezzo: { min: 3000, max: 15000, suffix: "+" },
     faq: [
@@ -161,11 +194,13 @@ export const SERVICES: Service[] = [
       },
       {
         domanda: "Posso partire solo da registrazioni vocali?",
-        risposta: "Assolutamente. Diari, vocali, lettere, appunti: qualsiasi materiale è un buon punto di partenza.",
+        risposta:
+          "Assolutamente. Diari, vocali, lettere, appunti: qualsiasi materiale è un buon punto di partenza.",
       },
       {
         domanda: "Il mio nome comparirà come autore?",
-        risposta: "Sì: il ghostwriting è riservato e il libro esce a tuo nome. La riservatezza è totale.",
+        risposta:
+          "Sì: il ghostwriting è riservato e il libro esce a tuo nome. La riservatezza è totale.",
       },
     ],
     prefillProjectType: "memoir",
@@ -186,10 +221,19 @@ export const SERVICES: Service[] = [
       "Piano di lancio: scheda Amazon, materiali per LinkedIn, kit stampa",
     ],
     processo: [
-      { titolo: "Strategia", descrizione: "Definiamo obiettivo, lettore ideale e messaggio del libro." },
-      { titolo: "Contenuti", descrizione: "Raccogliamo il tuo know-how e lo trasformiamo in capitoli." },
+      {
+        titolo: "Strategia",
+        descrizione: "Definiamo obiettivo, lettore ideale e messaggio del libro.",
+      },
+      {
+        titolo: "Contenuti",
+        descrizione: "Raccogliamo il tuo know-how e lo trasformiamo in capitoli.",
+      },
       { titolo: "Produzione", descrizione: "Editing, impaginazione, copertina, EPUB." },
-      { titolo: "Lancio", descrizione: "Pubblichiamo e prepariamo i materiali per la tua comunicazione." },
+      {
+        titolo: "Lancio",
+        descrizione: "Pubblichiamo e prepariamo i materiali per la tua comunicazione.",
+      },
     ],
     prezzo: { min: 5000, max: 20000 },
     faq: [
@@ -205,7 +249,8 @@ export const SERVICES: Service[] = [
       },
       {
         domanda: "Quanto tempo richiede?",
-        risposta: "In genere dai 3 ai 6 mesi, in funzione della complessità e del tuo coinvolgimento.",
+        risposta:
+          "In genere dai 3 ai 6 mesi, in funzione della complessità e del tuo coinvolgimento.",
       },
     ],
     prefillProjectType: "professionale",
@@ -226,9 +271,15 @@ export const SERVICES: Service[] = [
     ],
     processo: [
       { titolo: "Brief", descrizione: "Raccogliamo riferimenti, genere e preferenze visive." },
-      { titolo: "Proposte", descrizione: "Presentiamo concept di copertina e stile di impaginazione." },
+      {
+        titolo: "Proposte",
+        descrizione: "Presentiamo concept di copertina e stile di impaginazione.",
+      },
       { titolo: "Sviluppo", descrizione: "Realizziamo copertina e interni definitivi." },
-      { titolo: "Consegna file", descrizione: "Ti consegniamo i file pronti per la stampa e per l'ebook." },
+      {
+        titolo: "Consegna file",
+        descrizione: "Ti consegniamo i file pronti per la stampa e per l'ebook.",
+      },
     ],
     prezzo: { min: 300, max: 1200 },
     faq: [
@@ -238,11 +289,13 @@ export const SERVICES: Service[] = [
       },
       {
         domanda: "Usate immagini con licenza?",
-        risposta: "Sì: tutte le immagini e i font sono correttamente licenziati per l'uso commerciale.",
+        risposta:
+          "Sì: tutte le immagini e i font sono correttamente licenziati per l'uso commerciale.",
       },
       {
         domanda: "In che formato consegnate?",
-        risposta: "PDF stampa ad alta risoluzione per gli interni e la copertina, più EPUB validato per l'ebook.",
+        risposta:
+          "PDF stampa ad alta risoluzione per gli interni e la copertina, più EPUB validato per l'ebook.",
       },
     ],
     prefillProjectType: "grafica",
@@ -262,17 +315,30 @@ export const SERVICES: Service[] = [
       "Listino riservato con condizioni per volumi",
     ],
     processo: [
-      { titolo: "Accordo quadro", descrizione: "Firmiamo NDA e definiamo condizioni, marchio e SLA." },
-      { titolo: "Onboarding", descrizione: "Impostiamo template, tono di voce e canali di lavoro." },
-      { titolo: "Produzione", descrizione: "Realizziamo i progetti a tuo nome, tu resti l'unico referente del cliente." },
-      { titolo: "Consegna e scala", descrizione: "Consegniamo, iteriamo e cresciamo sui volumi concordati." },
+      {
+        titolo: "Accordo quadro",
+        descrizione: "Firmiamo NDA e definiamo condizioni, marchio e SLA.",
+      },
+      {
+        titolo: "Onboarding",
+        descrizione: "Impostiamo template, tono di voce e canali di lavoro.",
+      },
+      {
+        titolo: "Produzione",
+        descrizione: "Realizziamo i progetti a tuo nome, tu resti l'unico referente del cliente.",
+      },
+      {
+        titolo: "Consegna e scala",
+        descrizione: "Consegniamo, iteriamo e cresciamo sui volumi concordati.",
+      },
     ],
     prezzo: null,
     prezzoLabel: "Prezzi riservati — su preventivo con NDA",
     faq: [
       {
         domanda: "I miei clienti sapranno che lavorate voi?",
-        risposta: "No. Tutto è white label: la produzione avviene sotto il tuo marchio, con piena riservatezza.",
+        risposta:
+          "No. Tutto è white label: la produzione avviene sotto il tuo marchio, con piena riservatezza.",
       },
       {
         domanda: "Come funzionano i prezzi?",

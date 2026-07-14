@@ -27,7 +27,9 @@ export function serverEnv(): ServerEnv {
   if (cached) return cached;
   const parsed = serverSchema.safeParse(process.env);
   if (!parsed.success) {
-    const issues = parsed.error.issues.map((i) => `  - ${i.path.join(".")}: ${i.message}`).join("\n");
+    const issues = parsed.error.issues
+      .map((i) => `  - ${i.path.join(".")}: ${i.message}`)
+      .join("\n");
     throw new Error(`Variabili d'ambiente non valide:\n${issues}`);
   }
   cached = parsed.data;
@@ -41,7 +43,5 @@ export function siteUrl(): string {
 
 /** URL Calendly per l'embed nella pagina contatti. */
 export function calendlyUrl(): string {
-  return (
-    process.env.NEXT_PUBLIC_CALENDLY_URL ?? "https://calendly.com/kalamos-studio/consulenza"
-  );
+  return process.env.NEXT_PUBLIC_CALENDLY_URL ?? "https://calendly.com/kalamos-studio/consulenza";
 }

@@ -1,12 +1,4 @@
-import {
-  pgTable,
-  uuid,
-  text,
-  integer,
-  timestamp,
-  jsonb,
-  pgEnum,
-} from "drizzle-orm/pg-core";
+import { pgTable, uuid, text, integer, timestamp, jsonb, pgEnum } from "drizzle-orm/pg-core";
 
 // ─── Enums ────────────────────────────────────────────────────────────────
 export const leadSourceEnum = pgEnum("lead_source", [
