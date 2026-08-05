@@ -16,6 +16,7 @@ export function FlussoAnalisi({ giorniConservazione }: { giorniConservazione: nu
   const [stato, setStato] = useState<Stato>("attesa");
   const [errore, setErrore] = useState("");
   const [report, setReport] = useState<ReportCompleto | null>(null);
+  const [demo, setDemo] = useState(false);
   const [nomeFile, setNomeFile] = useState("");
   const [consenso, setConsenso] = useState(false);
   const [marketing, setMarketing] = useState(false);
@@ -43,9 +44,14 @@ export function FlussoAnalisi({ giorniConservazione }: { giorniConservazione: nu
     setStato("analisi");
     try {
       const res = await fetch("/api/analisi", { method: "POST", body: fd });
-      const dati = (await res.json()) as { report?: ReportCompleto; errore?: string };
+      const dati = (await res.json()) as {
+        report?: ReportCompleto;
+        errore?: string;
+        demo?: boolean;
+      };
       if (!res.ok || !dati.report) throw new Error(dati.errore ?? UI.erroreGenerico);
       setReport(dati.report);
+      setDemo(dati.demo === true);
       setStato("fatto");
     } catch (err) {
       setStato("errore");
@@ -54,7 +60,7 @@ export function FlussoAnalisi({ giorniConservazione }: { giorniConservazione: nu
   }
 
   if (stato === "fatto" && report) {
-    return <Report report={report} />;
+    return <Report report={report} demo={demo} />;
   }
 
   const inCorso = stato === "analisi";

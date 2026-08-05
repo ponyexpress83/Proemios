@@ -5,7 +5,9 @@
 
 export const BRAND = {
   name: "Proemios",
-  legalName: "Proemios", // TODO: ragione sociale del titolare
+  // Proemios è il marchio; la società che eroga i servizi è Smart Content.
+  // L'anagrafica completa (sede, P. IVA, REA, PEC) sta in config/legal.ts.
+  legalName: "Smart Content S.r.l.s.",
   payoff: "Dalle idee alle opere",
   payoffEn: "From ideas to works",
   // Dominio principale. Il .com appartiene a terzi: non generare mai URL su proemios.com.

@@ -81,6 +81,20 @@ export const checkoutSchema = z.object({
   pacchetto: z.enum(["essenziale", "consigliato", "signature"]),
 });
 
+/**
+ * Variante usata solo in modalità demo, dove il preventivo non sta su un
+ * database e il suo identificativo non è un UUID ma un riferimento di sessione
+ * (`demo-prev-0001`). Il controllo sul pacchetto resta identico: è quello che
+ * conta, perché è l'unico valore che il client può scegliere.
+ */
+export const checkoutDemoSchema = z.object({
+  quoteId: z
+    .string()
+    .regex(/^demo-[a-z]+-\d+$/, "Preventivo non valido.")
+    .max(64),
+  pacchetto: z.enum(["essenziale", "consigliato", "signature"]),
+});
+
 // ── Analisi manoscritto ────────────────────────────────────────────────────
 
 export const gateAnalisiSchema = z.object({

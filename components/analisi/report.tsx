@@ -81,7 +81,7 @@ function Elenco({
   );
 }
 
-export function Report({ report }: { report: ReportCompleto }) {
+export function Report({ report, demo = false }: { report: ReportCompleto; demo?: boolean }) {
   const m = report.metriche;
 
   const hrefPreventivo =
@@ -89,6 +89,17 @@ export function Report({ report }: { report: ReportCompleto }) {
 
   return (
     <div className="space-y-6">
+      {demo && (
+        <div className="rounded-scheda border-ottone/50 bg-notte-alta border border-dashed p-5">
+          <p className="apparato text-ottone">Report dimostrativo</p>
+          <p className="font-lettura text-carta/75 mt-2 text-sm leading-relaxed">
+            Le misure qui sotto — parole, pagine, leggibilità, periodare — sono calcolate davvero
+            sul file che hai caricato. Le osservazioni editoriali, invece, sono di esempio: in
+            questa versione il giudizio non viene prodotto, si vede solo come si presenta.
+          </p>
+        </div>
+      )}
+
       {/* Sintesi */}
       <div className="rounded-scheda border-ottone/50 bg-notte-alta border p-6 sm:p-8">
         <div className="flex flex-wrap items-center gap-3">

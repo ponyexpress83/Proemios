@@ -15,6 +15,14 @@ const serverSchema = z.object({
   ADMIN_USER: z.string().optional(),
   ADMIN_PASSWORD: z.string().optional(),
   MANUSCRIPT_RETENTION_DAYS: z.coerce.number().int().positive().default(30),
+  /**
+   * Forza la modalità demo ("on") o la esclude ("off"). Senza valore decide
+   * `lib/demo.ts`: demo attiva quando manca DATABASE_URL.
+   *
+   * La stringa vuota vale come "non impostata": in `.env.example` la variabile
+   * compare vuota, e copiare quel file non deve far fallire l'avvio.
+   */
+  DEMO_MODE: z.preprocess((v) => (v === "" ? undefined : v), z.enum(["on", "off"]).optional()),
 });
 
 const clientSchema = z.object({
@@ -36,6 +44,7 @@ export const env = serverSchema.parse({
   ADMIN_USER: process.env.ADMIN_USER,
   ADMIN_PASSWORD: process.env.ADMIN_PASSWORD,
   MANUSCRIPT_RETENTION_DAYS: process.env.MANUSCRIPT_RETENTION_DAYS,
+  DEMO_MODE: process.env.DEMO_MODE,
 });
 
 /** Env pubbliche (safe per il client). */

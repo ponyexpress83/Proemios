@@ -4,6 +4,7 @@ import { leads } from "@/db/schema";
 import { contattoSchema, primoErrore } from "@/lib/validation";
 import { inviaEmail, impaginaEmail, esc, destinatarioInterno } from "@/lib/email";
 import { BRAND } from "@/config/brand";
+import { demoAttiva, registraLead } from "@/lib/demo";
 
 export const runtime = "nodejs";
 
@@ -23,6 +24,16 @@ export async function POST(req: Request) {
 
   // Honeypot.
   if (d.sito && d.sito.length > 0) return NextResponse.json({ ok: true });
+
+  if (demoAttiva()) {
+    registraLead({
+      nome: d.nome,
+      email: d.email,
+      fonte: "contatto",
+      consensoMarketing: d.consensoMarketing,
+    });
+    return NextResponse.json({ ok: true, demo: true });
+  }
 
   try {
     await db.insert(leads).values({

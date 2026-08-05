@@ -4,6 +4,7 @@ import { leads, agencyLeads } from "@/db/schema";
 import { agenziaSchema, primoErrore } from "@/lib/validation";
 import { inviaEmail, impaginaEmail, esc, destinatarioInterno } from "@/lib/email";
 import { BRAND } from "@/config/brand";
+import { demoAttiva, registraAgenzia, registraLead } from "@/lib/demo";
 
 export const runtime = "nodejs";
 
@@ -22,6 +23,22 @@ export async function POST(req: Request) {
   const d = esito.data;
 
   if (d.website && d.website.length > 0) return NextResponse.json({ ok: true });
+
+  if (demoAttiva()) {
+    registraLead({
+      nome: d.referente,
+      email: d.email,
+      fonte: "agenzie",
+      consensoMarketing: false,
+    });
+    registraAgenzia({
+      nomeAgenzia: d.nomeAgenzia,
+      sito: d.sito || null,
+      serviziEsternalizzati: d.serviziEsternalizzati || null,
+      volumeStimato: d.volumeStimato || null,
+    });
+    return NextResponse.json({ ok: true, demo: true });
+  }
 
   try {
     const [lead] = await db

@@ -1,9 +1,20 @@
 import type { Metadata } from "next";
 import { BRAND } from "@/config/brand";
+import { TITOLARE } from "@/config/legal";
 
-/** URL canonico assoluto. Sempre su proemios.it, mai su .com. */
+/**
+ * URL canonico assoluto. Sempre su proemios.it, mai su .com.
+ *
+ * Su un deploy di anteprima senza `NEXT_PUBLIC_SITE_URL` si usa il dominio
+ * assegnato da Vercel: altrimenti l'anteprima dichiarerebbe come canoniche le
+ * pagine del sito vero, che è il modo più rapido per confondere i motori.
+ */
 export function assoluto(path = "/"): string {
-  const base = (process.env.NEXT_PUBLIC_SITE_URL ?? BRAND.url).replace(/\/$/, "");
+  const dominioAnteprima = process.env.NEXT_PUBLIC_VERCEL_URL;
+  const base = (
+    process.env.NEXT_PUBLIC_SITE_URL ??
+    (dominioAnteprima ? `https://${dominioAnteprima}` : BRAND.url)
+  ).replace(/\/$/, "");
   return `${base}${path === "/" ? "" : path}`;
 }
 
@@ -57,6 +68,16 @@ export function organizationJsonLd(): Json {
     description: BRAND.description,
     areaServed: "IT",
     knowsLanguage: ["it"],
+    vatID: TITOLARE.partitaIva,
+    taxID: TITOLARE.codiceFiscale,
+    address: {
+      "@type": "PostalAddress",
+      streetAddress: "Via Girardengo 5",
+      postalCode: "58100",
+      addressLocality: "Grosseto",
+      addressRegion: "GR",
+      addressCountry: "IT",
+    },
   };
 }
 

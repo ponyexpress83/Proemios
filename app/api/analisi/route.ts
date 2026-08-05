@@ -13,6 +13,7 @@ import { euro, numero } from "@/lib/format";
 import { ANALISI } from "@/config/copy";
 import { BRAND } from "@/config/brand";
 import { assoluto } from "@/lib/seo";
+import { demoAttiva, reportDemo, registraAnalisi, registraLead } from "@/lib/demo";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -27,7 +28,10 @@ export async function POST(req: Request) {
     return NextResponse.json({ errore: ANALISI.erroreLimite }, { status: 429 });
   }
 
-  if (!aiConfigurata()) {
+  // In demo il modello non viene interpellato: il report lo costruisce
+  // `lib/demo.ts` sulle metriche reali del file caricato.
+  const demo = demoAttiva();
+  if (!demo && !aiConfigurata()) {
     return NextResponse.json(
       { errore: "L'analisi non è attiva in questo momento. Scrivici e la facciamo a mano." },
       { status: 503 },
@@ -87,6 +91,19 @@ export async function POST(req: Request) {
 
   // ── Giudizio del modello ──────────────────────────────────────────────
   let report: ReportCompleto;
+
+  if (demo) {
+    report = reportDemo(metriche);
+    registraAnalisi({ filename: file.name, wordCount: metriche.parole, report });
+    registraLead({
+      nome: gate.data.nome,
+      email: gate.data.email,
+      fonte: "analisi",
+      consensoMarketing: gate.data.consensoMarketing,
+    });
+    return NextResponse.json({ report, demo: true });
+  }
+
   try {
     const giudizio = await analizza(testo);
     const fascia = costBandForAnalysis(metriche.parole, giudizio.livelloIntervento);

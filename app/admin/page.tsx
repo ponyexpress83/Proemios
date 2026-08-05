@@ -7,6 +7,7 @@ import { leads, quotes, manuscriptAnalyses, agencyLeads } from "@/db/schema";
 import { Gabbia, Filetto, cx } from "@/components/ui/primitivi";
 import { euro, numero, dataEstesa } from "@/lib/format";
 import { BRAND } from "@/config/brand";
+import { demoAttiva, datiAdminDemo } from "@/lib/demo";
 import type { QuotePackage } from "@/lib/pricing";
 
 export const metadata: Metadata = {
@@ -36,9 +37,26 @@ const PERIODI = { "7": 7, "30": 30, "90": 90, tutto: 0 } as const;
 type PeriodoKey = keyof typeof PERIODI;
 
 async function carica(giorni: number, statoFiltro: string | null) {
+  // In demo il cruscotto mostra i record creati durante la sessione più alcune
+  // righe d'esempio: un pannello vuoto non dimostrerebbe nulla.
+  if (demoAttiva()) {
+    const dati = datiAdminDemo();
+    return {
+      errore: null as string | null,
+      demo: true,
+      lead: dati.lead,
+      preventivi: statoFiltro
+        ? dati.preventivi.filter((p) => p.stato === statoFiltro)
+        : dati.preventivi,
+      analisi: dati.analisi,
+      agenzie: dati.agenzie,
+    };
+  }
+
   if (!dbConfigurato()) {
     return {
       errore: "DATABASE_URL non configurata.",
+      demo: false,
       lead: [],
       preventivi: [],
       analisi: [],
@@ -84,10 +102,11 @@ async function carica(giorni: number, statoFiltro: string | null) {
       ? preventiviTutti.filter((p) => p.stato === statoFiltro)
       : preventiviTutti;
 
-    return { errore: null as string | null, lead, preventivi, analisi, agenzie };
+    return { errore: null as string | null, demo: false, lead, preventivi, analisi, agenzie };
   } catch (err) {
     return {
       errore: err instanceof Error ? err.message : "Errore di connessione al database.",
+      demo: false,
       lead: [],
       preventivi: [],
       analisi: [],
@@ -107,7 +126,7 @@ export default async function AdminPage({
   ) as PeriodoKey;
   const statoFiltro = sp.stato && sp.stato in STATO_ETICHETTA ? sp.stato : null;
 
-  const { errore, lead, preventivi, analisi, agenzie } = await carica(
+  const { errore, demo, lead, preventivi, analisi, agenzie } = await carica(
     PERIODI[periodoKey],
     statoFiltro,
   );
@@ -125,6 +144,18 @@ export default async function AdminPage({
           <h1 className="font-display text-3xl font-medium">Cruscotto</h1>
           <span className="apparato text-stampa">{BRAND.name} · uso interno</span>
         </header>
+
+        {demo && (
+          <div className="rounded-scheda border-ottone bg-carta-alta mt-6 border border-dashed p-4">
+            <p className="apparato text-ottone">Cruscotto dimostrativo</p>
+            <p className="prosa mt-2 text-sm">
+              Le righe con identificativo <code className="font-mono text-[0.9em]">demo-</code> sono
+              inventate e non corrispondono ad alcuna persona. Quelle create durante questa sessione
+              restano in memoria e spariscono al riavvio: senza{" "}
+              <code className="font-mono text-[0.9em]">DATABASE_URL</code> non viene scritto nulla.
+            </p>
+          </div>
+        )}
 
         {errore && (
           <div className="rounded-scheda border-esito-critico/40 bg-carta-alta mt-6 border p-4">

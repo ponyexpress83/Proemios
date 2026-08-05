@@ -4,6 +4,8 @@ import { UI } from "@/config/copy";
 import { fontVariables } from "./fonts";
 import { Testata } from "@/components/layout/testata";
 import { Colophon } from "@/components/layout/colophon";
+import { FasciaDemo } from "@/components/layout/fascia-demo";
+import { demoAttiva } from "@/lib/demo";
 import { JsonLd, organizationJsonLd } from "@/lib/seo";
 import "./globals.css";
 
@@ -29,7 +31,8 @@ export const metadata: Metadata = {
     description: BRAND.description,
   },
   alternates: { canonical: BRAND.url },
-  robots: { index: true, follow: true },
+  // La demo resta fuori dall'indice: vedi anche app/robots.ts.
+  robots: demoAttiva() ? { index: false, follow: false } : { index: true, follow: true },
   formatDetection: { telephone: false },
 };
 
@@ -44,6 +47,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         >
           {UI.saltaAlContenuto}
         </a>
+        <FasciaDemo />
         <Testata />
         <main id="contenuto" className="flex-1">
           {children}

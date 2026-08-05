@@ -4,6 +4,7 @@ import { Marchio } from "./marchio";
 import { Filetto } from "@/components/ui/primitivi";
 import { BRAND } from "@/config/brand";
 import { NAV_COLOPHON } from "@/config/copy";
+import { MARCHIO, TITOLARE } from "@/config/legal";
 
 /**
  * Colophon: in un libro è la pagina che dichiara come è stato prodotto.
@@ -51,9 +52,16 @@ export function Colophon() {
         <Filetto className="mt-10" tono="notte" />
 
         <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-baseline sm:justify-between">
-          <p className="apparato text-carta/45">
-            {BRAND.legalName} · {BRAND.domain}
-          </p>
+          {/* Il marchio è Proemios, la controparte contrattuale è la società.
+              La dichiarazione in maiuscoletto, i dati di registro in tondo:
+              quattro righe tutte spaziate non si leggerebbero. */}
+          <div className="max-w-md">
+            <p className="apparato text-carta/45">{MARCHIO.attribuzione}</p>
+            <p className="font-ui text-carta/40 mt-2 text-xs leading-relaxed">
+              {TITOLARE.sedeLegale} · P. IVA {TITOLARE.partitaIva} · {TITOLARE.registroImprese} ·
+              PEC {TITOLARE.pec}
+            </p>
+          </div>
           <div className="flex flex-wrap gap-x-6 gap-y-2">
             <a
               href={`mailto:${BRAND.email.general}`}

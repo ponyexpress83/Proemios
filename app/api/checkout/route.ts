@@ -2,16 +2,19 @@ import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { quotes } from "@/db/schema";
-import { checkoutSchema, primoErrore } from "@/lib/validation";
+import { checkoutSchema, checkoutDemoSchema, primoErrore } from "@/lib/validation";
 import { stripe, stripeConfigurato } from "@/lib/stripe";
 import { assoluto } from "@/lib/seo";
 import { BRAND } from "@/config/brand";
 import type { QuotePackage } from "@/lib/pricing";
+import { demoAttiva, segnaAccontoPagato } from "@/lib/demo";
 
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
-  if (!stripeConfigurato()) {
+  const demo = demoAttiva();
+
+  if (!demo && !stripeConfigurato()) {
     return NextResponse.json(
       { errore: "I pagamenti online non sono attivi. Scrivici e chiudiamo l'ordine per email." },
       { status: 503 },
@@ -25,11 +28,23 @@ export async function POST(req: Request) {
     return NextResponse.json({ errore: "Richiesta non leggibile." }, { status: 400 });
   }
 
-  const esito = checkoutSchema.safeParse(corpo);
+  const esito = (demo ? checkoutDemoSchema : checkoutSchema).safeParse(corpo);
   if (!esito.success) {
     return NextResponse.json({ errore: primoErrore(esito.error) }, { status: 422 });
   }
   const { quoteId, pacchetto } = esito.data;
+
+  // In demo non si apre mai Stripe: si va direttamente alla pagina di conferma,
+  // che si dichiara simulata. Qui non serve rileggere il prezzo dal database
+  // perché non viene addebitato nulla — in produzione quel controllo resta il
+  // presidio contro un client che provi a scegliersi il prezzo.
+  if (demo) {
+    segnaAccontoPagato(quoteId, pacchetto);
+    return NextResponse.json({
+      url: `/preventivo/grazie?demo=1&pacchetto=${encodeURIComponent(pacchetto)}`,
+      demo: true,
+    });
+  }
 
   let scelto: QuotePackage;
   try {

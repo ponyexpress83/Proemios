@@ -7,6 +7,7 @@ import { inviaEmail, impaginaEmail, rigaEmail, esc, destinatarioInterno } from "
 import { euro, numero } from "@/lib/format";
 import { BRAND } from "@/config/brand";
 import { assoluto } from "@/lib/seo";
+import { demoAttiva, registraLead, registraPreventivo } from "@/lib/demo";
 
 export const runtime = "nodejs";
 
@@ -32,6 +33,22 @@ export async function POST(req: Request) {
   // Ricalcolo autoritativo lato server: il client non può alterare i prezzi.
   const preventivo = computeQuote(input);
   const consigliato = preventivo.packages.find((p) => p.recommended) ?? preventivo.packages[1];
+
+  // In demo il preventivo resta in memoria: nessuna scrittura, nessuna email.
+  if (demoAttiva()) {
+    registraLead({
+      nome: contatto.nome,
+      email: contatto.email,
+      fonte: "preventivo",
+      consensoMarketing: contatto.consensoMarketing,
+    });
+    const finto = registraPreventivo({
+      pacchetti: [...preventivo.packages],
+      prezzoTotale: consigliato.total,
+      acconto: consigliato.deposit,
+    });
+    return NextResponse.json({ quoteId: finto.id, preventivo, demo: true });
+  }
 
   let quoteId: string;
   try {

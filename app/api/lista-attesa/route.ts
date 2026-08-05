@@ -4,6 +4,7 @@ import { leads } from "@/db/schema";
 import { waitlistSchema, primoErrore } from "@/lib/validation";
 import { inviaEmail, impaginaEmail, esc, destinatarioInterno } from "@/lib/email";
 import { BRAND } from "@/config/brand";
+import { demoAttiva, registraLead } from "@/lib/demo";
 
 export const runtime = "nodejs";
 
@@ -27,6 +28,16 @@ export async function POST(req: Request) {
   const d = esito.data;
 
   if (d.sito && d.sito.length > 0) return NextResponse.json({ ok: true });
+
+  if (demoAttiva()) {
+    registraLead({
+      nome: d.email.split("@")[0] ?? "Iscritto",
+      email: d.email,
+      fonte: "contatto",
+      consensoMarketing: true,
+    });
+    return NextResponse.json({ ok: true, demo: true });
+  }
 
   try {
     await db.insert(leads).values({

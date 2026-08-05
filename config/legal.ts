@@ -1,38 +1,53 @@
 /**
  * Dati legali e parametri dei documenti.
  *
- * I documenti (privacy, termini, cookie) sono redatti con testo standard
- * completo e leggono da qui tutto ciò che dipende dall'anagrafica.
- * Per andare online basta compilare i campi marcati DA_INSERIRE in questo
- * file: non serve toccare le pagine.
+ * Proemios è il marchio con cui Smart Content S.r.l.s. eroga i servizi
+ * editoriali: il titolare del trattamento e la controparte contrattuale sono
+ * sempre la società, non il marchio.
  *
- * Resta necessaria la validazione di un professionista prima della
- * pubblicazione: il testo è standard e ragionevole, non un parere legale.
+ * I documenti (privacy, termini, cookie) sono redatti con testo standard
+ * completo e leggono da qui tutto ciò che dipende dall'anagrafica: per
+ * aggiornarli basta toccare questo file.
+ *
+ * Fonte dei dati: visura ordinaria del Registro Imprese della Maremma e del
+ * Tirreno, documento n. T 446465279. Prima della pubblicazione conviene
+ * verificare su visura aggiornata che sede, PEC e amministratori non siano
+ * cambiati, e far validare i documenti a un professionista: il testo è
+ * standard e ragionevole, non un parere legale.
  */
 
 /** Segnaposto: se il valore inizia così, l'interfaccia lo evidenzia. */
 export const DA_INSERIRE = "DA INSERIRE";
 
 export const TITOLARE = {
-  /** Ragione sociale completa (es. "Proemios S.r.l." o "Mario Rossi"). */
-  ragioneSociale: `${DA_INSERIRE}: ragione sociale`,
-  /** Forma giuridica (es. "società a responsabilità limitata", "ditta individuale"). */
-  formaGiuridica: `${DA_INSERIRE}: forma giuridica`,
-  sedeLegale: `${DA_INSERIRE}: indirizzo completo della sede legale`,
-  partitaIva: `${DA_INSERIRE}: partita IVA`,
-  codiceFiscale: `${DA_INSERIRE}: codice fiscale`,
-  /** Registro imprese e numero REA, se applicabile. */
-  registroImprese: `${DA_INSERIRE}: registro imprese e numero REA`,
-  pec: `${DA_INSERIRE}: indirizzo PEC`,
+  /** Ragione sociale in forma breve, quella che compare nel testo corrente. */
+  ragioneSociale: "Smart Content S.r.l.s.",
+  /** Denominazione per esteso come risulta al Registro Imprese. */
+  denominazioneCompleta: "SMART CONTENT SOCIETÀ A RESPONSABILITÀ LIMITATA SEMPLIFICATA",
+  formaGiuridica: "società a responsabilità limitata semplificata",
+  sedeLegale: "Via Girardengo 5, 58100 Grosseto (GR), Italia",
+  partitaIva: "01616260533",
+  codiceFiscale: "01616260533",
+  registroImprese: "Registro Imprese della Maremma e del Tirreno, n. 01616260533 — REA GR-203630",
+  pec: "smartcontent@pec.it",
+  capitaleSociale: "euro 1.000,00 interamente versato",
+  rappresentanteLegale: "Valerio Gestri, Presidente del Consiglio di Amministrazione",
   /** Responsabile della protezione dei dati: null se non nominato. */
   dpo: null as string | null,
 } as const;
 
+/** Come il marchio si lega alla società che lo esercita. */
+export const MARCHIO = {
+  nome: "Proemios",
+  /** Riga breve per il colophon e le firme delle email. */
+  attribuzione: `Proemios è un servizio di ${TITOLARE.ragioneSociale}`,
+} as const;
+
 /** Foro competente per le controversie con clienti non consumatori. */
-export const FORO_COMPETENTE = `${DA_INSERIRE}: foro competente`;
+export const FORO_COMPETENTE = "Foro di Grosseto";
 
 /** Data di ultimo aggiornamento dei documenti (formato leggibile). */
-export const AGGIORNAMENTO_DOCUMENTI = `${DA_INSERIRE}: data`;
+export const AGGIORNAMENTO_DOCUMENTI = "5 agosto 2026";
 
 /** Periodi di conservazione dichiarati nell'informativa privacy. */
 export const CONSERVAZIONE = {
