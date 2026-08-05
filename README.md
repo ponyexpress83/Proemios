@@ -1,149 +1,156 @@
-# Kalamos Studio — Fase 1
+# Proemios
 
-Sito e piattaforma di **Kalamos Studio**, service editoriale italiano assistito dalla
-tecnologia per self-publisher, professionisti e agenzie. Non è un semplice sito
-vetrina: include un **configuratore di preventivi** con prezzo istantaneo, un
-**tool di analisi manoscritto AI** come lead magnet e **checkout Stripe** per gli
-acconti.
+Piattaforma italiana di servizi editoriali assistiti dalla tecnologia — *dall'idea al
+libro pubblicato*. Payoff: **Dalle idee alle opere**.
 
-> _Dal greco κάλαμος, la canna con cui gli antichi scrivevano: heritage classico +
-> tecnologia contemporanea._
+> Dominio canonico: **proemios.it** (il `.com` è di terzi: nessun URL punta lì).
+
+Questo repository contiene la **Fase 1**: generare e chiudere lead (configuratore di
+preventivo, analisi manoscritto, pagine servizio). Le Fasi 2-3 (account, dashboard di
+progetto, abbonamenti AI, portale white label) sono documentate in `db/schema.ts` e in
+`config/plans.ts` per garantire estendibilità senza refactor, **ma non sono implementate**.
 
 ## Stack
 
-- **Next.js 16** (App Router, React Server Components) · **TypeScript strict**
-- **Tailwind CSS 4** (config CSS-first, componenti custom leggeri)
+- **Next.js 15** (App Router), **TypeScript strict**, React 19
+- **Tailwind CSS 4**
 - **Drizzle ORM** + **Neon Postgres** (driver serverless)
-- **Stripe Checkout** (modalità `payment`, nessun abbonamento in Fase 1)
-- **Resend** per le email transazionali
-- **Anthropic API** (`claude-sonnet-4-6`) per l'analisi manoscritto
-- **Zod** per la validazione di form, API e webhook
-- **Vitest** per i test unitari del motore di pricing
-
-Nessuna autenticazione utente in Fase 1: lead e ordini vivono nel DB e si gestiscono
-via email + un'unica pagina admin protetta da Basic Auth.
+- **Stripe** (Fase 1: solo Checkout `payment`, acconti)
+- **Resend** (email transazionali)
+- **Anthropic API** (analisi manoscritto)
+- **Zod** su ogni confine · **Vitest** per i test
 
 ## Struttura
 
 ```
-src/
-  app/                    # App Router: pagine, API routes, sitemap, robots
-    api/                  # preventivo, checkout, webhooks/stripe, analisi, contatto
-    admin/                # dashboard interna (Basic Auth via middleware)
-  components/             # UI, layout, sezioni, form, wizard preventivo, report analisi
-  config/                 # services, pricing, blog, caseStudies, site (stringhe i18n-ready)
-  db/                     # schema Drizzle + client Neon
-  lib/                    # pricing (engine puro), analysis, extract, email, stripe, seo, ...
-scripts/seed.ts           # seed di esempio (blog + lead/preventivi/analisi)
-drizzle/                  # migration generate
+app/           route App Router, API route, robots/sitemap/OG, middleware admin
+components/
+  ui/          primitivi del design system (Gabbia, Versale, Filetto, NotaMargine…)
+  layout/      testata, colophon, marchio
+  sezioni/     blocchi condivisi (processo, FAQ, chiusa, documento legale)
+  preventivo/  configuratore multi-step + risultato
+  analisi/     caricamento manoscritto + report
+  moduli/      form (contatto, agenzie, piani AI)
+config/        costanti di business: brand, servizi, prezzi, piani AI, copy ← unica fonte di verità
+content/blog/  12 articoli MDX (frontmatter + outline di lavoro)
+lib/           logica di dominio: pricing (puro, testato), metrics, ai, email, stripe, seo, blog
+db/            schema Drizzle + migration + seed
+tests/         Vitest: pricing engine + parsing risposta AI + metriche
+DESIGN_PLAN.md piano di design (implementato)
 ```
 
-Il **motore di pricing** (`src/lib/pricing.ts`) è una funzione pura e testabile: tutte
-le tariffe sono in `src/config/pricing.ts`. Produce tre pacchetti (Essenziale /
-Consigliato / Signature) con composizione e prezzo diversi.
+Il **brand è sostituibile** modificando `config/brand.ts`. Le tariffe vivono in
+`config/pricing.ts`; la logica di calcolo (pura) in `lib/pricing.ts`.
 
 ## Setup
 
 ```bash
+cp .env.example .env.local   # compila le variabili
 npm install
-cp .env.example .env.local   # e compila i valori
+npm run dev                  # http://localhost:3000
 ```
 
-### Variabili d'ambiente (vedi `.env.example`)
+### Variabili d'ambiente
 
-| Variabile | Descrizione |
-| --- | --- |
-| `NEXT_PUBLIC_SITE_URL` | URL pubblico del sito |
-| `DATABASE_URL` | Stringa di connessione Neon (pooled) |
-| `STRIPE_SECRET_KEY` / `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Chiavi Stripe |
-| `STRIPE_WEBHOOK_SECRET` | Secret del webhook Stripe |
-| `RESEND_API_KEY` | Chiave Resend |
-| `EMAIL_FROM` / `EMAIL_INTERNAL_NOTIFY` | Mittente e destinatario notifiche interne |
-| `ANTHROPIC_API_KEY` | Chiave Anthropic per l'analisi manoscritto |
-| `ANTHROPIC_MODEL` | (opzionale) override del modello, default `claude-sonnet-4-6` |
-| `ADMIN_USER` / `ADMIN_PASSWORD` | Credenziali Basic Auth per `/admin` |
-| `NEXT_PUBLIC_CALENDLY_URL` | URL Calendly per l'embed contatti |
-| `MANUSCRIPT_RETENTION_DAYS` | Giorni di conservazione dei file analizzati |
+Tutte documentate in `.env.example`. In sintesi:
 
-Il codice **degrada con eleganza** senza le chiavi: senza Resend le email vengono
-loggate, senza Stripe il checkout risponde `503`, senza Anthropic l'analisi risponde
-`503`. Il `build` e il `typecheck` non richiedono segreti reali.
+| Variabile | Uso |
+|-----------|-----|
+| `NEXT_PUBLIC_SITE_URL` | URL canonico (https://proemios.it) |
+| `DATABASE_URL` | Neon Postgres (`?sslmode=require`) |
+| `ANTHROPIC_API_KEY` | Analisi manoscritto |
+| `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Checkout acconti + webhook |
+| `RESEND_API_KEY`, `EMAIL_FROM`, `EMAIL_INTERNAL` | Email transazionali e notifiche interne |
+| `ADMIN_USER`, `ADMIN_PASSWORD` | Basic Auth su `/admin` |
+| `NEXT_PUBLIC_CALENDAR_URL` | Embed calendario in `/contatti` |
+| `NEXT_PUBLIC_ANALYTICS_DOMAIN` | Analytics cookieless (opzionale) |
+| `MANUSCRIPT_RETENTION_DAYS` | Giorni prima della cancellazione delle analisi |
 
 ## Comandi
 
 ```bash
-npm run dev          # sviluppo
-npm run build        # build di produzione
-npm run start        # avvio produzione
-npm run typecheck    # tsc --noEmit
-npx eslint src       # lint (ESLint flat config)
-npm run format       # Prettier
-npm test             # Vitest (motore di pricing)
+npm run dev        # sviluppo
+npm run build      # build di produzione
+npm run typecheck  # tsc --noEmit
+npm run test       # Vitest (pricing, parsing AI, metriche)
+npx eslint .       # lint
+npx prettier --write .  # formattazione
+npm run db:generate  # genera la migration dallo schema
+npm run db:migrate   # applica le migration su Neon
+npm run db:push      # push diretto dello schema (dev)
+npm run db:seed      # popola dati di esempio per l'admin
 ```
 
-## Database (Drizzle + Neon)
+### Database (Neon)
 
-Le migration sono già generate in `drizzle/`.
+1. Crea un progetto su [neon.tech](https://neon.tech) e copia la connection string in
+   `DATABASE_URL`.
+2. Applica lo schema: `npm run db:migrate` (oppure `npm run db:push` in dev).
+3. Popola i dati di esempio: `npm run db:seed`.
 
-```bash
-# Applica le migration al database Neon (usa DATABASE_URL)
-npm run db:migrate
-
-# In alternativa, sincronizza lo schema senza migration file (dev):
-npm run db:push
-
-# Rigenera le migration dopo aver modificato lo schema:
-npm run db:generate
-
-# Seed di esempio (12 post del blog + lead/preventivi/analisi dimostrativi):
-npm run db:seed
-```
-
-Crea un progetto su [Neon](https://neon.tech), copia la connection string **pooled**
-in `DATABASE_URL`, poi lancia `npm run db:migrate`.
-
-## Stripe in locale (webhook)
-
-Il webhook `/api/webhooks/stripe` marca l'ordine come `deposit_paid` e invia le email
-di conferma. In locale usa la [Stripe CLI](https://stripe.com/docs/stripe-cli):
+### Webhook Stripe in locale
 
 ```bash
-# 1. Login
 stripe login
-
-# 2. Inoltra gli eventi al webhook locale (stampa un whsec_...)
 stripe listen --forward-to localhost:3000/api/webhooks/stripe
-
-# 3. Copia il secret stampato in STRIPE_WEBHOOK_SECRET (.env.local) e riavvia dev
-
-# 4. (opzionale) simula un pagamento completato
-stripe trigger checkout.session.completed
+# copia il whsec_... in STRIPE_WEBHOOK_SECRET
 ```
-
-Il flusso completo del preventivo: configuratore → salvataggio lead+quote → email di
-riepilogo → checkout dell'acconto (40%) → webhook → ordine `deposit_paid`.
 
 ## Deploy (Vercel)
 
-- Importa il repo su Vercel e imposta le variabili d'ambiente del pannello.
-- Aggiungi le migration al processo di build oppure lanciale una tantum con
-  `npm run db:migrate` puntando a Neon.
-- Configura l'endpoint del webhook Stripe di produzione su
-  `https://<dominio>/api/webhooks/stripe` e imposta `STRIPE_WEBHOOK_SECRET`.
+1. Importa il repo su Vercel.
+2. Imposta tutte le env var (le stesse di `.env.example`; `NEXT_PUBLIC_SITE_URL` =
+   URL di produzione).
+3. Configura il webhook Stripe verso `https://<dominio>/api/webhooks/stripe`.
+4. Deploy automatico ad ogni push.
 
-## Note su AI e comunicazione (vincolo legale)
+## Comunicazione sull'AI (vincolo)
 
-In footer e nelle pagine dove l'AI è coinvolta compare la formula:
+Ovunque la tecnologia interviene si usa la formula di `config/brand.ts`
+(`aiDisclaimer`): *"Processo editoriale assistito dalla tecnologia e sottoposto a
+controllo professionale: ogni consegna viene verificata e approvata da un
+professionista."* Mai dichiarare processi "100% umani". Nel tool di analisi il report è
+dichiarato come prima diagnosi automatica.
 
-> _«Processo editoriale assistito dalla tecnologia e sottoposto a controllo
-> professionale: ogni consegna viene verificata e approvata da un professionista.»_
+## Cosa c'è (Fase 1 completa)
 
-Nel tool di analisi è esplicitato che il report è generato automaticamente ed è una
-stima preliminare, poi verificata da un professionista.
+| Area | Stato |
+|------|-------|
+| Design system editoriale (gabbia, versali, filetti, folî, colophon) | ✅ |
+| Homepage e pagine servizio (6 pacchetti, generate da `config/services.ts`) | ✅ |
+| Landing: dal-diario-al-libro, libro-per-professionisti, per-agenzie | ✅ |
+| Configuratore preventivo (6 passi, anteprima live, tre pacchetti) | ✅ |
+| Analisi manoscritto (docx/pdf/txt, metriche locali + giudizio AI, rate limit) | ✅ |
+| Strumenti AI: piani mensile/annuale + lista d'attesa | ✅ |
+| Stripe Checkout acconto 40% + webhook firmato | ✅ |
+| Email transazionali (Resend) + notifiche interne | ✅ |
+| Admin con Basic Auth, filtri periodo/stato | ✅ |
+| Blog MDX (12 outline), casi studio, chi siamo, contatti | ✅ |
+| Legali: privacy, termini, cookie (struttura completa, `DA COMPLETARE` evidenziati) | ✅ |
+| SEO: metadata, JSON-LD (Organization/Service/FAQPage/Article/Breadcrumb), sitemap, robots, OG | ✅ |
 
-## Fuori scope (Fase 1)
+Verifiche: `next build` verde (52 pagine), `tsc --noEmit` pulito, **36 test Vitest**,
+ESLint senza errori, nessun `any`, nessun overflow orizzontale su mobile.
 
-Niente area clienti con login, niente abbonamenti, niente marketplace di
-professionisti, niente monitoraggio Amazon, niente servizi accademici, niente
-versione inglese (le stringhe sono però centralizzate in `src/config/` per rendere
-l'i18n aggiungibile senza refactor).
+## Prima della messa online
+
+Il sito funziona anche senza segreti (le funzioni degradano con un messaggio chiaro),
+ma per la produzione servono:
+
+1. **Segreti**: `DATABASE_URL`, `ANTHROPIC_API_KEY`, `STRIPE_*`, `RESEND_API_KEY`,
+   `ADMIN_USER`/`ADMIN_PASSWORD`, `NEXT_PUBLIC_CALENDAR_URL`.
+2. **Database**: `npm run db:migrate` su Neon.
+3. **Pagine legali**: completare tutte le sezioni marcate `DA COMPLETARE`
+   (dati del titolare, conservazione, recesso, foro) e farle validare a un professionista.
+4. **Casi studio**: `config/case-studies.ts` — confermare con i clienti la pubblicazione
+   dei due casi reali; il terzo è marcato `autorizzato: false` perché dimostrativo.
+5. **Blog**: gli articoli sono outline (`pubblicato: false`, quindi `noindex`).
+   Scriverli e portare il flag a `true` con la data.
+
+## Fase 2 (non implementata)
+
+Account con magic link, dashboard di progetto, abbonamenti Stripe attivi
+(`SUBSCRIPTIONS_LIVE` in `config/plans.ts`), generatore di copertine, ottimizzatore
+scheda Amazon, portale white label. Lo schema in `db/schema.ts` documenta le entità
+future (`users`, `organizations`, `subscriptions`, `projects`, `project_stages`,
+`deliverables`) perché arrivino senza migrazioni distruttive.

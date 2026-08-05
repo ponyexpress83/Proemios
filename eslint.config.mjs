@@ -1,9 +1,14 @@
-import next from "eslint-config-next";
+import { dirname } from "path";
+import { fileURLToPath } from "url";
+import { FlatCompat } from "@eslint/eslintrc";
 
-const eslintConfig = [
-  ...next,
+const compat = new FlatCompat({ baseDirectory: dirname(fileURLToPath(import.meta.url)) });
+
+const config = [
+  ...compat.extends("next/core-web-vitals", "next/typescript"),
   {
     rules: {
+      // Il brief vieta `any`: deve rompere, non avvisare.
       "@typescript-eslint/no-explicit-any": "error",
       "@typescript-eslint/no-unused-vars": [
         "warn",
@@ -11,9 +16,7 @@ const eslintConfig = [
       ],
     },
   },
-  {
-    ignores: [".next/**", "node_modules/**", "drizzle/**"],
-  },
+  { ignores: [".next/**", "node_modules/**", "drizzle/**", "content/**", "next-env.d.ts"] },
 ];
 
-export default eslintConfig;
+export default config;

@@ -1,9 +1,89 @@
 {
-  "id": "e92c326d-958d-4d9b-b080-ff7b045208b5",
+  "id": "356b4ef0-6871-431e-be72-e3fcd0f82e8b",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
+    "public.agency_leads": {
+      "name": "agency_leads",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "lead_id": {
+          "name": "lead_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nome_agenzia": {
+          "name": "nome_agenzia",
+          "type": "varchar(200)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sito": {
+          "name": "sito",
+          "type": "varchar(320)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "servizi_esternalizzati": {
+          "name": "servizi_esternalizzati",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "volume_stimato": {
+          "name": "volume_stimato",
+          "type": "varchar(120)",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "agency_leads_lead_idx": {
+          "name": "agency_leads_lead_idx",
+          "columns": [
+            {
+              "expression": "lead_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "agency_leads_lead_id_leads_id_fk": {
+          "name": "agency_leads_lead_id_leads_id_fk",
+          "tableFrom": "agency_leads",
+          "tableTo": "leads",
+          "columnsFrom": [
+            "lead_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.leads": {
       "name": "leads",
       "schema": "",
@@ -15,21 +95,27 @@
           "notNull": true,
           "default": "gen_random_uuid()"
         },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
         "nome": {
           "name": "nome",
-          "type": "text",
+          "type": "varchar(200)",
           "primaryKey": false,
           "notNull": true
         },
         "email": {
           "name": "email",
-          "type": "text",
+          "type": "varchar(320)",
           "primaryKey": false,
           "notNull": true
         },
         "telefono": {
           "name": "telefono",
-          "type": "text",
+          "type": "varchar(40)",
           "primaryKey": false,
           "notNull": false
         },
@@ -39,6 +125,20 @@
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": true
+        },
+        "consenso_privacy": {
+          "name": "consenso_privacy",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "consenso_marketing": {
+          "name": "consenso_marketing",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
         },
         "note": {
           "name": "note",
@@ -54,7 +154,53 @@
           "default": "now()"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "leads_email_idx": {
+          "name": "leads_email_idx",
+          "columns": [
+            {
+              "expression": "email",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "leads_fonte_idx": {
+          "name": "leads_fonte_idx",
+          "columns": [
+            {
+              "expression": "fonte",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "leads_created_at_idx": {
+          "name": "leads_created_at_idx",
+          "columns": [
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
@@ -81,7 +227,7 @@
         },
         "filename": {
           "name": "filename",
-          "type": "text",
+          "type": "varchar(400)",
           "primaryKey": false,
           "notNull": true
         },
@@ -97,6 +243,12 @@
           "primaryKey": false,
           "notNull": true
         },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -105,7 +257,53 @@
           "default": "now()"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "analyses_lead_idx": {
+          "name": "analyses_lead_idx",
+          "columns": [
+            {
+              "expression": "lead_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "analyses_expires_idx": {
+          "name": "analyses_expires_idx",
+          "columns": [
+            {
+              "expression": "expires_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "analyses_created_at_idx": {
+          "name": "analyses_created_at_idx",
+          "columns": [
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "manuscript_analyses_lead_id_leads_id_fk": {
           "name": "manuscript_analyses_lead_id_leads_id_fk",
@@ -123,83 +321,6 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.posts": {
-      "name": "posts",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "slug": {
-          "name": "slug",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "titolo": {
-          "name": "titolo",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "estratto": {
-          "name": "estratto",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "contenuto": {
-          "name": "contenuto",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "outline": {
-          "name": "outline",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "categoria": {
-          "name": "categoria",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "pubblicato": {
-          "name": "pubblicato",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "posts_slug_unique": {
-          "name": "posts_slug_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "slug"
-          ]
-        }
-      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -227,15 +348,27 @@
           "primaryKey": false,
           "notNull": true
         },
-        "pacchetti": {
-          "name": "pacchetti",
+        "pacchetti_generati": {
+          "name": "pacchetti_generati",
           "type": "jsonb",
           "primaryKey": false,
           "notNull": true
         },
         "pacchetto_scelto": {
           "name": "pacchetto_scelto",
-          "type": "text",
+          "type": "varchar(40)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "prezzo_totale": {
+          "name": "prezzo_totale",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "acconto": {
+          "name": "acconto",
+          "type": "integer",
           "primaryKey": false,
           "notNull": false
         },
@@ -249,7 +382,7 @@
         },
         "stripe_session_id": {
           "name": "stripe_session_id",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
           "notNull": false
         },
@@ -259,9 +392,77 @@
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "quotes_lead_idx": {
+          "name": "quotes_lead_idx",
+          "columns": [
+            {
+              "expression": "lead_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "quotes_stato_idx": {
+          "name": "quotes_stato_idx",
+          "columns": [
+            {
+              "expression": "stato",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "quotes_created_at_idx": {
+          "name": "quotes_created_at_idx",
+          "columns": [
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "quotes_stripe_session_idx": {
+          "name": "quotes_stripe_session_idx",
+          "columns": [
+            {
+              "expression": "stripe_session_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "quotes_lead_id_leads_id_fk": {
           "name": "quotes_lead_id_leads_id_fk",
@@ -302,7 +503,8 @@
         "draft",
         "sent",
         "deposit_paid",
-        "rejected"
+        "won",
+        "lost"
       ]
     }
   },

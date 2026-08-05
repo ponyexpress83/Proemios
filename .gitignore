@@ -1,7 +1,7 @@
 # dependencies
 /node_modules
 /.pnp
-.pnp.*
+.pnp.js
 
 # next.js
 /.next/
@@ -10,9 +10,6 @@ next-env.d.ts
 
 # production
 /build
-
-# testing
-/coverage
 
 # misc
 .DS_Store
@@ -25,7 +22,6 @@ yarn-error.log*
 
 # local env files
 .env
-.env.local
 .env*.local
 
 # vercel
@@ -33,9 +29,3 @@ yarn-error.log*
 
 # typescript
 *.tsbuildinfo
-
-# drizzle
-/drizzle/meta/_journal.lock
-
-# uploads (temporary manuscript files)
-/tmp-uploads
