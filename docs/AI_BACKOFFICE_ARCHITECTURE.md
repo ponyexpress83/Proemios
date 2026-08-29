@@ -35,7 +35,7 @@ Il confine cliente/admin e rigido.
 
 Flusso target:
 
-`ordine -> file originale -> Job -> Model Router -> run AI -> controlli -> eventuale seconda run -> revisione admin/editor -> approvazione -> artefatto consegnabile`
+`ordine -> file originale -> Job -> Model Router -> run AI -> controlli -> eventuale seconda run -> revisione umana -> approvazione editoriale -> approvazione operativa -> artefatto consegnabile`
 
 Stati minimi del Job:
 
@@ -43,6 +43,7 @@ Stati minimi del Job:
 - `running`
 - `needs_review`
 - `needs_input`
+- `editorially_approved`
 - `approved`
 - `delivered`
 - `failed`
@@ -50,25 +51,27 @@ Stati minimi del Job:
 
 Un Job non sovrascrive mai il file originale. Ogni trasformazione produce una nuova versione/artefatto.
 
-## 3. Modalita human-in-the-loop
+## 3. Human-in-the-loop obbligatorio
 
-### Automatico
+Per i servizi editoriali che modificano o valutano testi, **la consegna automatica senza approvazione umana non e ammessa**.
 
-`AI -> controlli automatici -> consegna`
-
-Consentito solo per output a rischio basso e servizi esplicitamente configurati come automatici. Non e il default per manoscritti inediti ad alto valore.
+L'AI puo eseguire automaticamente la lavorazione, i retry e i controlli tecnici, ma prima della consegna un redattore/revisore autorizzato deve esaminare il risultato e approvarlo editorialmente.
 
 ### Controllato
 
-`AI -> controllo admin/editor -> consegna`
+`AI -> controlli automatici -> redattore/revisore -> approvazione editoriale -> admin/operations -> consegna`
 
-Default consigliato per correzione bozze e revisione linguistica.
+Default per correzione bozze e revisione linguistica.
 
 ### Premium
 
-`AI 1 -> AI 2 indipendente -> confronto -> adjudication -> editor umano -> consegna`
+`AI 1 -> AI 2 indipendente -> confronto -> adjudication -> redattore/editor umano -> approvazione editoriale -> admin/operations -> consegna`
 
-Default consigliato per editing stilistico/narrativo, schede editoriali premium e progetti sensibili o ad alto ticket.
+Default per editing stilistico/narrativo, schede editoriali premium e progetti sensibili o ad alto ticket.
+
+### Separazione approvazione/consegna
+
+Il redattore puo approvare il contenuto, ma non deve avere il permesso di consegnarlo direttamente al cliente. La consegna e un'azione distinta, riservata a un ruolo operativo/admin.
 
 ## 4. Livelli di intervento editoriale
 
@@ -119,8 +122,9 @@ Strategia iniziale da verificare con benchmark su manoscritti italiani reali:
 3. Normalizzazione degli interventi in uno schema comune.
 4. Confronto fra interventi concordanti/divergenti.
 5. Adjudicator sui soli casi controversi o ad alto impatto.
-6. Revisione admin/editor.
-7. Produzione artefatto finale.
+6. Revisione redattore/editor.
+7. Approvazione editoriale.
+8. Approvazione operativa e consegna.
 
 Questo evita di pagare il modello premium su ogni token quando non serve.
 
@@ -147,7 +151,7 @@ Ogni intervento normalizzato contiene almeno:
 - confidence;
 - motivazione interna;
 - eventuale commento destinato all'autore;
-- stato admin: pending/accepted/rejected/modified.
+- stato revisore: pending/accepted/rejected/modified.
 
 Categorie iniziali:
 
@@ -165,13 +169,14 @@ Categorie iniziali:
 
 Se la pipeline incontra elementi OOXML che non sa preservare in modo affidabile, il Job passa a `needs_review` e non consegna automaticamente un file potenzialmente danneggiato.
 
-## 8. Schermata admin revisione
+## 8. Schermata revisione redattore/admin
 
 Target UX:
 
-- ordine e servizio;
+- codice progetto/ordine pseudonimizzato;
+- servizio editoriale;
 - conteggio parole;
-- stato AI;
+- stato lavorazione;
 - numero totale interventi;
 - aggregazione per categoria;
 - conteggio `da verificare`;
@@ -179,16 +184,65 @@ Target UX:
 - prima/dopo;
 - accetta/rifiuta/modifica singolo intervento;
 - accetta/rifiuta per categoria o selezione;
-- rigenera;
-- secondo controllo;
-- cambia modello;
-- confronto run;
+- richiesta di secondo controllo;
+- note interne;
 - scarica DOCX revisionato;
-- approva e consegna.
+- approva editorialmente.
 
-Provider, prompt, token e costi devono stare in un pannello tecnico admin separato, non nella vista cliente.
+Funzioni come rigenerazione, cambio modello, confronto run, provider, prompt, token e costi possono essere ulteriormente limitate a `editorial_manager`/admin e non sono automaticamente disponibili a ogni revisore.
 
-## 9. Privacy manoscritti inediti
+## 9. Account staff, RBAC e minimizzazione dati
+
+Ogni dipendente/collaboratore usa un account nominativo individuale. Account condivisi vietati.
+
+Principio: **least privilege + need to know**.
+
+### Ruoli iniziali
+
+- `super_admin`: accesso completo;
+- `operations_admin`: clienti, progetti, assegnazioni, consegne; accesso economico solo se previsto;
+- `editorial_manager`: assegna Job, vede lavorazioni editoriali e controlli AI necessari, approva/escalation; niente dati finanziari se non necessari;
+- `editor_reviewer`: vede esclusivamente i Job assegnati e i dati editoriali indispensabili;
+- `finance`: contratti, prezzi, fatture, pagamenti; nessun accesso ordinario ai manoscritti o agli output AI;
+- `client`: solo il proprio portale e i propri deliverable.
+
+### Dati che `editor_reviewer` NON deve vedere
+
+- nome/cognome del cliente, salvo eccezione esplicita necessaria al testo;
+- email, telefono, indirizzo e altri contatti;
+- contratto;
+- preventivo e prezzo;
+- fatture e pagamenti;
+- margine/costo commerciale;
+- provenienza lead, UTM, campagna pubblicitaria;
+- note commerciali;
+- dati di fatturazione;
+- token/costo dei provider;
+- dati di altri progetti non assegnati.
+
+### Dati che `editor_reviewer` puo vedere
+
+- codice progetto (es. `P-184`);
+- titolo/alias del manoscritto quando necessario;
+- livello di servizio;
+- istruzioni editoriali;
+- file necessari al Job;
+- interventi proposti e relative categorie;
+- eventuali richieste di chiarimento editoriali filtrate dal project manager;
+- storico editoriale necessario a evitare regressioni;
+- scadenza e stato operativo del Job.
+
+L'identita del cliente va pseudonimizzata nel workspace redazionale ogni volta che non e necessaria al lavoro.
+
+### Permessi critici
+
+- `editor_reviewer` puo `review`, `accept_intervention`, `reject_intervention`, `modify_intervention`, `request_clarification`, `mark_editorially_approved`;
+- `editor_reviewer` non puo `view_contract`, `view_price`, `view_payment`, `view_client_contact`, `change_model` di default, `deliver_to_client`;
+- solo ruoli autorizzati possono cambiare provider/modello, vedere costi AI, assegnare personale o consegnare al cliente.
+
+Ogni accesso a file, approvazione, rifiuto, modifica e consegna deve produrre audit log con utente, timestamp e azione.
+
+## 10. Privacy manoscritti inediti
 
 La privacy e un requisito di routing, non documentazione successiva.
 
@@ -212,7 +266,7 @@ Il router deve poter escludere provider non ammessi per un Job.
 - eventuali payload completi necessari al debug devono avere storage separato, cifrato, accesso admin ristretto e retention esplicita;
 - token/costi sono dati amministrativi e mai cliente-facing.
 
-## 10. White-label / B2B
+## 11. White-label / B2B
 
 La futura organizzazione/agenzia deve poter avere:
 
@@ -224,7 +278,7 @@ La futura organizzazione/agenzia deve poter avere:
 
 Per questo Job, Run, File e Deliverable devono appartenere in futuro a un `organization_id`/`project_id`, non essere legati per sempre a un singolo utente.
 
-## 11. Benchmark interno prima del default modello
+## 12. Benchmark interno prima del default modello
 
 Creare un corpus autorizzato di manoscritti italiani con gold set editoriale e misurare almeno:
 
@@ -241,16 +295,18 @@ Creare un corpus autorizzato di manoscritti italiani con gold set editoriale e m
 
 La metrica principale per proofreading non e il numero di modifiche, ma la quota di modifiche corrette accettate con basso falso positivo.
 
-## 12. Sequenza di implementazione
+## 13. Sequenza di implementazione
 
-1. Job model + audit + privacy policy + Model Router.
-2. Storage/versioning file immutabili.
-3. Proof-of-concept DOCX su corpus di test complesso.
-4. Schema interventi + preview admin.
-5. Run controllata con un provider.
-6. Secondo provider + confronto + adjudication.
-7. Approve/deliver e portale cliente con confine dati verificato.
-8. Benchmark e promozione dei default.
-9. Multi-tenant/white-label.
+1. RBAC staff + account individuali + audit log.
+2. Job model + audit + privacy policy + Model Router.
+3. Storage/versioning file immutabili.
+4. Proof-of-concept DOCX su corpus di test complesso.
+5. Schema interventi + preview redattore/admin.
+6. Run controllata con un provider.
+7. Secondo provider + confronto + adjudication.
+8. Approvazione editoriale obbligatoria + approve/deliver separati.
+9. Portale cliente con confine dati verificato.
+10. Benchmark e promozione dei default.
+11. Multi-tenant/white-label.
 
-Nessuna fase deve rendere pubblici dettagli AI al cliente.
+Nessuna fase deve rendere pubblici dettagli AI al cliente o dati commerciali non necessari allo staff editoriale.
