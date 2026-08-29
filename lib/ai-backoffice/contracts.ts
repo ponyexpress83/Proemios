@@ -8,7 +8,11 @@ export const editorialServiceLevelSchema = z.enum([
 ]);
 export type EditorialServiceLevel = z.infer<typeof editorialServiceLevelSchema>;
 
-export const humanReviewModeSchema = z.enum(["automatico", "controllato", "premium"]);
+/**
+ * Per i servizi editoriali la revisione umana e sempre obbligatoria prima della consegna.
+ * "controllato" e "premium" descrivono quanto AI viene usata prima dell'approvazione umana.
+ */
+export const humanReviewModeSchema = z.enum(["controllato", "premium"]);
 export type HumanReviewMode = z.infer<typeof humanReviewModeSchema>;
 
 export const editorialJobStatusSchema = z.enum([
@@ -16,6 +20,7 @@ export const editorialJobStatusSchema = z.enum([
   "running",
   "needs_review",
   "needs_input",
+  "editorially_approved",
   "approved",
   "delivered",
   "failed",
@@ -55,6 +60,91 @@ export const editorialInterventionSchema = z.object({
   status: interventionStatusSchema.default("pending"),
 });
 export type EditorialIntervention = z.infer<typeof editorialInterventionSchema>;
+
+export const staffRoleSchema = z.enum([
+  "super_admin",
+  "operations_admin",
+  "editorial_manager",
+  "editor_reviewer",
+  "finance",
+  "client",
+]);
+export type StaffRole = z.infer<typeof staffRoleSchema>;
+
+export const permissionSchema = z.enum([
+  "view_assigned_job",
+  "view_manuscript",
+  "review_interventions",
+  "modify_intervention",
+  "request_clarification",
+  "mark_editorially_approved",
+  "view_client_identity",
+  "view_client_contact",
+  "view_contract",
+  "view_price",
+  "view_payment",
+  "view_marketing_attribution",
+  "view_ai_run",
+  "view_ai_cost",
+  "change_model",
+  "rerun_ai",
+  "assign_staff",
+  "approve_delivery",
+  "deliver_to_client",
+]);
+export type Permission = z.infer<typeof permissionSchema>;
+
+export const staffAccountSchema = z.object({
+  id: z.string().min(1),
+  role: staffRoleSchema,
+  active: z.boolean().default(true),
+  displayName: z.string().min(1).max(200),
+  email: z.string().email(),
+});
+export type StaffAccount = z.infer<typeof staffAccountSchema>;
+
+export const rolePermissions: Record<StaffRole, readonly Permission[]> = {
+  super_admin: permissionSchema.options,
+  operations_admin: [
+    "view_assigned_job",
+    "view_manuscript",
+    "view_client_identity",
+    "view_client_contact",
+    "view_contract",
+    "view_price",
+    "view_payment",
+    "view_marketing_attribution",
+    "assign_staff",
+    "approve_delivery",
+    "deliver_to_client",
+  ],
+  editorial_manager: [
+    "view_assigned_job",
+    "view_manuscript",
+    "review_interventions",
+    "modify_intervention",
+    "request_clarification",
+    "mark_editorially_approved",
+    "view_ai_run",
+    "change_model",
+    "rerun_ai",
+    "assign_staff",
+  ],
+  editor_reviewer: [
+    "view_assigned_job",
+    "view_manuscript",
+    "review_interventions",
+    "modify_intervention",
+    "request_clarification",
+    "mark_editorially_approved",
+  ],
+  finance: ["view_client_identity", "view_client_contact", "view_contract", "view_price", "view_payment"],
+  client: [],
+};
+
+export function roleHasPermission(role: StaffRole, permission: Permission): boolean {
+  return rolePermissions[role].includes(permission);
+}
 
 export const aiProviderSchema = z.enum(["openai", "anthropic"]);
 export type AiProvider = z.infer<typeof aiProviderSchema>;
