@@ -2,13 +2,7 @@
  * Schema Drizzle — Proemios.
  *
  * Fase 1: crea solo le tabelle usate ora (leads, quotes, manuscript_analyses,
- * agency_leads). Lo schema è però PROGETTATO per reggere le Fasi 2-3 senza
- * refactor: vedi il blocco "FASE 2-3" in fondo per le entità future
- * (users, organizations, subscriptions, projects, project_stages, deliverables).
- *
- * Principio guida: `leads` è l'entità di contatto neutra; in Fase 2 un lead potrà
- * essere collegato a un `user` (colonna user_id già prevista, nullable). Nulla di
- * ciò che scriviamo ora deve diventare un ostacolo per quelle entità.
+ * agency_leads). Lo schema e progettato per reggere le Fasi 2-3 senza refactor.
  */
 
 import {
@@ -23,8 +17,6 @@ import {
   jsonb,
   index,
 } from "drizzle-orm/pg-core";
-
-// ------------------------------- Enums -------------------------------
 
 export const leadSourceEnum = pgEnum("lead_source", [
   "preventivo",
@@ -41,18 +33,21 @@ export const quoteStatusEnum = pgEnum("quote_status", [
   "lost",
 ]);
 
-// ------------------------------- leads -------------------------------
-
 export const leads = pgTable(
   "leads",
   {
     id: uuid("id").defaultRandom().primaryKey(),
-    // Predisposizione Fase 2: collegamento all'account utente (nullable finché non esiste).
     userId: uuid("user_id"),
     nome: varchar("nome", { length: 200 }).notNull(),
     email: varchar("email", { length: 320 }).notNull(),
     telefono: varchar("telefono", { length: 40 }),
     fonte: leadSourceEnum("fonte").notNull(),
+    /** Stato CRM volutamente testuale: puo evolvere senza migrazioni enum. */
+    stage: varchar("stage", { length: 40 }).notNull().default("new"),
+    /** Score operativo 0-100 per dare priorita alle call. */
+    leadScore: integer("lead_score"),
+    /** UTM, click id, landing e referrer della prima visita attribuibile. */
+    attribution: jsonb("attribution"),
     consensoPrivacy: boolean("consenso_privacy").notNull().default(false),
     consensoMarketing: boolean("consenso_marketing").notNull().default(false),
     note: text("note"),
@@ -61,11 +56,11 @@ export const leads = pgTable(
   (t) => ({
     emailIdx: index("leads_email_idx").on(t.email),
     fonteIdx: index("leads_fonte_idx").on(t.fonte),
+    stageIdx: index("leads_stage_idx").on(t.stage),
+    scoreIdx: index("leads_score_idx").on(t.leadScore),
     createdAtIdx: index("leads_created_at_idx").on(t.createdAt),
   }),
 );
-
-// ------------------------------- quotes -------------------------------
 
 export const quotes = pgTable(
   "quotes",
@@ -74,9 +69,7 @@ export const quotes = pgTable(
     leadId: uuid("lead_id")
       .notNull()
       .references(() => leads.id, { onDelete: "cascade" }),
-    /** Input del configuratore (PricingInput serializzato). */
     input: jsonb("input").notNull(),
-    /** I tre pacchetti generati (QuoteResult.packages). */
     pacchettiGenerati: jsonb("pacchetti_generati").notNull(),
     pacchettoScelto: varchar("pacchetto_scelto", { length: 40 }),
     prezzoTotale: integer("prezzo_totale"),
@@ -94,8 +87,6 @@ export const quotes = pgTable(
   }),
 );
 
-// ------------------------- manuscript_analyses -------------------------
-
 export const manuscriptAnalyses = pgTable(
   "manuscript_analyses",
   {
@@ -105,9 +96,7 @@ export const manuscriptAnalyses = pgTable(
       .references(() => leads.id, { onDelete: "cascade" }),
     filename: varchar("filename", { length: 400 }).notNull(),
     wordCount: integer("word_count").notNull(),
-    /** Report AI validato (non conserviamo il testo integrale del manoscritto). */
     report: jsonb("report").notNull(),
-    /** Cancellazione automatica dopo MANUSCRIPT_RETENTION_DAYS. */
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -117,8 +106,6 @@ export const manuscriptAnalyses = pgTable(
     createdAtIdx: index("analyses_created_at_idx").on(t.createdAt),
   }),
 );
-
-// ------------------------------ agency_leads ------------------------------
 
 export const agencyLeads = pgTable(
   "agency_leads",
@@ -137,8 +124,6 @@ export const agencyLeads = pgTable(
   }),
 );
 
-// ------------------------------ Tipi inferiti ------------------------------
-
 export type Lead = typeof leads.$inferSelect;
 export type NewLead = typeof leads.$inferInsert;
 export type Quote = typeof quotes.$inferSelect;
@@ -149,22 +134,8 @@ export type AgencyLead = typeof agencyLeads.$inferSelect;
 export type NewAgencyLead = typeof agencyLeads.$inferInsert;
 
 /*
- * ============================ FASE 2-3 (NON creare ora) ============================
- *
- * Queste entità NON vanno implementate in Fase 1. Sono documentate qui perché lo
- * schema attuale le regga senza riscritture. Quando si aggiungeranno:
- *
- *  users            id, email(unique), nome, created_at, ...    (magic link auth)
- *                   -> leads.user_id la referenzierà.
- *  organizations    id, nome, tipo('agency'|'studio'), ...      (portale white label)
- *  subscriptions    id, user_id|org_id, plan('free'|'pro'|'premium'),
- *                   period('monthly'|'annual'), status, stripe_subscription_id,
- *                   current_period_end, ...                     (abbonamenti AI)
- *  projects         id, user_id, quote_id, titolo, stato, ...   (dashboard cliente)
- *  project_stages   id, project_id, tipo('editing'|'cover'|'layout'|'isbn'|'kdp'),
- *                   stato, updated_at, ...
- *  deliverables     id, project_id, stage_id, filename, url, approvato, ...
- *
- * quotes.lead_id e leads (senza user obbligatorio) restano compatibili: un preventivo
- * potrà evolvere in project senza migrazioni distruttive.
+ * FASE 2-3
+ * users, organizations, subscriptions, projects, project_stages, deliverables.
+ * leads.user_id resta nullable per consentire al preventivo di diventare progetto
+ * senza migrazioni distruttive.
  */
