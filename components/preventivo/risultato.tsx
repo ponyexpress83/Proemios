@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Bottone, BottoneLink } from "@/components/ui/bottone";
 import { Filetto, Etichetta, cx } from "@/components/ui/primitivi";
 import { euro, numero } from "@/lib/format";
+import { trackEvent } from "@/lib/analytics";
 import { PREVENTIVO, UI } from "@/config/copy";
 import type { QuoteResult, PackageTier } from "@/lib/pricing";
 
@@ -11,9 +12,26 @@ export function RisultatoPreventivo({ esito, quoteId }: { esito: QuoteResult; qu
   const [inCorso, setInCorso] = useState<PackageTier | null>(null);
   const [errore, setErrore] = useState("");
 
+  useEffect(() => {
+    const consigliato = esito.packages.find((p) => p.recommended);
+    trackEvent("quote_generated", {
+      quote_id: quoteId,
+      value: consigliato?.total,
+      currency: "EUR",
+      word_count: esito.wordCount,
+    });
+  }, [esito, quoteId]);
+
   async function pagaAcconto(pacchetto: PackageTier) {
     setInCorso(pacchetto);
     setErrore("");
+    const scelto = esito.packages.find((p) => p.tier === pacchetto);
+    trackEvent("checkout_started", {
+      quote_id: quoteId,
+      package: pacchetto,
+      value: scelto?.deposit,
+      currency: "EUR",
+    });
     try {
       const res = await fetch("/api/checkout", {
         method: "POST",
@@ -42,13 +60,14 @@ export function RisultatoPreventivo({ esito, quoteId }: { esito: QuoteResult; qu
             davvero e, se il lavoro è più semplice della stima, adeguiamo il prezzo.
           </p>
         </div>
-        <BottoneLink
-          href={`/contatti?quote=${encodeURIComponent(quoteId)}`}
-          variante="chiaro"
+        <div
           className="mt-5 shrink-0 sm:mt-0"
+          onClick={() => trackEvent("consultation_clicked", { quote_id: quoteId })}
         >
-          Prenota una call
-        </BottoneLink>
+          <BottoneLink href={`/contatti?quote=${encodeURIComponent(quoteId)}`} variante="chiaro">
+            Prenota una call
+          </BottoneLink>
+        </div>
       </div>
 
       <div className="grid gap-5 lg:grid-cols-3">
