@@ -32,10 +32,11 @@ export function AttributionCapture() {
   useEffect(() => {
     const url = new URL(window.location.href);
     const existing = readExisting();
+    const referrer = document.referrer.slice(0, 500) || undefined;
     const next: LeadAttribution = {
       ...existing,
       landingPath: existing.landingPath ?? `${url.pathname}${url.search}`.slice(0, 500),
-      referrer: existing.referrer ?? document.referrer.slice(0, 500) || undefined,
+      referrer: existing.referrer ?? referrer,
       firstSeenAt: existing.firstSeenAt ?? new Date().toISOString(),
     };
 
