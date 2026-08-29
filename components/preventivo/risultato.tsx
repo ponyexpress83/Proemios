@@ -1,17 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Bottone } from "@/components/ui/bottone";
+import { Bottone, BottoneLink } from "@/components/ui/bottone";
 import { Filetto, Etichetta, cx } from "@/components/ui/primitivi";
 import { euro, numero } from "@/lib/format";
 import { PREVENTIVO, UI } from "@/config/copy";
 import type { QuoteResult, PackageTier } from "@/lib/pricing";
 
-/**
- * I tre pacchetti calcolati, in registro da apparato: fondo notte, monospazio
- * sui numerici, filetti al posto dei riquadri. Da qui parte il checkout
- * dell'acconto.
- */
 export function RisultatoPreventivo({ esito, quoteId }: { esito: QuoteResult; quoteId: string }) {
   const [inCorso, setInCorso] = useState<PackageTier | null>(null);
   const [errore, setErrore] = useState("");
@@ -36,6 +31,26 @@ export function RisultatoPreventivo({ esito, quoteId }: { esito: QuoteResult; qu
 
   return (
     <div>
+      <div className="mb-8 rounded-scheda border border-ottone/50 bg-notte-alta p-6 sm:flex sm:items-center sm:justify-between sm:gap-8">
+        <div>
+          <p className="apparato text-ottone">Prima di scegliere</p>
+          <h3 className="font-display text-carta mt-2 text-2xl font-medium">
+            Vuoi verificare insieme il preventivo?
+          </h3>
+          <p className="prosa text-carta/65 mt-2 max-w-2xl text-sm">
+            Per i progetti editoriali la call resta gratuita: guardiamo il testo, capiamo cosa serve
+            davvero e, se il lavoro è più semplice della stima, adeguiamo il prezzo.
+          </p>
+        </div>
+        <BottoneLink
+          href={`/contatti?quote=${encodeURIComponent(quoteId)}`}
+          variante="chiaro"
+          className="mt-5 shrink-0 sm:mt-0"
+        >
+          Prenota una call
+        </BottoneLink>
+      </div>
+
       <div className="grid gap-5 lg:grid-cols-3">
         {esito.packages.map((p) => (
           <div
