@@ -12,11 +12,13 @@ import {
 import { Processo, ElencoIncluso } from "@/components/sezioni/blocchi";
 import { Faq } from "@/components/sezioni/faq";
 import { ModuloAgenzia } from "@/components/moduli/modulo-agenzia";
-import { getService } from "@/config/services";
+import { getServizio } from "@/config/catalogo";
+import { getPercorso } from "@/config/percorsi";
 import { AGENZIE } from "@/config/copy";
 import { metadatiPagina, JsonLd, faqJsonLd, breadcrumbJsonLd } from "@/lib/seo";
 
-const SERVIZIO = getService("partner-white-label")!;
+const SERVIZIO = getServizio("produzione-white-label")!;
+const PERCORSO = getPercorso("agenzie-e-white-label")!;
 
 export const metadata: Metadata = metadatiPagina({
   titolo: "Produzione editoriale per agenzie",
@@ -83,7 +85,7 @@ export default function PerAgenziePage() {
     <>
       <JsonLd
         data={[
-          faqJsonLd(SERVIZIO.faq),
+          faqJsonLd(PERCORSO.faq),
           breadcrumbJsonLd([
             { nome: "Home", path: "/" },
             { nome: "Per agenzie", path: "/per-agenzie" },
@@ -91,7 +93,7 @@ export default function PerAgenziePage() {
         ]}
       />
 
-      <section className="bg-carta pt-14 pb-12 sm:pt-20">
+      <section className="bg-fondo pt-14 pb-12 sm:pt-20">
         <Gabbia>
           <Impaginato
             margine={
@@ -103,11 +105,11 @@ export default function PerAgenziePage() {
               </>
             }
           >
-            <h1 className="font-display text-[2.4rem] leading-[1.06] font-medium sm:text-[3.2rem]">
+            <h1 className="text-[2.4rem] leading-[1.06] font-medium sm:text-[3.2rem]">
               {AGENZIE.titolo}
             </h1>
             <Filetto className="mt-6" />
-            <p className="prosa-grande specchio mt-6">{AGENZIE.occhiello}</p>
+            <p className="text-lg leading-relaxed text-testo-attenuato lettura mt-6">{AGENZIE.occhiello}</p>
           </Impaginato>
         </Gabbia>
       </section>
@@ -119,7 +121,7 @@ export default function PerAgenziePage() {
           <div className="mt-8 grid gap-5 sm:grid-cols-2">
             {ARGOMENTI.map((a) => (
               <Scheda key={a.titolo}>
-                <h3 className="font-display text-lg font-medium">{a.titolo}</h3>
+                <h3 className="text-lg font-medium">{a.titolo}</h3>
                 <p className="prosa mt-2 text-[0.95rem]">{a.testo}</p>
               </Scheda>
             ))}
@@ -141,32 +143,32 @@ export default function PerAgenziePage() {
           <Titolo as="h2">Cosa possiamo produrre</Titolo>
           <Filetto className="mt-5" />
           <div className="mt-8">
-            <ElencoIncluso voci={SERVIZIO.includes} />
+            <ElencoIncluso voci={SERVIZIO.include} />
           </div>
         </Impaginato>
       </Sezione>
 
       {/* Form, sul lato notte: è la conversione della pagina */}
-      <section id="richiesta" className="bg-notte text-carta su-notte py-16 sm:py-20">
+      <section id="richiesta" className="bg-fondo-alto text-testo  py-16 sm:py-20">
         <Gabbia>
           <div className="grid gap-12 lg:grid-cols-[1fr_1.15fr]">
             <div>
-              <p className="apparato text-ottone">§ 04 · Richiesta</p>
-              <Titolo as="h2" tono="notte" className="mt-5">
+              <p className="etichetta text-lime">§ 04 · Richiesta</p>
+              <Titolo as="h2" className="mt-5">
                 Listino riservato
               </Titolo>
-              <Filetto className="mt-5" tono="notte" />
-              <p className="prosa text-carta/75 mt-6">
+              <Filetto className="mt-5" />
+              <p className="prosa text-testo-attenuato mt-6">
                 Compilate il modulo: vi arriva l&rsquo;NDA da firmare e il listino con le condizioni
                 per il vostro volume. Non c&rsquo;è un prezzo pubblico perché non ce n&rsquo;è uno
                 solo: cambia con la ricorrenza.
               </p>
-              <p className="glossa text-carta/50 mt-6">
+              <p className="editoriale text-testo-tenue mt-6">
                 Non usiamo i vostri dati per contattare i vostri clienti. Mai.
               </p>
             </div>
 
-            <div className="rounded-scheda bg-carta text-inchiostro p-6 sm:p-8">
+            <div className="rounded-lg bg-fondo text-testo p-6 sm:p-8">
               <ModuloAgenzia />
             </div>
           </div>
@@ -177,7 +179,7 @@ export default function PerAgenziePage() {
         <Impaginato margine={<Folio n={5} etichetta="Domande" />}>
           <Titolo as="h2">Domande ricorrenti</Titolo>
           <div className="mt-8">
-            <Faq voci={SERVIZIO.faq} />
+            <Faq voci={PERCORSO.faq} />
           </div>
         </Impaginato>
       </Sezione>

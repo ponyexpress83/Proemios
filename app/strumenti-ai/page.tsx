@@ -81,7 +81,7 @@ export default function StrumentiAiPage() {
         ]}
       />
 
-      <section className="bg-carta pt-14 pb-12 sm:pt-20">
+      <section className="bg-fondo pt-14 pb-12 sm:pt-20">
         <Gabbia>
           <Impaginato
             margine={
@@ -93,11 +93,11 @@ export default function StrumentiAiPage() {
               </>
             }
           >
-            <h1 className="font-display text-[2.4rem] leading-[1.06] font-medium sm:text-[3.2rem]">
+            <h1 className="text-[2.4rem] leading-[1.06] font-medium sm:text-[3.2rem]">
               {STRUMENTI_AI.titolo}
             </h1>
             <Filetto className="mt-6" />
-            <p className="prosa-grande specchio mt-6">{STRUMENTI_AI.occhiello}</p>
+            <p className="text-lg leading-relaxed text-testo-attenuato lettura mt-6">{STRUMENTI_AI.occhiello}</p>
           </Impaginato>
         </Gabbia>
       </section>
@@ -110,8 +110,8 @@ export default function StrumentiAiPage() {
           <div className="mt-8 grid gap-5 sm:grid-cols-2">
             {DISPONIBILI.map((d) => (
               <Scheda key={d.titolo} className="flex flex-col">
-                <p className="apparato text-alloro">{d.stato}</p>
-                <h3 className="font-display mt-3 text-xl font-medium">{d.titolo}</h3>
+                <p className="etichetta text-viola-chiaro">{d.stato}</p>
+                <h3 className="mt-3 text-xl font-medium">{d.titolo}</h3>
                 <p className="prosa mt-2 flex-1 text-[0.95rem]">{d.testo}</p>
                 <Filetto className="my-4" />
                 <div>
@@ -126,15 +126,15 @@ export default function StrumentiAiPage() {
       </Sezione>
 
       {/* Piani, sul lato notte: è software */}
-      <section className="bg-notte text-carta su-notte py-16 sm:py-24">
+      <section className="bg-fondo-alto text-testo  py-16 sm:py-24">
         <Gabbia>
           <div className="mb-10">
-            <p className="apparato text-ottone">§ 02 · Abbonamento</p>
-            <Titolo as="h2" tono="notte" className="mt-5">
+            <p className="etichetta text-lime">§ 02 · Abbonamento</p>
+            <Titolo as="h2" className="mt-5">
               I piani
             </Titolo>
-            <Filetto className="mt-5" tono="notte" />
-            <p className="prosa-grande text-carta/75 mt-6 max-w-2xl">
+            <Filetto className="mt-5" />
+            <p className="text-lg leading-relaxed text-testo-attenuato text-testo-attenuato mt-6 max-w-2xl">
               Tre livelli: uno gratuito che resta gratuito, uno per chi pubblica sul serio, uno per
               chi gestisce più libri. Mensile o annuale, senza vincoli di durata.
             </p>
@@ -148,14 +148,14 @@ export default function StrumentiAiPage() {
         <Impaginato margine={<Folio n={3} etichetta="In lavorazione" />}>
           <Titolo as="h2">Cosa stiamo costruendo</Titolo>
           <Filetto className="mt-5" />
-          <p className="prosa specchio mt-6">
+          <p className="lettura text-base leading-relaxed text-testo-attenuato mt-6">
             L&rsquo;ordine di uscita lo decide chi è in lista: costruiamo prima quello che serve di
             più.
           </p>
           <ul className="mt-8 grid gap-x-10 gap-y-1 sm:grid-cols-2">
             {IN_ARRIVO.map((v) => (
-              <li key={v} className="border-filetto flex items-baseline gap-3 border-b py-3">
-                <span className="cifre text-ottone text-xs" aria-hidden>
+              <li key={v} className="border-bordo flex items-baseline gap-3 border-b py-3">
+                <span className="cifre text-lime text-xs" aria-hidden>
                   ○
                 </span>
                 <span className="prosa text-[1rem]">{v}</span>
@@ -171,7 +171,7 @@ export default function StrumentiAiPage() {
           <div className="mt-8">
             <Faq voci={FAQ} />
           </div>
-          <p className="glossa mt-10 max-w-2xl">{BRAND.aiDisclaimer}</p>
+          <p className="editoriale text-testo-tenue mt-10 max-w-2xl">{BRAND.aiDisclaimer}</p>
         </Impaginato>
       </Sezione>
 

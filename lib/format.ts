@@ -26,3 +26,14 @@ export function dataEstesa(v: Date | string): string {
     year: "numeric",
   }).format(d);
 }
+
+/** Tariffa a parola: "€ 0,014 – € 0,022 a parola". Tre decimali, come si quota. */
+export function tariffaParola(min: number, max: number): string {
+  const f = new Intl.NumberFormat("it-IT", {
+    style: "currency",
+    currency: "EUR",
+    minimumFractionDigits: 3,
+    maximumFractionDigits: 3,
+  });
+  return min === max ? `${f.format(min)} a parola` : `${f.format(min)} – ${f.format(max)} a parola`;
+}

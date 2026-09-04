@@ -1,109 +1,55 @@
-import type { Route } from "next";
-import Link from "next/link";
 import type { ReactNode } from "react";
-import { Filetto, Titolo, Gabbia, cx } from "@/components/ui/primitivi";
+import { Gabbia } from "@/components/ui/primitivi";
 import { BottoneLink } from "@/components/ui/bottone";
 import { AZIONI } from "@/config/copy";
-import { fascia } from "@/lib/format";
-import type { ServicePackage } from "@/config/services";
+import { cn } from "@/lib/cn";
 
-/* ── Processo: passaggi numerati come una sequenza di segnature ─────────── */
+/**
+ * I passaggi arrivano da tre fonti con nomi di campo diversi (config/services.ts
+ * in inglese, le pagine di contenuto in italiano). Normalizzarli qui evita di
+ * riscrivere ogni sorgente e di avere tre componenti quasi identici.
+ */
+type Passo =
+  | { title: string; desc: string }
+  | { titolo: string; descrizione: string }
+  | { titolo: string; testo: string };
 
+function normalizzaPasso(p: Passo): { titolo: string; descrizione: string } {
+  if ("title" in p) return { titolo: p.title, descrizione: p.desc };
+  if ("descrizione" in p) return p;
+  return { titolo: p.titolo, descrizione: p.testo };
+}
+
+export { ElencoIncluso, ElencoEscluso } from "./elenchi";
+
+/** Processo in passaggi numerati, per le pagine di contenuto. */
 export function Processo({
   passi,
-  tono = "carta",
+  className,
 }: {
-  passi: readonly { titolo: string; testo: string }[] | readonly string[];
-  tono?: "carta" | "notte";
+  passi: ReadonlyArray<Passo>;
+  className?: string;
 }) {
-  const normalizzati = passi.map((p) => (typeof p === "string" ? { titolo: p, testo: "" } : p));
-
+  const normalizzati = passi.map(normalizzaPasso);
   return (
-    <ol className="mt-2">
-      {normalizzati.map((passo, i) => (
-        <li key={i}>
-          <Filetto tono={tono === "notte" ? "notte" : "carta"} />
-          <div className="grid gap-x-8 gap-y-2 py-7 sm:grid-cols-[4rem_minmax(0,1fr)]">
-            <p
-              className={cx(
-                "cifre text-2xl font-medium",
-                tono === "notte" ? "text-ottone" : "text-alloro",
-              )}
-            >
-              {String(i + 1).padStart(2, "0")}
-            </p>
-            <div>
-              <h3
-                className={cx(
-                  "font-display text-xl font-medium",
-                  tono === "notte" ? "text-carta" : "text-inchiostro",
-                )}
-              >
-                {passo.titolo}
-              </h3>
-              {passo.testo && (
-                <p className={cx("prosa specchio mt-2", tono === "notte" && "text-carta/70")}>
-                  {passo.testo}
-                </p>
-              )}
-            </div>
-          </div>
+    <ol
+      className={cn(
+        "grid gap-px overflow-hidden rounded-lg bg-bordo sm:grid-cols-2 lg:grid-cols-4",
+        className,
+      )}
+    >
+      {normalizzati.map((p, i) => (
+        <li key={p.titolo} className="flex flex-col gap-3 bg-superficie p-6">
+          <span className="cifre text-sm text-viola-chiaro">{String(i + 1).padStart(2, "0")}</span>
+          <h3 className="text-base font-medium text-testo">{p.titolo}</h3>
+          <p className="text-sm leading-relaxed text-testo-tenue">{p.descrizione}</p>
         </li>
       ))}
-      <Filetto tono={tono === "notte" ? "notte" : "carta"} />
     </ol>
   );
 }
 
-/* ── Elenco di cose incluse ─────────────────────────────────────────────── */
-
-export function ElencoIncluso({
-  voci,
-  tono = "carta",
-}: {
-  voci: readonly string[];
-  tono?: "carta" | "notte";
-}) {
-  return (
-    <ul className="space-y-3">
-      {voci.map((v, i) => (
-        <li key={i} className="flex gap-3">
-          <span
-            className={cx("mt-2 h-px w-4 shrink-0", tono === "notte" ? "bg-ottone" : "bg-alloro")}
-            aria-hidden
-          />
-          <span className={cx("prosa", tono === "notte" && "text-carta/80")}>{v}</span>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-/* ── Scheda di servizio (griglia /servizi) ──────────────────────────────── */
-
-export function SchedaServizio({ servizio }: { servizio: ServicePackage }) {
-  const prezzo = servizio.priceRange
-    ? fascia(servizio.priceRange.min, servizio.priceRange.max)
-    : "Listino riservato";
-
-  return (
-    <Link
-      href={`/servizi/${servizio.slug}` as Route}
-      className="garbo group rounded-scheda border-filetto bg-carta-alta hover:border-alloro flex flex-col border p-6 hover:-translate-y-0.5"
-    >
-      <h3 className="font-display text-inchiostro text-xl font-medium">{servizio.name}</h3>
-      <p className="prosa mt-2 flex-1 text-[1rem]">{servizio.claim}</p>
-      <Filetto className="mt-5" />
-      <div className="mt-4 flex items-baseline justify-between gap-4">
-        <span className="cifre text-inchiostro text-sm">{prezzo}</span>
-        <span className="garbo apparato text-alloro group-hover:translate-x-0.5">Apri</span>
-      </div>
-    </Link>
-  );
-}
-
-/* ── Chiusa: la doppia CTA ricorrente ───────────────────────────────────── */
-
+/** Chiusura di pagina con doppia CTA: self service oppure una persona. */
 export function Chiusa({
   titolo = "Da dove vuoi cominciare?",
   testo = "Puoi avere il prezzo in due minuti, oppure far leggere il testo e capire prima a che punto sei. Nessuna delle due strade ti impegna a nulla.",
@@ -120,20 +66,19 @@ export function Chiusa({
   labelSecondaria?: string;
 }) {
   return (
-    <section className="bg-notte text-carta su-notte py-16 sm:py-20">
-      <Gabbia>
-        <div className="grid items-end gap-8 lg:grid-cols-[1.4fr_auto]">
-          <div>
-            <Titolo as="h2" tono="notte">
-              {titolo}
-            </Titolo>
-            <p className="prosa text-carta/70 mt-4 max-w-xl">{testo}</p>
+    <section className="border-y border-bordo bg-fondo-alto">
+      <Gabbia className="relative overflow-hidden py-20">
+        <span className="alone top-1/2 -left-24 size-72 -translate-y-1/2 bg-viola/30" />
+        <div className="relative flex flex-col items-start gap-8 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex max-w-xl flex-col gap-4">
+            <h2 className="text-3xl font-semibold text-testo sm:text-4xl">{titolo}</h2>
+            <div className="text-base leading-relaxed text-testo-attenuato">{testo}</div>
           </div>
           <div className="flex shrink-0 flex-col gap-3 sm:flex-row">
-            <BottoneLink href={hrefPreventivo} variante="chiaro" misura="grande">
+            <BottoneLink href={hrefPreventivo} variante="identita" misura="grande">
               {labelPrimaria}
             </BottoneLink>
-            <BottoneLink href={hrefSecondario} misura="grande" variante="secondarioNotte">
+            <BottoneLink href={hrefSecondario} variante="secondario" misura="grande">
               {labelSecondaria}
             </BottoneLink>
           </div>

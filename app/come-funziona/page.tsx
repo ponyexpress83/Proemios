@@ -119,7 +119,7 @@ export default function ComeFunzionaPage() {
           <div className="mt-8 grid gap-10 lg:grid-cols-[1.4fr_1fr]">
             <ElencoIncluso voci={GARANZIE} />
             <Scheda className="h-fit">
-              <p className="apparato text-ottone">Tecnologia</p>
+              <p className="etichetta text-lime">Tecnologia</p>
               <p className="prosa mt-3 text-[0.95rem]">{BRAND.aiDisclaimer}</p>
             </Scheda>
           </div>

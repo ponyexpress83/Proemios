@@ -1,318 +1,264 @@
-import type { Route } from "next";
-import Link from "next/link";
 import type { Metadata } from "next";
-import {
-  Gabbia,
-  Sezione,
-  Apertura,
-  Impaginato,
-  Folio,
-  NotaMargine,
-  Filetto,
-  Titolo,
-  Scheda,
-  Etichetta,
-} from "@/components/ui/primitivi";
+import { ArrowRight, Eye, ShieldCheck, Users } from "lucide-react";
+import { Gabbia, Sezione, Occhiello } from "@/components/ui/primitivi";
 import { BottoneLink } from "@/components/ui/bottone";
-import { SchedaServizio, Processo, Chiusa } from "@/components/sezioni/blocchi";
-import { SERVICES } from "@/config/services";
-import { CASE_STUDIES } from "@/config/case-studies";
+import { Scheda } from "@/components/ui/scheda";
+import { OggettoEditoriale } from "@/components/marketing/oggetto-editoriale";
+import { Apparizione } from "@/components/marketing/apparizione";
+import {
+  Citazione,
+  FasciaCta,
+  IntestazioneSezione,
+  SchedaPercorso,
+  SchedaServizio,
+} from "@/components/marketing/blocchi";
+import { Faq } from "@/components/sezioni/faq";
+import { PERCORSI } from "@/config/percorsi";
+import { SERVIZI } from "@/config/catalogo";
 import { BRAND } from "@/config/brand";
-import { AZIONI } from "@/config/copy";
-import { metadatiPagina } from "@/lib/seo";
+import { JsonLd, faqJsonLd } from "@/lib/seo";
 
-export const metadata: Metadata = metadatiPagina({
-  titolo: `${BRAND.name} — ${BRAND.payoff}`,
-  descrizione: BRAND.description,
-  path: "/",
-});
+export const metadata: Metadata = {
+  title: `${BRAND.name} — ${BRAND.payoff}`,
+  description: BRAND.description,
+  alternates: { canonical: BRAND.url },
+};
 
-const DISPERSIONE = [
-  "Un correttore di bozze",
-  "Un editor",
-  "Un grafico per la copertina",
-  "Un impaginatore",
-  "Qualcuno che sappia usare KDP",
-  "Qualcuno per l'ISBN",
+/** Le fasi che il cliente attraversa, dalla prima idea al post-pubblicazione. */
+const FILIERA = [
+  { fase: "Analisi", testo: "Leggiamo quello che hai e diciamo a che punto è." },
+  { fase: "Preventivo", testo: "Numeri e date, prima di qualunque impegno." },
+  { fase: "Produzione", testo: "Lavoriamo il testo, con revisioni tracciate." },
+  { fase: "Revisione", testo: "Un redattore verifica ogni intervento, uno per uno." },
+  { fase: "Approvazione", testo: "Niente ti arriva senza essere passato da una persona." },
+  { fase: "Pubblicazione", testo: "Produzione, store, metadati, scheda." },
+  { fase: "Dopo", testo: "Il libro continua a essere seguito anche dopo l'uscita." },
 ];
 
-const PASSAGGI = [
+const PROMESSE = [
   {
-    titolo: "Ci dici a che punto sei",
+    icona: Users,
+    titolo: "Un solo interlocutore",
     testo:
-      "Sei domande nel configuratore, oppure carichi il testo e lo leggiamo. In entrambi i casi esci con dei numeri, non con un «ti facciamo sapere».",
+      "Editing, impaginazione, copertina, EPUB, KDP, ISBN, lancio. Un preventivo, un referente, una data di consegna — invece di sei fornitori che si rimpallano la responsabilità.",
   },
   {
-    titolo: "Ricevi il preventivo e ne parliamo",
+    icona: Eye,
+    titolo: "Vedi ogni intervento",
     testo:
-      "Tre percorsi possibili, con dentro e fuori dichiarati. Poi una call in cui guardiamo il testo davvero: se serve meno di quanto previsto, il prezzo scende.",
+      "Il testo torna in DOCX con revisioni tracciate: ogni modifica è visibile, accettabile o rifiutabile una per una. Non ti restituiamo un file diverso dicendo «fidati».",
   },
   {
-    titolo: "Lavoriamo, tu approvi",
+    icona: ShieldCheck,
+    titolo: "Niente promesse che nessuno può mantenere",
     testo:
-      "Editing, impaginazione, copertina, EPUB. Ogni passaggio ti arriva per approvazione: niente va avanti senza il tuo sì.",
-  },
-  {
-    titolo: "Il libro esce",
-    testo:
-      "Pubblicazione su Amazon KDP, ISBN, scheda prodotto. Ti consegniamo anche i file: sono tuoi, e restano tuoi.",
+      "Non garantiamo vendite, classifiche o recensioni. Garantiamo un lavoro fatto bene, tempi scritti e un prezzo che non cambia dopo la firma.",
   },
 ];
 
-export default function HomePage() {
-  const servizi = SERVICES;
-  const casi = CASE_STUDIES.slice(0, 3);
+const FAQ_HOME = [
+  {
+    domanda: "Quanto costa?",
+    risposta:
+      "Dipende dal servizio e dalla lunghezza. Le tariffe a parola e i forfait sono pubblici sulle pagine servizio, e il configuratore calcola il totale esatto sul tuo caso in due minuti. Quello che non ha una tariffa standard è dichiarato «su preventivo», con scritto perché.",
+  },
+  {
+    domanda: "Usate l'intelligenza artificiale?",
+    risposta:
+      "Usiamo tecnologia dentro il nostro processo, come qualunque studio editoriale usa strumenti. Quello che conta per te è che nessuna consegna esce senza che un professionista l'abbia verificata e approvata: è una regola della piattaforma, non una buona intenzione.",
+  },
+  {
+    domanda: "Il libro resta mio?",
+    risposta:
+      "Sempre. Diritti, paternità e file sorgente sono tuoi. Nel ghostwriting la riservatezza è contrattuale: nessuna nostra firma compare sull'opera.",
+  },
+  {
+    domanda: "Posso comprare un servizio solo?",
+    risposta:
+      "Sì. I percorsi esistono perché è così che si presenta il problema, ma ogni singolo servizio è acquistabile per conto suo.",
+  },
+  {
+    domanda: "Cosa succede se non sono soddisfatto?",
+    risposta:
+      "Ogni fase si chiude con una tua approvazione: se una consegna non va, si rilavora prima di procedere. Le condizioni esatte sono nei termini di servizio, non nascoste in una nota.",
+  },
+];
+
+export default function Home() {
+  const percorsiInEvidenza = PERCORSI.slice(0, 6);
+  const serviziInEvidenza = SERVIZI.filter((s) =>
+    [
+      "correzione-bozze",
+      "editing-narrativo",
+      "scheda-valutazione-editoriale",
+      "ghostwriting",
+      "impaginazione",
+      "copertina",
+      "amazon-kdp",
+      "strategia-di-lancio",
+    ].includes(s.slug),
+  );
 
   return (
     <>
-      {/* ── Proemio: l'apertura ───────────────────────────────────────── */}
-      <section className="bg-carta pt-16 pb-14 sm:pt-24 sm:pb-20">
-        <Gabbia>
-          <Impaginato
-            margine={
-              <>
-                <Folio n="00" etichetta="Proemio" />
-                <NotaMargine>
-                  Proemio: nella tradizione classica, il canto che precede il poema e ne dichiara
-                  l&rsquo;intenzione.
-                </NotaMargine>
-              </>
-            }
-          >
-            <p className="apparato text-alloro">{BRAND.payoff}</p>
-            <h1 className="font-display text-inchiostro mt-5 text-[2.6rem] leading-[1.04] font-medium sm:text-[3.6rem] lg:text-[4.2rem]">
-              Il tuo libro esiste già.
-              <br />
-              Manca chi lo porta fuori.
-            </h1>
-            <Filetto className="mt-8" />
-            <p className="prosa-grande specchio mt-8">
-              Per autopubblicarsi servono sei professionisti diversi, e ognuno risponde quando può.
-              Proemios è il punto unico: editing, impaginazione, copertina, EPUB, ISBN e
-              pubblicazione su Amazon. Con il prezzo che sai subito, non fra una settimana.
-            </p>
+      <JsonLd data={faqJsonLd(FAQ_HOME.map((f) => ({ q: f.domanda, a: f.risposta })))} />
 
-            <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-              <BottoneLink href="/preventivo" misura="grande">
-                {AZIONI.preventivo}
-              </BottoneLink>
-              <BottoneLink href="/analisi-manoscritto" variante="secondario" misura="grande">
-                {AZIONI.analisi}
-              </BottoneLink>
-            </div>
-            <p className="apparato text-stampa mt-6">
-              Analisi gratuita · Preventivo in due minuti · Nessun impegno
-            </p>
-          </Impaginato>
-        </Gabbia>
-      </section>
-
-      {/* ── Il problema ───────────────────────────────────────────────── */}
-      <Sezione fondo="bassa">
-        <Apertura
-          folio={1}
-          etichetta="Il problema"
-          titolo="Sei preventivi, sei attese, sei linguaggi diversi"
-          glossa="Il costo vero dell'autopubblicazione non è il denaro: è il coordinamento."
-          occhiello={
-            <p>
-              Chi vuole pubblicare da sé si ritrova a fare il project manager di un progetto che non
-              conosce. Ogni fornitore parla la propria lingua, i tempi non combaciano, e il testo
-              resta fermo mentre si aspetta la risposta di qualcuno.
-            </p>
-          }
-        />
-
-        <div className="mt-12 grid gap-x-10 gap-y-3 sm:grid-cols-2 lg:grid-cols-3">
-          {DISPERSIONE.map((voce) => (
-            <div key={voce} className="border-filetto flex items-baseline gap-3 border-b py-3">
-              <span className="cifre text-stampa text-xs" aria-hidden>
-                →
-              </span>
-              <span className="prosa text-[1rem]">{voce}</span>
-            </div>
-          ))}
-        </div>
-
-        <div className="border-alloro mt-10 border-l-2 pl-6">
-          <p className="prosa-grande max-w-2xl">
-            Noi siamo <strong className="font-semibold">un interlocutore solo</strong>. Il
-            coordinamento lo facciamo noi: è il lavoro che stai comprando.
-          </p>
-        </div>
-      </Sezione>
-
-      {/* ── Come funziona ─────────────────────────────────────────────── */}
-      <Sezione>
-        <Apertura
-          folio={2}
-          etichetta="Come funziona"
-          titolo="Quattro passaggi, nessuna sorpresa"
-          glossa="Ogni passaggio si chiude con una tua approvazione. Niente prosegue senza."
-        />
-        <div className="mt-12">
-          <Processo passi={PASSAGGI} />
-        </div>
-        <div className="mt-8">
-          <BottoneLink href="/come-funziona" variante="quieto">
-            Il processo in dettaglio →
-          </BottoneLink>
-        </div>
-      </Sezione>
-
-      {/* ── I servizi ─────────────────────────────────────────────────── */}
-      <Sezione fondo="bassa">
-        <Apertura
-          folio={3}
-          etichetta="Servizi"
-          titolo="Sei percorsi, uno per ogni punto di partenza"
-          glossa="Puoi prendere il percorso intero o solo il pezzo che ti manca."
-        />
-        <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {servizi.map((s) => (
-            <SchedaServizio key={s.slug} servizio={s} />
-          ))}
-        </div>
-      </Sezione>
-
-      {/* ── L'offerta signature ───────────────────────────────────────── */}
-      <section className="bg-notte text-carta su-notte py-16 sm:py-24">
-        <Gabbia>
-          <div className="grid items-center gap-12 lg:grid-cols-2">
-            <div>
-              <p className="apparato text-ottone">§ 04 · Il nostro mestiere</p>
-              <Titolo as="h2" tono="notte" className="mt-5">
-                Dal diario al libro
-              </Titolo>
-              <Filetto className="mt-6" tono="notte" />
-              <p className="prosa-grande text-carta/75 mt-6">
-                Quaderni scritti a mano, registrazioni vocali, appunti senza ordine. È il punto di
-                partenza più difficile e quello che ci riesce meglio: trascriviamo, ordiniamo,
-                troviamo la linea narrativa e scriviamo il libro. Con la voce di chi l&rsquo;ha
-                vissuto, non con la nostra.
+      {/* ── Hero ───────────────────────────────────────────────────────── */}
+      <section className="relative overflow-hidden">
+        <span className="alone -top-32 left-1/4 size-[32rem] bg-viola/25" />
+        <Gabbia className="relative">
+          <div className="grid items-center gap-16 pt-16 pb-24 lg:grid-cols-[1.1fr_0.9fr] lg:pt-24 lg:pb-32">
+            <div className="flex flex-col items-start gap-7">
+              <Occhiello>Studio editoriale integrato</Occhiello>
+              <h1 className="text-5xl leading-[1.02] font-semibold sm:text-6xl lg:text-7xl">
+                Dalle idee
+                <br />
+                <span className="testo-identita">alle opere.</span>
+              </h1>
+              <p className="max-w-xl text-lg leading-relaxed text-testo-attenuato">
+                Portiamo un manoscritto, un archivio di appunti o una sola idea fino al libro
+                pubblicato. Un interlocutore solo, dalla prima lettura al mese dopo l&rsquo;uscita.
               </p>
-              <div className="mt-9">
-                <BottoneLink href="/dal-diario-al-libro" variante="chiaro" misura="grande">
-                  Come lavoriamo su un memoir
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <BottoneLink href="/preventivo" variante="identita" misura="grande">
+                  Fai il preventivo
+                  <ArrowRight className="size-4" aria-hidden />
+                </BottoneLink>
+                <BottoneLink href="/percorsi" variante="fantasma" misura="grande">
+                  Trova il tuo percorso
                 </BottoneLink>
               </div>
+              <p className="text-sm text-testo-tenue">
+                Preventivo in due minuti, senza impegno. Oppure{" "}
+                <a href="/contatti" className="garbo text-viola-chiaro underline underline-offset-4 decoration-viola-chiaro/40 hover:decoration-viola-chiaro">
+                  parla con una persona
+                </a>
+                .
+              </p>
             </div>
 
-            <figure className="border-ottone border-l-2 pl-7">
-              <blockquote className="font-display text-carta text-2xl leading-snug font-normal italic sm:text-[1.75rem]">
-                &ldquo;Leggendolo ho sentito parlare lui. È esattamente quello che speravo e non
-                sapevo chiedere.&rdquo;
-              </blockquote>
-              <figcaption className="apparato text-carta/50 mt-5">
-                Committente · memoir familiare
-              </figcaption>
-            </figure>
+            <OggettoEditoriale className="mx-auto hidden w-full max-w-sm lg:block" />
           </div>
         </Gabbia>
       </section>
 
-      {/* ── Gli strumenti ─────────────────────────────────────────────── */}
+      {/* ── La filiera ─────────────────────────────────────────────────── */}
+      <section className="border-y border-bordo bg-fondo-alto">
+        <Gabbia className="py-10">
+          <ol className="flex flex-wrap items-center gap-x-3 gap-y-3">
+            {FILIERA.map((f, i) => (
+              <li key={f.fase} className="flex items-center gap-3">
+                <span
+                  className="etichetta text-testo-attenuato"
+                  title={f.testo}
+                >
+                  {f.fase}
+                </span>
+                {i < FILIERA.length - 1 ? (
+                  <span aria-hidden className="text-testo-tenue/50">
+                    /
+                  </span>
+                ) : null}
+              </li>
+            ))}
+          </ol>
+        </Gabbia>
+      </section>
+
+      {/* ── Promesse ───────────────────────────────────────────────────── */}
       <Sezione>
-        <Apertura
-          folio={5}
-          etichetta="Strumenti"
-          titolo="I numeri prima delle promesse"
-          glossa="Gli stessi strumenti che usiamo internamente, aperti a chi arriva sul sito."
-        />
-
-        <div className="mt-12 grid gap-5 lg:grid-cols-2">
-          <Scheda className="flex flex-col">
-            <div>
-              <Etichetta tono="alloro">Gratuito</Etichetta>
-            </div>
-            <h3 className="font-display mt-4 text-2xl font-medium">Analisi del manoscritto</h3>
-            <p className="prosa mt-3 flex-1">
-              Carichi il testo e ricevi una prima diagnosi: leggibilità misurata, ritmo, tic
-              ricorrenti, tempi verbali, lettore-tipo, tre punti di forza e tre cose su cui
-              lavorare. Con la fascia di costo calcolata sulle parole reali del file.
-            </p>
-            <Filetto className="my-5" />
-            <div>
-              <BottoneLink href="/analisi-manoscritto" variante="secondario">
-                {AZIONI.analisi}
-              </BottoneLink>
-            </div>
-          </Scheda>
-
-          <Scheda className="flex flex-col">
-            <div>
-              <Etichetta tono="alloro">Due minuti</Etichetta>
-            </div>
-            <h3 className="font-display mt-4 text-2xl font-medium">Configuratore di preventivo</h3>
-            <p className="prosa mt-3 flex-1">
-              Sei domande sul tuo progetto e ottieni tre percorsi con il prezzo, cosa includono e —
-              soprattutto — cosa non includono. Quello che di solito richiede una settimana di
-              scambi di email.
-            </p>
-            <Filetto className="my-5" />
-            <div>
-              <BottoneLink href="/preventivo" variante="secondario">
-                {AZIONI.preventivo}
-              </BottoneLink>
-            </div>
-          </Scheda>
-        </div>
-
-        <p className="glossa mt-8 max-w-2xl">{BRAND.aiDisclaimer}</p>
-      </Sezione>
-
-      {/* ── Casi studio ───────────────────────────────────────────────── */}
-      <Sezione fondo="bassa">
-        <Apertura
-          folio={6}
-          etichetta="Casi studio"
-          titolo="Libri che sono usciti davvero"
-          glossa="Progetti reali, resi anonimi dove il cliente ha chiesto riservatezza."
-        />
-        <div className="mt-12 grid gap-5 lg:grid-cols-3">
-          {casi.map((c) => (
-            <Link
-              key={c.slug}
-              href={`/casi-studio/${c.slug}` as Route}
-              className="garbo group rounded-scheda border-filetto bg-carta-alta hover:border-alloro flex flex-col border p-6 hover:-translate-y-0.5"
-            >
-              <p className="apparato text-ottone">{c.cliente}</p>
-              <h3 className="font-display mt-3 flex-1 text-lg leading-snug font-medium">
-                {c.titolo}
-              </h3>
-              <Filetto className="mt-5" />
-              <span className="garbo apparato text-alloro mt-4 group-hover:translate-x-0.5">
-                Leggi il caso
-              </span>
-            </Link>
-          ))}
-        </div>
-      </Sezione>
-
-      {/* ── Per le agenzie ────────────────────────────────────────────── */}
-      <Sezione>
-        <Impaginato margine={<Folio n={7} etichetta="B2B" />}>
-          <div className="flex flex-col items-start gap-6 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <Titolo as="h2">Siete un&rsquo;agenzia?</Titolo>
-              <p className="prosa mt-3 max-w-xl">
-                Produciamo a marchio vostro, con NDA e senza mai comparire davanti al vostro
-                cliente. Listino riservato, referente dedicato, tempi concordati.
-              </p>
-            </div>
-            <BottoneLink
-              href="/per-agenzie"
-              variante="secondario"
-              misura="grande"
-              className="shrink-0"
-            >
-              Come funziona il white label
-            </BottoneLink>
+          <IntestazioneSezione
+            occhiello="Perché noi"
+            titolo="Tre cose che ci distinguono davvero."
+            sotto="Non l'entusiasmo: il modo in cui è fatto il lavoro."
+          />
+          <div className="grid gap-5 md:grid-cols-3">
+            {PROMESSE.map((p, i) => (
+              <Apparizione key={p.titolo} ritardo={i * 0.08}>
+                <Scheda className="flex h-full flex-col gap-4 p-7">
+                  <p.icona className="size-5 text-lime" aria-hidden />
+                  <h3 className="text-lg font-semibold text-testo">{p.titolo}</h3>
+                  <p className="text-sm leading-relaxed text-testo-attenuato">{p.testo}</p>
+                </Scheda>
+              </Apparizione>
+            ))}
           </div>
-        </Impaginato>
       </Sezione>
 
-      <Chiusa />
+      {/* ── Percorsi ───────────────────────────────────────────────────── */}
+      <Sezione className="border-t border-bordo">
+          <IntestazioneSezione
+            occhiello="Percorsi"
+            titolo="Da dove parti?"
+            sotto="Scegli come si presenta il tuo problema, non come si chiama il servizio."
+            azione={{ href: "/percorsi", testo: "Tutti i percorsi" }}
+          />
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {percorsiInEvidenza.map((p, i) => (
+              <Apparizione key={p.slug} ritardo={(i % 3) * 0.06}>
+                <SchedaPercorso percorso={p} />
+              </Apparizione>
+            ))}
+          </div>
+      </Sezione>
+
+      {/* ── Servizi ────────────────────────────────────────────────────── */}
+      <Sezione className="border-t border-bordo" ampiezza="compatta">
+          <IntestazioneSezione
+            occhiello="Servizi"
+            titolo="Oppure prendi solo quello che ti serve."
+            sotto={`${SERVIZI.length} lavorazioni acquistabili singolarmente, con tariffe pubbliche dove esistono.`}
+            azione={{ href: "/servizi", testo: "Catalogo completo" }}
+          />
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {serviziInEvidenza.map((s, i) => (
+              <Apparizione key={s.slug} ritardo={(i % 4) * 0.05}>
+                <SchedaServizio servizio={s} />
+              </Apparizione>
+            ))}
+          </div>
+      </Sezione>
+
+      {/* ── Come lavoriamo ─────────────────────────────────────────────── */}
+      <Sezione className="border-t border-bordo">
+          <div className="grid gap-12 lg:grid-cols-[1fr_1.2fr] lg:gap-20">
+            <Apparizione className="flex flex-col gap-8">
+              <Citazione fonte="Il principio che regola la piattaforma">
+                Nessuna consegna raggiunge un cliente senza che una persona l&rsquo;abbia letta e
+                approvata.
+              </Citazione>
+              <BottoneLink href="/come-funziona" variante="secondario">
+                Come funziona nel dettaglio
+              </BottoneLink>
+            </Apparizione>
+
+            <Apparizione ritardo={0.1}>
+              <ol className="flex flex-col">
+                {FILIERA.map((f, i) => (
+                  <li key={f.fase} className="flex gap-5 border-b border-bordo py-5 last:border-0">
+                    <span className="cifre w-8 shrink-0 pt-0.5 text-sm text-viola-chiaro">
+                      {String(i + 1).padStart(2, "0")}
+                    </span>
+                    <div className="flex flex-col gap-1">
+                      <h3 className="text-base font-medium text-testo">{f.fase}</h3>
+                      <p className="text-sm leading-relaxed text-testo-tenue">{f.testo}</p>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            </Apparizione>
+          </div>
+      </Sezione>
+
+      {/* ── FAQ ────────────────────────────────────────────────────────── */}
+      <Sezione className="border-t border-bordo" ampiezza="compatta">
+          <div className="grid gap-12 lg:grid-cols-[0.8fr_1.2fr] lg:gap-20">
+            <IntestazioneSezione occhiello="Domande" titolo="Quello che ci chiedono sempre." />
+            <Faq voci={FAQ_HOME} />
+          </div>
+      </Sezione>
+
+      <FasciaCta />
     </>
   );
 }

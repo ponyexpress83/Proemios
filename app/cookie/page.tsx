@@ -141,7 +141,7 @@ export default function CookiePage() {
               <Dato valore={TITOLARE.sedeLegale} />. Per qualsiasi richiesta relativa a cookie e
               dati personali scrivi a {BRAND.email.privacy}. Il trattamento dei dati personali è
               descritto nell&rsquo;
-              <a href="/privacy" className="text-alloro underline underline-offset-2">
+              <a href="/privacy" className="text-viola-chiaro underline underline-offset-2">
                 informativa sulla privacy
               </a>
               .

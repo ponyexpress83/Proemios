@@ -39,22 +39,22 @@ export default async function PreventivoPage({
       />
 
       {/* Il configuratore vive interamente sul lato "software": fondo notte,
-          apparato tecnico. È il salto di registro che distingue il progetto. */}
-      <div className="bg-notte text-carta su-notte py-14 sm:py-20">
+          etichetta tecnico. È il salto di registro che distingue il progetto. */}
+      <div className="bg-fondo-alto text-testo  py-14 sm:py-20">
         <Gabbia>
           <div className="mb-10 max-w-2xl">
-            <p className="apparato text-ottone">Strumento · gratuito</p>
-            <h1 className="font-display mt-4 text-[2.2rem] leading-[1.08] font-medium sm:text-[2.9rem]">
+            <p className="etichetta text-lime">Strumento · gratuito</p>
+            <h1 className="mt-4 text-[2.2rem] leading-[1.08] font-medium sm:text-[2.9rem]">
               {PREVENTIVO.titolo}
             </h1>
-            <Filetto className="mt-6" tono="notte" />
-            <p className="prosa-grande text-carta/75 mt-6">{PREVENTIVO.occhiello}</p>
+            <Filetto className="mt-6" />
+            <p className="text-lg leading-relaxed text-testo-attenuato text-testo-attenuato mt-6">{PREVENTIVO.occhiello}</p>
           </div>
 
           <Configuratore precompilato={{ tipo, servizi, parole }} />
 
-          <Filetto className="mt-14" tono="notte" />
-          <p className="glossa text-carta/45 mt-6 max-w-2xl">{BRAND.aiDisclaimer}</p>
+          <Filetto className="mt-14" />
+          <p className="editoriale mt-6 max-w-2xl text-testo-tenue">{BRAND.aiDisclaimer}</p>
         </Gabbia>
       </div>
     </>

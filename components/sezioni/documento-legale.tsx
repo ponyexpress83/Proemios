@@ -30,15 +30,15 @@ export function DocumentoLegale({
   return (
     <Gabbia className="py-14 sm:py-20">
       <div className="mx-auto max-w-prose">
-        <h1 className="font-display text-[2.2rem] leading-[1.1] font-medium sm:text-[2.8rem]">
+        <h1 className="text-[2.2rem] leading-[1.1] font-medium sm:text-[2.8rem]">
           {titolo}
         </h1>
-        <p className="apparato text-stampa mt-4">Ultimo aggiornamento: {aggiornamento}</p>
+        <p className="etichetta text-testo-tenue mt-4">Ultimo aggiornamento: {aggiornamento}</p>
         <Filetto className="mt-6" />
 
         {mancanti > 0 && (
-          <div className="rounded-scheda border-ottone bg-carta-alta mt-8 border border-dashed p-5">
-            <p className="apparato text-ottone">Prima della pubblicazione</p>
+          <div className="rounded-lg border-lime bg-superficie mt-8 border border-dashed p-5">
+            <p className="etichetta text-lime">Prima della pubblicazione</p>
             <p className="prosa mt-2 text-sm">
               Il testo di questo documento è completo. Restano da compilare{" "}
               <strong>{mancanti} dati anagrafici</strong> del titolare in{" "}
@@ -54,8 +54,8 @@ export function DocumentoLegale({
         <ol className="mt-12 space-y-10">
           {sezioni.map((s, i) => (
             <li key={i}>
-              <h2 className="font-display text-inchiostro text-xl font-medium">
-                <span className="cifre text-ottone mr-2">{String(i + 1).padStart(2, "0")}</span>
+              <h2 className="text-testo text-xl font-medium">
+                <span className="cifre text-lime mr-2">{String(i + 1).padStart(2, "0")}</span>
                 {s.titolo}
               </h2>
               <Filetto className="mt-3" />
@@ -73,7 +73,7 @@ export function Dato({ valore }: { valore: string | null }) {
   if (valore === null) return <>non nominato</>;
   if (!daCompilare(valore)) return <>{valore}</>;
   return (
-    <mark className="bg-ottone/15 text-ottone rounded-[2px] px-1 font-mono text-[0.85em] not-italic">
+    <mark className="bg-lime/15 text-lime rounded-[2px] px-1 font-mono text-[0.85em] not-italic">
       {valore}
     </mark>
   );

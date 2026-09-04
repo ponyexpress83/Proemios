@@ -61,7 +61,7 @@ export default function ChiSiamoPage() {
         ])}
       />
 
-      <section className="bg-carta pt-14 pb-12 sm:pt-20">
+      <section className="bg-fondo pt-14 pb-12 sm:pt-20">
         <Gabbia>
           <Impaginato
             margine={
@@ -73,19 +73,19 @@ export default function ChiSiamoPage() {
               </>
             }
           >
-            <h1 className="font-display text-[2.4rem] leading-[1.06] font-medium sm:text-[3.2rem]">
+            <h1 className="text-[2.4rem] leading-[1.06] font-medium sm:text-[3.2rem]">
               Un editore di mestiere,
               <br />
               con strumenti nuovi.
             </h1>
             <Filetto className="mt-7" />
-            <p className="prosa-grande specchio mt-7">
+            <p className="text-lg leading-relaxed text-testo-attenuato lettura mt-7">
               Proemios non nasce da un&rsquo;idea di startup: nasce dal lavoro editoriale fatto per
               clienti veri. Un romanzo scritto a partire dal diario di una vita. Un manoscritto
               portato dalla revisione fino alla vendita su Amazon con un ISBN di proprietà
               dell&rsquo;autore.
             </p>
-            <p className="prosa specchio mt-5">
+            <p className="lettura text-base leading-relaxed text-testo-attenuato mt-5">
               Da quei lavori è venuta fuori una constatazione semplice: la parte difficile per il
               cliente non era la qualità del lavoro. Era arrivare a capire quanto costava e da dove
               si cominciava.
@@ -96,7 +96,7 @@ export default function ChiSiamoPage() {
 
       <Sezione fondo="bassa">
         <Impaginato margine={<Folio n={1} etichetta="Il nome" />}>
-          <div className="specchio">
+          <div className="lettura">
             <Titolo as="h2">Perché Proemios</Titolo>
             <Filetto className="mt-5" />
             <p className="prosa mt-6">
@@ -119,7 +119,7 @@ export default function ChiSiamoPage() {
           <div className="mt-8 grid gap-10 lg:grid-cols-[1.4fr_1fr]">
             <ElencoIncluso voci={COMPETENZE} />
             <Scheda className="h-fit">
-              <p className="apparato text-ottone">Rete di professionisti</p>
+              <p className="etichetta text-lime">Rete di professionisti</p>
               <p className="prosa mt-3 text-[0.95rem]">
                 Grafici, illustratori e correttori con cui lavoriamo stabilmente. Non un
                 marketplace: persone scelte, di cui rispondiamo noi.
@@ -136,12 +136,12 @@ export default function ChiSiamoPage() {
           <div className="mt-8 grid gap-5 sm:grid-cols-2">
             {PRINCIPI.map((p) => (
               <Scheda key={p.titolo}>
-                <h3 className="font-display text-lg font-medium">{p.titolo}</h3>
+                <h3 className="text-lg font-medium">{p.titolo}</h3>
                 <p className="prosa mt-2 text-[0.95rem]">{p.testo}</p>
               </Scheda>
             ))}
           </div>
-          <p className="glossa mt-8 max-w-2xl">{BRAND.aiDisclaimer}</p>
+          <p className="editoriale text-testo-tenue mt-8 max-w-2xl">{BRAND.aiDisclaimer}</p>
         </Impaginato>
       </Sezione>
 

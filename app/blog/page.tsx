@@ -46,7 +46,7 @@ export default function BlogPage() {
           <div className="mt-14 space-y-14">
             {cats.map((cat) => (
               <div key={cat}>
-                <h2 className="apparato text-ottone">{cat}</h2>
+                <h2 className="etichetta text-lime">{cat}</h2>
                 <Filetto className="mt-3" />
                 <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                   {articoli
@@ -55,15 +55,15 @@ export default function BlogPage() {
                       <Link
                         key={a.slug}
                         href={`/blog/${a.slug}` as Route}
-                        className="garbo group rounded-scheda border-filetto bg-carta-alta hover:border-alloro flex flex-col border p-6 hover:-translate-y-0.5"
+                        className="garbo group rounded-lg border-bordo bg-superficie hover:border-viola flex flex-col border p-6 hover:-translate-y-0.5"
                       >
-                        <h3 className="font-display text-inchiostro text-lg leading-snug font-medium">
+                        <h3 className="text-testo text-lg leading-snug font-medium">
                           {a.titolo}
                         </h3>
                         <p className="prosa mt-2 flex-1 text-[0.95rem]">{a.descrizione}</p>
                         <div className="mt-4 flex items-center justify-between gap-3">
-                          {!a.pubblicato && <Etichetta tono="stampa">In redazione</Etichetta>}
-                          <span className="garbo apparato text-alloro ml-auto group-hover:translate-x-0.5">
+                          {!a.pubblicato && <Etichetta>In redazione</Etichetta>}
+                          <span className="garbo etichetta text-viola-chiaro ml-auto group-hover:translate-x-0.5">
                             Apri
                           </span>
                         </div>

@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/primitivi";
 import { Chiusa } from "@/components/sezioni/blocchi";
 import { CASE_STUDIES, getCaseStudy } from "@/config/case-studies";
-import { getService } from "@/config/services";
+import { getServizio } from "@/config/catalogo";
 import { metadatiPagina, JsonLd, breadcrumbJsonLd } from "@/lib/seo";
 
 export function generateStaticParams() {
@@ -39,7 +39,7 @@ export default async function CasoStudioPage({ params }: { params: Promise<{ slu
   const { slug } = await params;
   const caso = getCaseStudy(slug);
   if (!caso) notFound();
-  const servizio = getService(caso.servizio);
+  const servizio = getServizio(caso.servizio);
 
   return (
     <>
@@ -51,28 +51,28 @@ export default async function CasoStudioPage({ params }: { params: Promise<{ slu
         ])}
       />
 
-      <section className="bg-notte text-carta su-notte py-14 sm:py-20">
+      <section className="bg-fondo-alto text-testo  py-14 sm:py-20">
         <Gabbia>
-          <Link href={"/casi-studio" as Route} className="apparato text-carta/50 hover:text-carta">
+          <Link href={"/casi-studio" as Route} className="etichetta text-testo-tenue hover:text-testo">
             ← Tutti i casi
           </Link>
-          <p className="apparato text-ottone mt-8">{caso.cliente}</p>
-          <h1 className="font-display mt-3 max-w-3xl text-[2.3rem] leading-[1.08] font-medium sm:text-[3.1rem]">
+          <p className="etichetta text-lime mt-8">{caso.cliente}</p>
+          <h1 className="mt-3 max-w-3xl text-[2.3rem] leading-[1.08] font-medium sm:text-[3.1rem]">
             {caso.titolo}
           </h1>
-          <p className="prosa-grande text-carta/75 mt-5 max-w-2xl">{caso.sottotitolo}</p>
+          <p className="text-lg leading-relaxed text-testo-attenuato text-testo-attenuato mt-5 max-w-2xl">{caso.sottotitolo}</p>
 
           {!caso.autorizzato && (
             <div className="mt-6">
-              <Etichetta tono="ottone">Caso dimostrativo</Etichetta>
+              <Etichetta>Caso dimostrativo</Etichetta>
             </div>
           )}
 
-          <dl className="border-filetto-notte mt-10 grid max-w-2xl grid-cols-3 gap-6 border-t pt-8">
+          <dl className="border-bordo mt-10 grid max-w-2xl grid-cols-3 gap-6 border-t pt-8">
             {caso.dati.map((d, i) => (
               <div key={i}>
-                <dt className="cifre text-carta text-xl font-medium">{d.valore}</dt>
-                <dd className="text-carta/55 mt-1 text-xs leading-tight">{d.etichetta}</dd>
+                <dt className="cifre text-testo text-xl font-medium">{d.valore}</dt>
+                <dd className="text-testo-tenue mt-1 text-xs leading-tight">{d.etichetta}</dd>
               </div>
             ))}
           </dl>
@@ -81,7 +81,7 @@ export default async function CasoStudioPage({ params }: { params: Promise<{ slu
 
       <Sezione>
         <Impaginato margine={<Folio n={1} etichetta="Il caso" />}>
-          <div className="specchio space-y-10">
+          <div className="lettura space-y-10">
             <div>
               <Titolo as="h2" className="text-[1.5rem]">
                 Il punto di partenza
@@ -105,11 +105,11 @@ export default async function CasoStudioPage({ params }: { params: Promise<{ slu
             </div>
 
             {caso.citazione && (
-              <figure className="border-ottone border-l-2 pl-6">
-                <blockquote className="font-display text-inchiostro text-xl leading-snug font-normal italic sm:text-2xl">
+              <figure className="border-lime border-l-2 pl-6">
+                <blockquote className="text-testo text-xl leading-snug font-normal italic sm:text-2xl">
                   &ldquo;{caso.citazione.testo}&rdquo;
                 </blockquote>
-                <figcaption className="apparato text-stampa mt-4">
+                <figcaption className="etichetta text-testo-tenue mt-4">
                   {caso.citazione.fonte}
                 </figcaption>
               </figure>
@@ -124,13 +124,13 @@ export default async function CasoStudioPage({ params }: { params: Promise<{ slu
             <div className="flex flex-col items-start gap-6 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <Titolo as="h2" className="text-[1.6rem]">
-                  Percorso: {servizio.name}
+                  Percorso: {servizio.nome}
                 </Titolo>
-                <p className="prosa mt-3 max-w-xl">{servizio.claim}</p>
+                <p className="prosa mt-3 max-w-xl">{servizio.sommario}</p>
               </div>
               <Link
                 href={`/servizi/${servizio.slug}` as Route}
-                className="apparato text-alloro shrink-0 hover:underline"
+                className="etichetta text-viola-chiaro shrink-0 hover:underline"
               >
                 Vedi il servizio →
               </Link>

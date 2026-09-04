@@ -42,24 +42,24 @@ export default function CasiStudioPage() {
             <Link
               key={c.slug}
               href={`/casi-studio/${c.slug}` as Route}
-              className="garbo group rounded-scheda border-filetto bg-carta-alta hover:border-alloro grid gap-6 border p-6 sm:grid-cols-[1.6fr_1fr] sm:p-8"
+              className="garbo group rounded-lg border-bordo bg-superficie hover:border-viola grid gap-6 border p-6 sm:grid-cols-[1.6fr_1fr] sm:p-8"
             >
               <div>
-                <p className="apparato text-ottone">{c.cliente}</p>
-                <h2 className="font-display text-inchiostro mt-3 text-2xl leading-snug font-medium">
+                <p className="etichetta text-lime">{c.cliente}</p>
+                <h2 className="text-testo mt-3 text-2xl leading-snug font-medium">
                   {c.titolo}
                 </h2>
                 <p className="prosa mt-3 max-w-xl">{c.sottotitolo}</p>
-                <span className="garbo apparato text-alloro mt-5 inline-block group-hover:translate-x-0.5">
+                <span className="garbo etichetta text-viola-chiaro mt-5 inline-block group-hover:translate-x-0.5">
                   Leggi il caso
                 </span>
               </div>
 
-              <dl className="border-filetto grid grid-cols-3 gap-4 self-center border-t pt-6 sm:border-t-0 sm:border-l sm:pt-0 sm:pl-8">
+              <dl className="border-bordo grid grid-cols-3 gap-4 self-center border-t pt-6 sm:border-t-0 sm:border-l sm:pt-0 sm:pl-8">
                 {c.dati.map((d, i) => (
                   <div key={i}>
-                    <dt className="cifre text-inchiostro text-lg font-medium">{d.valore}</dt>
-                    <dd className="text-stampa mt-1 text-xs leading-tight">{d.etichetta}</dd>
+                    <dt className="cifre text-testo text-lg font-medium">{d.valore}</dt>
+                    <dd className="text-testo-tenue mt-1 text-xs leading-tight">{d.etichetta}</dd>
                   </div>
                 ))}
               </dl>
@@ -68,7 +68,7 @@ export default function CasiStudioPage() {
         </div>
 
         <Filetto className="mt-12" />
-        <p className="glossa mt-6 max-w-2xl">
+        <p className="editoriale text-testo-tenue mt-6 max-w-2xl">
           I casi contrassegnati come dimostrativi illustrano il metodo di lavoro e non corrispondono
           a una lavorazione conclusa.
         </p>

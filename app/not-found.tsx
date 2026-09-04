@@ -5,8 +5,8 @@ export default function NonTrovata() {
   return (
     <Gabbia className="py-24 sm:py-32">
       <div className="mx-auto max-w-lg">
-        <p className="apparato text-ottone">Errore 404</p>
-        <h1 className="font-display mt-5 text-[2.2rem] leading-[1.1] font-medium sm:text-[2.8rem]">
+        <p className="etichetta text-lime">Errore 404</p>
+        <h1 className="mt-5 text-[2.2rem] leading-[1.1] font-medium sm:text-[2.8rem]">
           Questa pagina non esiste
         </h1>
         <Filetto className="mt-6" />

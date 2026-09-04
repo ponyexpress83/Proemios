@@ -4,7 +4,7 @@ import Link from "next/link";
 import type { Route } from "next";
 import { db, dbConfigurato } from "@/db";
 import { leads, quotes, manuscriptAnalyses, agencyLeads } from "@/db/schema";
-import { Gabbia, Filetto, cx } from "@/components/ui/primitivi";
+import { Gabbia, Filetto, cn } from "@/components/ui/primitivi";
 import { euro, numero, dataEstesa } from "@/lib/format";
 import { BRAND } from "@/config/brand";
 import { demoAttiva, datiAdminDemo } from "@/lib/demo";
@@ -26,11 +26,11 @@ const STATO_ETICHETTA: Record<string, string> = {
 };
 
 const STATO_TONO: Record<string, string> = {
-  draft: "border-filetto text-stampa",
-  sent: "border-alloro/40 text-alloro",
-  deposit_paid: "border-esito-positivo/50 text-esito-positivo",
-  won: "border-esito-positivo/50 text-esito-positivo",
-  lost: "border-esito-critico/40 text-esito-critico",
+  draft: "border-bordo text-testo-tenue",
+  sent: "border-viola/40 text-viola-chiaro",
+  deposit_paid: "border-esito-positivo/50 text-successo",
+  won: "border-esito-positivo/50 text-successo",
+  lost: "border-errore/40 text-errore",
 };
 
 const PERIODI = { "7": 7, "30": 30, "90": 90, tutto: 0 } as const;
@@ -138,16 +138,16 @@ export default async function AdminPage({
     .reduce((t, p) => t + (p.prezzoTotale ?? 0), 0);
 
   return (
-    <div className="bg-carta-bassa min-h-dvh py-10">
+    <div className="bg-superficie-alta min-h-dvh py-10">
       <Gabbia>
         <header className="flex flex-wrap items-baseline justify-between gap-4">
-          <h1 className="font-display text-3xl font-medium">Cruscotto</h1>
-          <span className="apparato text-stampa">{BRAND.name} · uso interno</span>
+          <h1 className="text-3xl font-medium">Cruscotto</h1>
+          <span className="etichetta text-testo-tenue">{BRAND.name} · uso interno</span>
         </header>
 
         {demo && (
-          <div className="rounded-scheda border-ottone bg-carta-alta mt-6 border border-dashed p-4">
-            <p className="apparato text-ottone">Cruscotto dimostrativo</p>
+          <div className="rounded-lg border-lime bg-superficie mt-6 border border-dashed p-4">
+            <p className="etichetta text-lime">Cruscotto dimostrativo</p>
             <p className="prosa mt-2 text-sm">
               Le righe con identificativo <code className="font-mono text-[0.9em]">demo-</code> sono
               inventate e non corrispondono ad alcuna persona. Quelle create durante questa sessione
@@ -158,8 +158,8 @@ export default async function AdminPage({
         )}
 
         {errore && (
-          <div className="rounded-scheda border-esito-critico/40 bg-carta-alta mt-6 border p-4">
-            <p className="apparato text-esito-critico">Database non raggiungibile</p>
+          <div className="rounded-lg border-errore/40 bg-superficie mt-6 border p-4">
+            <p className="etichetta text-errore">Database non raggiungibile</p>
             <p className="prosa mt-2 text-sm">{errore}</p>
           </div>
         )}
@@ -167,16 +167,16 @@ export default async function AdminPage({
         {/* Filtri */}
         <div className="mt-8 flex flex-wrap items-center gap-6">
           <div className="flex items-center gap-2">
-            <span className="apparato text-stampa">Periodo</span>
+            <span className="etichetta text-testo-tenue">Periodo</span>
             {(Object.keys(PERIODI) as PeriodoKey[]).map((k) => (
               <Link
                 key={k}
                 href={`/admin?periodo=${k}${statoFiltro ? `&stato=${statoFiltro}` : ""}` as Route}
-                className={cx(
-                  "garbo rounded-campo border px-3 py-1.5 font-mono text-xs",
+                className={cn(
+                  "garbo rounded-md border px-3 py-1.5 font-mono text-xs",
                   periodoKey === k
-                    ? "border-alloro bg-alloro text-carta"
-                    : "border-filetto text-stampa hover:border-alloro",
+                    ? "border-viola bg-viola text-testo"
+                    : "border-bordo text-testo-tenue hover:border-viola",
                 )}
               >
                 {k === "tutto" ? "tutto" : `${k}g`}
@@ -185,14 +185,14 @@ export default async function AdminPage({
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <span className="apparato text-stampa">Stato</span>
+            <span className="etichetta text-testo-tenue">Stato</span>
             <Link
               href={`/admin?periodo=${periodoKey}` as Route}
-              className={cx(
-                "garbo rounded-campo border px-3 py-1.5 font-mono text-xs",
+              className={cn(
+                "garbo rounded-md border px-3 py-1.5 font-mono text-xs",
                 !statoFiltro
-                  ? "border-alloro bg-alloro text-carta"
-                  : "border-filetto text-stampa hover:border-alloro",
+                  ? "border-viola bg-viola text-testo"
+                  : "border-bordo text-testo-tenue hover:border-viola",
               )}
             >
               tutti
@@ -201,11 +201,11 @@ export default async function AdminPage({
               <Link
                 key={s}
                 href={`/admin?periodo=${periodoKey}&stato=${s}` as Route}
-                className={cx(
-                  "garbo rounded-campo border px-3 py-1.5 font-mono text-xs",
+                className={cn(
+                  "garbo rounded-md border px-3 py-1.5 font-mono text-xs",
                   statoFiltro === s
-                    ? "border-alloro bg-alloro text-carta"
-                    : "border-filetto text-stampa hover:border-alloro",
+                    ? "border-viola bg-viola text-testo"
+                    : "border-bordo text-testo-tenue hover:border-viola",
                 )}
               >
                 {s}
@@ -230,13 +230,13 @@ export default async function AdminPage({
               const pacchetti = p.pacchettiGenerati as QuotePackage[];
               const consigliato = pacchetti?.find?.((x) => x.recommended);
               return (
-                <tr key={p.id} className="border-filetto border-t">
+                <tr key={p.id} className="border-bordo border-t">
                   <Cella>{dataEstesa(p.createdAt)}</Cella>
                   <Cella>
                     <span
-                      className={cx(
-                        "apparato inline-block rounded-full border px-2 py-0.5",
-                        STATO_TONO[p.stato] ?? "border-filetto text-stampa",
+                      className={cn(
+                        "etichetta inline-block rounded-full border px-2 py-0.5",
+                        STATO_TONO[p.stato] ?? "border-bordo text-testo-tenue",
                       )}
                     >
                       {STATO_ETICHETTA[p.stato] ?? p.stato}
@@ -270,7 +270,7 @@ export default async function AdminPage({
                 metriche?: { gulpease?: number };
               };
               return (
-                <tr key={a.id} className="border-filetto border-t">
+                <tr key={a.id} className="border-bordo border-t">
                   <Cella>{dataEstesa(a.createdAt)}</Cella>
                   <Cella className="max-w-[16rem] truncate">{a.filename}</Cella>
                   <Cella mono>{numero(a.wordCount)}</Cella>
@@ -290,7 +290,7 @@ export default async function AdminPage({
         <Riquadro titolo="Richieste white label">
           <Tabella intestazioni={["Agenzia", "Sito", "Esternalizzano", "Volume"]}>
             {agenzie.map((a) => (
-              <tr key={a.id} className="border-filetto border-t">
+              <tr key={a.id} className="border-bordo border-t">
                 <Cella>{a.nomeAgenzia}</Cella>
                 <Cella className="max-w-[14rem] truncate">{a.sito ?? "—"}</Cella>
                 <Cella className="max-w-[20rem] truncate">{a.serviziEsternalizzati ?? "—"}</Cella>
@@ -305,7 +305,7 @@ export default async function AdminPage({
         <Riquadro titolo="Lead">
           <Tabella intestazioni={["Data", "Nome", "Email", "Fonte", "Marketing"]}>
             {lead.map((l) => (
-              <tr key={l.id} className="border-filetto border-t">
+              <tr key={l.id} className="border-bordo border-t">
                 <Cella>{dataEstesa(l.createdAt)}</Cella>
                 <Cella>{l.nome}</Cella>
                 <Cella className="max-w-[18rem] truncate">{l.email}</Cella>
@@ -325,9 +325,9 @@ export default async function AdminPage({
 
 function Indicatore({ etichetta, valore }: { etichetta: string; valore: string }) {
   return (
-    <div className="rounded-scheda border-filetto bg-carta-alta border p-5">
-      <p className="apparato text-stampa">{etichetta}</p>
-      <p className="cifre text-inchiostro mt-2 text-2xl font-medium">{valore}</p>
+    <div className="rounded-lg border-bordo bg-superficie border p-5">
+      <p className="etichetta text-testo-tenue">{etichetta}</p>
+      <p className="cifre text-testo mt-2 text-2xl font-medium">{valore}</p>
     </div>
   );
 }
@@ -335,9 +335,9 @@ function Indicatore({ etichetta, valore }: { etichetta: string; valore: string }
 function Riquadro({ titolo, children }: { titolo: string; children: React.ReactNode }) {
   return (
     <section className="mt-10">
-      <h2 className="font-display text-xl font-medium">{titolo}</h2>
+      <h2 className="text-xl font-medium">{titolo}</h2>
       <Filetto className="mt-3" />
-      <div className="rounded-scheda border-filetto bg-carta-alta mt-4 overflow-x-auto border">
+      <div className="rounded-lg border-bordo bg-superficie mt-4 overflow-x-auto border">
         {children}
       </div>
     </section>
@@ -356,7 +356,7 @@ function Tabella({
       <thead>
         <tr>
           {intestazioni.map((h) => (
-            <th key={h} className="apparato text-stampa px-4 py-3">
+            <th key={h} className="etichetta text-testo-tenue px-4 py-3">
               {h}
             </th>
           ))}
@@ -377,14 +377,14 @@ function Cella({
   mono?: boolean;
 }) {
   return (
-    <td className={cx("text-inchiostro px-4 py-3", mono && "cifre", className)}>{children}</td>
+    <td className={cn("text-testo px-4 py-3", mono && "cifre", className)}>{children}</td>
   );
 }
 
 function Vuoto({ colonne }: { colonne: number }) {
   return (
-    <tr className="border-filetto border-t">
-      <td colSpan={colonne} className="text-stampa px-4 py-8 text-center text-sm">
+    <tr className="border-bordo border-t">
+      <td colSpan={colonne} className="text-testo-tenue px-4 py-8 text-center text-sm">
         Nessun dato in questo periodo.
       </td>
     </tr>

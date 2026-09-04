@@ -292,7 +292,7 @@ export default function PrivacyPage() {
             <p>
               Il sito non utilizza cookie di profilazione né strumenti di tracciamento
               pubblicitario. Il dettaglio è nella{" "}
-              <a href="/cookie" className="text-alloro underline underline-offset-2">
+              <a href="/cookie" className="text-viola-chiaro underline underline-offset-2">
                 cookie policy
               </a>
               .

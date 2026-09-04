@@ -25,21 +25,21 @@ export default async function GraziePage({
   const simulato = sp.demo === "1";
 
   return (
-    <div className="bg-notte text-carta su-notte py-20 sm:py-28">
+    <div className="bg-fondo-alto text-testo  py-20 sm:py-28">
       <Gabbia>
         <div className="mx-auto max-w-xl">
-          <p className="apparato text-ottone">
+          <p className="etichetta text-lime">
             {simulato ? "Acconto simulato" : "Acconto ricevuto"}
           </p>
-          <h1 className="font-display mt-5 text-[2.3rem] leading-[1.08] font-medium sm:text-[3rem]">
+          <h1 className="mt-5 text-[2.3rem] leading-[1.08] font-medium sm:text-[3rem]">
             La data è tua.
           </h1>
-          <Filetto className="mt-7" tono="notte" />
+          <Filetto className="mt-7" />
 
           {simulato && (
-            <div className="border-ottone/50 bg-notte-alta rounded-scheda mt-7 border border-dashed p-5">
-              <p className="apparato text-ottone">Questa è una demo</p>
-              <p className="font-lettura text-carta/75 mt-2 text-sm leading-relaxed">
+            <div className="border-lime/50 bg-superficie rounded-lg mt-7 border border-dashed p-5">
+              <p className="etichetta text-lime">Questa è una demo</p>
+              <p className="text-testo-attenuato mt-2 text-sm leading-relaxed">
                 Nessun pagamento è stato aperto e nessun importo è stato addebitato. Nella versione
                 in esercizio, da qui si passa al circuito di pagamento e la conferma arriva via
                 email.
@@ -47,7 +47,7 @@ export default async function GraziePage({
             </div>
           )}
 
-          <p className="prosa-grande text-carta/75 mt-7">
+          <p className="text-lg leading-relaxed text-testo-attenuato text-testo-attenuato mt-7">
             {simulato
               ? "Da questo punto in poi il percorso è quello reale: ecco come procede un progetto una volta confermato."
               : "Abbiamo registrato il pagamento e ti è arrivata una email di conferma. Il tuo progetto è entrato nel piano di lavorazione."}
@@ -56,17 +56,17 @@ export default async function GraziePage({
           <ol className="mt-10 space-y-4">
             {PASSI.map((p, i) => (
               <li key={i} className="flex gap-4">
-                <span className="cifre text-ottone shrink-0">{String(i + 1).padStart(2, "0")}</span>
-                <span className="font-lettura text-carta/80 leading-relaxed">{p}</span>
+                <span className="cifre text-lime shrink-0">{String(i + 1).padStart(2, "0")}</span>
+                <span className="text-testo-attenuato leading-relaxed">{p}</span>
               </li>
             ))}
           </ol>
 
           <div className="mt-10 flex flex-col gap-3 sm:flex-row">
-            <BottoneLink href="/" variante="chiaro" misura="grande">
+            <BottoneLink href="/" variante="identita" misura="grande">
               Torna alla home
             </BottoneLink>
-            <BottoneLink href="/contatti" variante="secondarioNotte" misura="grande">
+            <BottoneLink href="/contatti" variante="secondario" misura="grande">
               Scrivici
             </BottoneLink>
           </div>

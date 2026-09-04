@@ -1,28 +1,164 @@
 import type { ReactNode } from "react";
+import { cn } from "@/lib/cn";
 
-/** Concatena classi condizionali senza dipendenze. */
-export function cx(...parti: Array<string | false | null | undefined>): string {
-  return parti.filter(Boolean).join(" ");
-}
+export { cn };
+export { Scheda, SchedaMetrica } from "./scheda";
+export { Badge, BadgeStato } from "./badge";
 
-/* ── Gabbia ─────────────────────────────────────────────────────────────── */
-
+/** Contenitore principale: stessa gabbia per sito pubblico e dashboard. */
 export function Gabbia({
   children,
   className,
-  as: As = "div",
+  as: Tag = "div",
 }: {
   children: ReactNode;
   className?: string;
-  as?: "div" | "section" | "header" | "footer" | "main" | "article";
+  as?: "div" | "section" | "header" | "footer" | "main" | "nav";
 }) {
-  return <As className={cx("gabbia", className)}>{children}</As>;
+  return <Tag className={cn("gabbia", className)}>{children}</Tag>;
+}
+
+/** Sezione verticale con ritmo di spaziatura coerente in tutto il sito. */
+export function Sezione({
+  children,
+  className,
+  ampiezza = "media",
+  fondo,
+  senzaGabbia = false,
+  id,
+}: {
+  children: ReactNode;
+  className?: string;
+  ampiezza?: "compatta" | "media" | "ampia";
+  /** Alterna il fondale fra pagina e superficie sollevata. */
+  fondo?: "piana" | "bassa";
+  /**
+   * Toglie la gabbia interna, per le sezioni a tutta larghezza (fasce, hero con
+   * bagliori che devono debordare). Il caso normale è con la gabbia: così una
+   * pagina non deve annidare <Gabbia> a ogni sezione e non può dimenticarsene.
+   */
+  senzaGabbia?: boolean;
+  id?: string;
+}) {
+  const spazi = {
+    compatta: "py-12 md:py-16",
+    media: "py-16 md:py-24",
+    ampia: "py-24 md:py-32",
+  } as const;
+  const fondi = { piana: "bg-fondo", bassa: "border-y border-bordo bg-fondo-alto" } as const;
+
+  const contenuto = senzaGabbia ? children : <Gabbia>{children}</Gabbia>;
+  return (
+    <section
+      id={id}
+      className={cn(spazi[ampiezza], fondo ? fondi[fondo] : undefined, className)}
+    >
+      {contenuto}
+    </section>
+  );
 }
 
 /**
- * Impaginato: la griglia asimmetrica del brief — colonna margine (apparato)
- * + specchio di stampa. Su mobile la colonna margine collassa e diventa un
- * riferimento inline sopra il contenuto.
+ * Occhiello: la riga tecnica sopra il titolo. Il punto lime è decorativo e
+ * marcato aria-hidden perché non porta informazione.
+ */
+export function Occhiello({ children, className }: { children: ReactNode; className?: string }) {
+  return (
+    <p className={cn("etichetta flex items-center gap-2 text-testo-tenue", className)}>
+      <span aria-hidden className="size-1.5 rounded-full bg-lime" />
+      {children}
+    </p>
+  );
+}
+
+/** Titolo di sezione con occhiello e sottotitolo opzionali. */
+export function Titolo({
+  occhiello,
+  children,
+  sotto,
+  livello,
+  as,
+  className,
+  allineamento = "sinistra",
+}: {
+  occhiello?: string;
+  children: ReactNode;
+  sotto?: ReactNode;
+  livello?: 1 | 2 | 3 | 4;
+  /** Alias testuale di `livello`, più leggibile nel markup delle pagine. */
+  as?: "h1" | "h2" | "h3" | "h4";
+  className?: string;
+  allineamento?: "sinistra" | "centro";
+}) {
+  const effettivo = livello ?? (as ? (Number(as.slice(1)) as 1 | 2 | 3 | 4) : 2);
+  const H = `h${effettivo}` as "h1" | "h2" | "h3" | "h4";
+  const misure = {
+    1: "text-4xl sm:text-5xl lg:text-6xl",
+    2: "text-3xl sm:text-4xl lg:text-[2.75rem]",
+    3: "text-2xl sm:text-3xl",
+    4: "text-xl sm:text-2xl",
+  } as const;
+  return (
+    <div
+      className={cn(
+        "flex flex-col gap-4",
+        allineamento === "centro" && "items-center text-center",
+        className,
+      )}
+    >
+      {occhiello ? <Occhiello>{occhiello}</Occhiello> : null}
+      <H className={cn(misure[effettivo], "text-testo")}>{children}</H>
+      {sotto ? (
+        <p className={cn("lettura text-base leading-relaxed text-testo-attenuato sm:text-lg")}>
+          {sotto}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+/** Separatore orizzontale. */
+export function Filetto({ className }: { className?: string }) {
+  return <hr className={cn("h-px border-0 bg-bordo", className)} />;
+}
+
+/** Etichetta tecnica inline (codice progetto, conteggio, meta). */
+export function Etichetta({ children, className }: { children: ReactNode; className?: string }) {
+  return <span className={cn("etichetta text-testo-tenue", className)}>{children}</span>;
+}
+
+/** Nota a margine: testo secondario di supporto. */
+export function Nota({ children, className }: { children: ReactNode; className?: string }) {
+  return <p className={cn("text-sm leading-relaxed text-testo-tenue", className)}>{children}</p>;
+}
+
+/**
+ * Coppia etichetta/valore usata ovunque nelle dashboard (dettaglio progetto,
+ * riepiloghi, schede lead). Il valore usa cifre tabellari quando è numerico.
+ */
+export function Dato({
+  etichetta,
+  children,
+  numerico = false,
+  className,
+}: {
+  etichetta: string;
+  children: ReactNode;
+  numerico?: boolean;
+  className?: string;
+}) {
+  return (
+    <div className={cn("flex flex-col gap-1.5", className)}>
+      <Etichetta>{etichetta}</Etichetta>
+      <div className={cn("text-sm text-testo", numerico && "cifre text-base")}>{children}</div>
+    </div>
+  );
+}
+
+/**
+ * Griglia asimmetrica da pagina di contenuto: una colonna di apparato a
+ * sinistra (numero di sezione, note) e il testo a destra. Su mobile la colonna
+ * di apparato collassa sopra il contenuto.
  */
 export function Impaginato({
   margine,
@@ -34,155 +170,32 @@ export function Impaginato({
   className?: string;
 }) {
   return (
-    <div className={cx("grid gap-x-10 gap-y-4 lg:grid-cols-[11rem_minmax(0,1fr)]", className)}>
-      <div className="lg:pt-1 lg:text-right">{margine}</div>
+    <div className={cn("grid gap-x-10 gap-y-4 lg:grid-cols-[11rem_minmax(0,1fr)]", className)}>
+      <div className="lg:pt-1">{margine}</div>
       <div className="min-w-0">{children}</div>
     </div>
   );
 }
 
-/* ── Folio (numero di sezione) ──────────────────────────────────────────── */
-
+/** Numero di sezione con etichetta facoltativa. */
 export function Folio({ n, etichetta }: { n: number | string; etichetta?: string }) {
   const numero = typeof n === "number" ? String(n).padStart(2, "0") : n;
   return (
-    <p className="apparato text-ottone">
-      <span aria-hidden>§&nbsp;</span>
+    <p className="etichetta text-viola-chiaro">
       {numero}
-      {etichetta && <span className="text-stampa"> · {etichetta}</span>}
+      {etichetta ? <span className="text-testo-tenue"> · {etichetta}</span> : null}
     </p>
   );
 }
 
-/* ── Nota a margine (glossa) ────────────────────────────────────────────── */
-
+/** Nota di apparato nella colonna a margine. Nascosta sotto lg per non spezzare la lettura. */
 export function NotaMargine({ children }: { children: ReactNode }) {
-  return <p className="glossa mt-3 hidden lg:block">{children}</p>;
-}
-
-/* ── Filetto ────────────────────────────────────────────────────────────── */
-
-export function Filetto({
-  className,
-  tono = "carta",
-}: {
-  className?: string;
-  tono?: "carta" | "notte" | "forte";
-}) {
-  const colore =
-    tono === "notte" ? "bg-filetto-notte" : tono === "forte" ? "bg-filetto-forte" : "bg-filetto";
-  return <hr className={cx("h-px border-0", colore, className)} />;
-}
-
-/* ── Versale (capolettera di apertura sezione) ──────────────────────────── */
-
-/**
- * Il gesto "proemio": la prima lettera del titolo composta oversize, con il
- * resto che le si appoggia. Qui si concentra l'audacia del progetto.
- */
-export function Versale({
-  children,
-  as: As = "h2",
-  className,
-  tono = "carta",
-}: {
-  children: string;
-  as?: "h1" | "h2" | "h3";
-  className?: string;
-  tono?: "carta" | "notte";
-}) {
-  const testo = children.trim();
-  const prima = testo.charAt(0);
-  const resto = testo.slice(1);
-  const colore = tono === "notte" ? "text-carta" : "text-inchiostro";
-
-  return (
-    <As
-      className={cx(
-        "font-display text-[2rem] leading-[1.08] font-medium sm:text-[2.6rem]",
-        As === "h1" && "sm:text-[3.25rem]",
-        colore,
-        className,
-      )}
-    >
-      <span
-        className={cx(
-          "float-left mr-[0.06em] -ml-[0.03em] font-medium",
-          "first-letter:normal text-[2.1em] leading-[0.78]",
-          tono === "notte" ? "text-ottone" : "text-alloro",
-        )}
-        aria-hidden
-      >
-        {prima}
-      </span>
-      <span className="sr-only">{testo}</span>
-      <span aria-hidden>{resto}</span>
-    </As>
-  );
-}
-
-/* ── Titolo di sezione (senza versale, per gerarchie minori) ────────────── */
-
-export function Titolo({
-  children,
-  as: As = "h2",
-  className,
-  tono = "carta",
-}: {
-  children: ReactNode;
-  as?: "h1" | "h2" | "h3" | "h4";
-  className?: string;
-  tono?: "carta" | "notte";
-}) {
-  return (
-    <As
-      className={cx(
-        "font-display font-medium",
-        As === "h1"
-          ? "text-[2.4rem] leading-[1.06] sm:text-[3.25rem]"
-          : As === "h2"
-            ? "text-[1.9rem] leading-[1.12] sm:text-[2.4rem]"
-            : As === "h3"
-              ? "text-[1.35rem] leading-[1.2]"
-              : "text-[1.1rem] leading-[1.3]",
-        tono === "notte" ? "text-carta" : "text-inchiostro",
-        className,
-      )}
-    >
-      {children}
-    </As>
-  );
-}
-
-/* ── Sezione ────────────────────────────────────────────────────────────── */
-
-export function Sezione({
-  children,
-  className,
-  fondo = "carta",
-  id,
-}: {
-  children: ReactNode;
-  className?: string;
-  fondo?: "carta" | "bassa" | "notte";
-  id?: string;
-}) {
-  const fondi = {
-    carta: "bg-carta text-inchiostro",
-    bassa: "bg-carta-bassa text-inchiostro",
-    notte: "bg-notte text-carta su-notte",
-  } as const;
-
-  return (
-    <section id={id} className={cx("py-16 sm:py-24", fondi[fondo], className)}>
-      <Gabbia>{children}</Gabbia>
-    </section>
-  );
+  return <p className="mt-3 hidden text-sm leading-relaxed text-testo-tenue lg:block">{children}</p>;
 }
 
 /**
- * Apertura di sezione: folio + versale + filetto. Il ritmo ricorrente
- * che rende la pagina "un libro composto".
+ * Apertura di sezione: numero, titolo e occhiello, con la griglia asimmetrica.
+ * È il ritmo ricorrente delle pagine di contenuto.
  */
 export function Apertura({
   folio,
@@ -190,7 +203,6 @@ export function Apertura({
   titolo,
   occhiello,
   glossa,
-  tono = "carta",
   as = "h2",
 }: {
   folio?: number | string;
@@ -198,85 +210,21 @@ export function Apertura({
   titolo: string;
   occhiello?: ReactNode;
   glossa?: ReactNode;
-  tono?: "carta" | "notte";
   as?: "h1" | "h2";
 }) {
   return (
     <Impaginato
       margine={
         <>
-          {folio !== undefined && <Folio n={folio} etichetta={etichetta} />}
-          {glossa && <NotaMargine>{glossa}</NotaMargine>}
+          {folio !== undefined ? <Folio n={folio} etichetta={etichetta} /> : null}
+          {glossa ? <NotaMargine>{glossa}</NotaMargine> : null}
         </>
       }
     >
-      <Versale as={as} tono={tono}>
-        {titolo}
-      </Versale>
-      <Filetto className="mt-6" tono={tono === "notte" ? "notte" : "carta"} />
-      {occhiello && (
-        <div className={cx("specchio prosa-grande mt-6", tono === "notte" && "text-carta/75")}>
-          {occhiello}
-        </div>
-      )}
+      <Titolo as={as}>{titolo}</Titolo>
+      {occhiello ? (
+        <div className="lettura mt-6 text-lg leading-relaxed text-testo-attenuato">{occhiello}</div>
+      ) : null}
     </Impaginato>
-  );
-}
-
-/* ── Scheda ─────────────────────────────────────────────────────────────── */
-
-export function Scheda({
-  children,
-  className,
-  rilievo = false,
-  tono = "carta",
-}: {
-  children: ReactNode;
-  className?: string;
-  rilievo?: boolean;
-  tono?: "carta" | "notte";
-}) {
-  const base =
-    tono === "notte"
-      ? cx("bg-notte-alta", rilievo ? "border-ottone/60" : "border-filetto-notte")
-      : cx("bg-carta-alta", rilievo ? "border-alloro/50" : "border-filetto");
-
-  return (
-    <div
-      className={cx(
-        "rounded-scheda border p-6",
-        base,
-        rilievo && (tono === "notte" ? "ring-ottone/25 ring-1" : "ring-alloro/15 ring-1"),
-        className,
-      )}
-    >
-      {children}
-    </div>
-  );
-}
-
-/* ── Etichetta di apparato (chip) ───────────────────────────────────────── */
-
-export function Etichetta({
-  children,
-  tono = "alloro",
-}: {
-  children: ReactNode;
-  tono?: "alloro" | "ottone" | "stampa";
-}) {
-  const toni = {
-    alloro: "border-alloro/30 text-alloro",
-    ottone: "border-ottone/40 text-ottone",
-    stampa: "border-filetto text-stampa",
-  } as const;
-  return (
-    <span
-      className={cx(
-        "apparato inline-flex items-center rounded-full border px-2.5 py-1",
-        toni[tono],
-      )}
-    >
-      {children}
-    </span>
   );
 }

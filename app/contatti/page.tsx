@@ -24,14 +24,14 @@ export default function ContattiPage() {
         ])}
       />
 
-      <section className="bg-carta pt-14 pb-10 sm:pt-20">
+      <section className="bg-fondo pt-14 pb-10 sm:pt-20">
         <Gabbia>
           <Impaginato margine={<Folio n="00" etichetta="Contatti" />}>
-            <h1 className="font-display text-[2.4rem] leading-[1.06] font-medium sm:text-[3.1rem]">
+            <h1 className="text-[2.4rem] leading-[1.06] font-medium sm:text-[3.1rem]">
               Parliamone
             </h1>
             <Filetto className="mt-6" />
-            <p className="prosa-grande specchio mt-6">
+            <p className="text-lg leading-relaxed text-testo-attenuato lettura mt-6">
               Raccontaci a che punto sei. Se il progetto non è per noi te lo diciamo subito e ti
               indirizziamo altrove: fa risparmiare tempo a entrambi.
             </p>
@@ -42,25 +42,25 @@ export default function ContattiPage() {
       <Sezione fondo="bassa">
         <div className="grid gap-12 lg:grid-cols-2">
           <div>
-            <p className="apparato text-ottone">§ 01 · Scrivici</p>
+            <p className="etichetta text-lime">§ 01 · Scrivici</p>
             <Titolo as="h2" className="mt-4 text-[1.7rem]">
               Manda un messaggio
             </Titolo>
-            <div className="rounded-scheda border-filetto bg-carta-alta mt-8 border p-6 sm:p-8">
+            <div className="rounded-lg border-bordo bg-superficie mt-8 border p-6 sm:p-8">
               <ModuloContatto />
             </div>
             <p className="prosa mt-6 text-sm">
               Oppure scrivi direttamente a{" "}
               <a
                 href={`mailto:${BRAND.email.general}`}
-                className="text-alloro hover:text-ottone font-medium"
+                className="text-viola-chiaro hover:text-lime font-medium"
               >
                 {BRAND.email.general}
               </a>
               . Per le agenzie:{" "}
               <a
                 href={`mailto:${BRAND.email.agencies}`}
-                className="text-alloro hover:text-ottone font-medium"
+                className="text-viola-chiaro hover:text-lime font-medium"
               >
                 {BRAND.email.agencies}
               </a>
@@ -69,7 +69,7 @@ export default function ContattiPage() {
           </div>
 
           <div>
-            <p className="apparato text-ottone">§ 02 · Prenota</p>
+            <p className="etichetta text-lime">§ 02 · Prenota</p>
             <Titolo as="h2" className="mt-4 text-[1.7rem]">
               Una call di trenta minuti
             </Titolo>
@@ -79,7 +79,7 @@ export default function ContattiPage() {
             </p>
 
             {calendario ? (
-              <div className="rounded-scheda border-filetto bg-carta-alta mt-8 overflow-hidden border">
+              <div className="rounded-lg border-bordo bg-superficie mt-8 overflow-hidden border">
                 <iframe
                   src={calendario}
                   title="Prenota una call con Proemios"
@@ -88,8 +88,8 @@ export default function ContattiPage() {
                 />
               </div>
             ) : (
-              <div className="rounded-scheda border-filetto bg-carta-alta mt-8 border border-dashed p-8">
-                <p className="apparato text-stampa">Calendario non configurato</p>
+              <div className="rounded-lg border-bordo bg-superficie mt-8 border border-dashed p-8">
+                <p className="etichetta text-testo-tenue">Calendario non configurato</p>
                 <p className="prosa mt-3 text-sm">
                   Il calendario si attiva impostando{" "}
                   <code className="font-mono text-[0.85em]">NEXT_PUBLIC_CALENDAR_URL</code>. Nel
@@ -99,13 +99,13 @@ export default function ContattiPage() {
             )}
 
             {calendario && (
-              <p className="glossa mt-3">
+              <p className="editoriale text-testo-tenue mt-3">
                 Se il calendario non si carica,{" "}
                 <a
                   href={calendario}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="hover:text-alloro underline"
+                  className="hover:text-viola-chiaro underline"
                 >
                   aprilo in una scheda nuova
                 </a>

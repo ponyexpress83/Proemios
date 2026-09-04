@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/primitivi";
 import { BottoneLink } from "@/components/ui/bottone";
 import { getArticolo, slugArticoli } from "@/lib/blog";
-import { getService } from "@/config/services";
+import { getServizio } from "@/config/catalogo";
 import { AZIONI } from "@/config/copy";
 import { metadatiPagina, JsonLd, articleJsonLd, breadcrumbJsonLd } from "@/lib/seo";
 
@@ -44,21 +44,21 @@ export async function generateMetadata({
 /** Componenti MDX composti come una pagina di libro. */
 const componenti = {
   h2: (p: React.ComponentProps<"h2">) => (
-    <h2 {...p} className="font-display text-inchiostro mt-10 text-2xl font-medium" />
+    <h2 {...p} className="text-testo mt-10 text-2xl font-medium" />
   ),
   h3: (p: React.ComponentProps<"h3">) => (
-    <h3 {...p} className="font-display text-inchiostro mt-8 text-xl font-medium" />
+    <h3 {...p} className="text-testo mt-8 text-xl font-medium" />
   ),
   p: (p: React.ComponentProps<"p">) => <p {...p} className="prosa mt-4" />,
   ul: (p: React.ComponentProps<"ul">) => <ul {...p} className="prosa mt-4 list-disc pl-5" />,
   ol: (p: React.ComponentProps<"ol">) => <ol {...p} className="prosa mt-4 list-decimal pl-5" />,
   li: (p: React.ComponentProps<"li">) => <li {...p} className="mt-1.5" />,
   a: (p: React.ComponentProps<"a">) => (
-    <a {...p} className="text-alloro hover:text-ottone underline underline-offset-2" />
+    <a {...p} className="text-viola-chiaro hover:text-lime underline underline-offset-2" />
   ),
   hr: () => <Filetto className="my-8" />,
   blockquote: (p: React.ComponentProps<"blockquote">) => (
-    <blockquote {...p} className="border-ottone font-lettura mt-6 border-l-2 pl-5 italic" />
+    <blockquote {...p} className="border-lime mt-6 border-l-2 pl-5 italic" />
   ),
 };
 
@@ -67,7 +67,7 @@ export default async function ArticoloPage({ params }: { params: Promise<{ slug:
   const articolo = getArticolo(slug);
   if (!articolo) notFound();
 
-  const servizio = articolo.servizioCollegato ? getService(articolo.servizioCollegato) : undefined;
+  const servizio = articolo.servizioCollegato ? getServizio(articolo.servizioCollegato) : undefined;
 
   return (
     <>
@@ -88,9 +88,9 @@ export default async function ArticoloPage({ params }: { params: Promise<{ slug:
         ]}
       />
 
-      <section className="bg-carta pt-12 pb-8 sm:pt-16">
+      <section className="bg-fondo pt-12 pb-8 sm:pt-16">
         <Gabbia>
-          <Link href={"/blog" as Route} className="apparato text-stampa hover:text-inchiostro">
+          <Link href={"/blog" as Route} className="etichetta text-testo-tenue hover:text-testo">
             ← Tutte le guide
           </Link>
           <Impaginato
@@ -106,14 +106,14 @@ export default async function ArticoloPage({ params }: { params: Promise<{ slug:
               </>
             }
           >
-            <h1 className="font-display text-[2.2rem] leading-[1.1] font-medium sm:text-[2.9rem]">
+            <h1 className="text-[2.2rem] leading-[1.1] font-medium sm:text-[2.9rem]">
               {articolo.titolo}
             </h1>
             <Filetto className="mt-6" />
-            <p className="prosa-grande specchio mt-6">{articolo.descrizione}</p>
+            <p className="text-lg leading-relaxed text-testo-attenuato lettura mt-6">{articolo.descrizione}</p>
             {!articolo.pubblicato && (
               <div className="mt-6">
-                <Etichetta tono="stampa">In redazione</Etichetta>
+                <Etichetta>In redazione</Etichetta>
               </div>
             )}
           </Impaginato>
@@ -122,7 +122,7 @@ export default async function ArticoloPage({ params }: { params: Promise<{ slug:
 
       <Sezione>
         <Impaginato margine={<Folio n="↳" etichetta="Testo" />}>
-          <article className="specchio">
+          <article className="lettura">
             <MDXRemote source={articolo.corpo} components={componenti} />
           </article>
         </Impaginato>
@@ -134,10 +134,10 @@ export default async function ArticoloPage({ params }: { params: Promise<{ slug:
           <div className="flex flex-col items-start gap-6 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <Titolo as="h2" className="text-[1.6rem]">
-                {servizio ? servizio.name : "Vuoi il prezzo per il tuo libro?"}
+                {servizio ? servizio.nome : "Vuoi il prezzo per il tuo libro?"}
               </Titolo>
               <p className="prosa mt-3 max-w-xl">
-                {servizio ? servizio.claim : "Sei domande e hai tre percorsi con il prezzo."}
+                {servizio ? servizio.sommario : "Sei domande e hai tre percorsi con il prezzo."}
               </p>
             </div>
             <div className="flex shrink-0 flex-col gap-3 sm:flex-row">

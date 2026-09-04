@@ -23,21 +23,21 @@ export default function AnalisiPage() {
         ])}
       />
 
-      {/* Lato software: apparato critico su fondo notte. */}
-      <div className="bg-notte text-carta su-notte py-14 sm:py-20">
+      {/* Lato software: etichetta critico su fondo notte. */}
+      <div className="bg-fondo-alto text-testo  py-14 sm:py-20">
         <Gabbia>
           <div className="mx-auto mb-10 max-w-2xl text-center">
-            <p className="apparato text-ottone">Strumento · gratuito</p>
-            <h1 className="font-display mt-4 text-[2.2rem] leading-[1.08] font-medium sm:text-[2.9rem]">
+            <p className="etichetta text-lime">Strumento · gratuito</p>
+            <h1 className="mt-4 text-[2.2rem] leading-[1.08] font-medium sm:text-[2.9rem]">
               {ANALISI.titolo}
             </h1>
-            <Filetto className="mx-auto mt-6 max-w-xs" tono="notte" />
-            <p className="prosa text-carta/75 mt-6">{ANALISI.occhiello}</p>
+            <Filetto className="mx-auto mt-6 max-w-xs" />
+            <p className="prosa text-testo-attenuato mt-6">{ANALISI.occhiello}</p>
           </div>
 
           <FlussoAnalisi giorniConservazione={env.MANUSCRIPT_RETENTION_DAYS} />
 
-          <p className="glossa text-carta/40 mx-auto mt-12 max-w-2xl text-center">
+          <p className="editoriale text-testo-tenue mx-auto mt-12 max-w-2xl text-center">
             {BRAND.aiDisclaimer}
           </p>
         </Gabbia>
