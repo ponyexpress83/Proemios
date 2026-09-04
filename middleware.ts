@@ -1,88 +1,40 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 /**
- * Protegge /admin con Basic Auth (nessun account utente in Fase 1).
- * Credenziali da ADMIN_USER / ADMIN_PASSWORD.
+ * Il middleware fa **una cosa sola**: manda alla pagina di accesso chi non ha
+ * un cookie di sessione, invece di fargli vedere una pagina che fallirebbe.
  *
- * In modalità demo — nessun `DATABASE_URL`, quindi nessun dato vero da
- * proteggere — valgono credenziali note e dichiarate, così il cruscotto si può
- * mostrare senza configurare niente. L'autenticazione resta attiva: cambia solo
- * quali credenziali accetta. La condizione è ripetuta qui invece di importarla
- * da `lib/demo.ts` per non trascinare il motore di prezzo nel bundle edge del
- * middleware: se cambia la regola, vanno allineati entrambi i punti.
+ * Non è il livello di sicurezza. La verifica vera — sessione valida, ruolo,
+ * permesso, tenant — avviene lato server in ogni pagina e ogni azione, tramite
+ * `esigiStaff` / `esigiAttore` (lib/auth/sessione.ts) e le guardie del livello
+ * dati. Deve essere così: il middleware gira sul runtime edge, dove non c'è
+ * accesso al database, quindi non può sapere se una sessione è ancora valida,
+ * se l'account è stato disattivato o se il ruolo è cambiato. Un cookie presente
+ * non prova nulla.
+ *
+ * Chi arrivasse a una pagina protetta con un cookie scaduto la vede fallire
+ * lato server, con un 401 o un rimando: è il comportamento corretto.
  */
-const DEMO_USER = "demo";
-const DEMO_PASSWORD = "proemios";
 
-function inDemo(): boolean {
-  const forzatura = process.env.DEMO_MODE?.toLowerCase();
-  if (forzatura === "off" || forzatura === "0" || forzatura === "false") return false;
-  if (forzatura === "on" || forzatura === "1" || forzatura === "true") return true;
-  return !process.env.DATABASE_URL;
-}
+/** Nome del cookie di sessione Auth.js: cambia prefisso con HTTPS. */
+const COOKIE_SESSIONE = ["authjs.session-token", "__Secure-authjs.session-token"];
 
-/** Confronto a tempo costante: evita di far trapelare la password dai tempi di risposta. */
-function ugualeCostante(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
-  let diff = 0;
-  for (let i = 0; i < a.length; i++) {
-    diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  }
-  return diff === 0;
-}
-
-function richiediCredenziali(demo: boolean) {
-  return new NextResponse(
-    demo
-      ? `Area riservata. Credenziali della demo: ${DEMO_USER} / ${DEMO_PASSWORD}`
-      : "Autenticazione richiesta.",
-    {
-      status: 401,
-      headers: { "WWW-Authenticate": 'Basic realm="Proemios Admin", charset="UTF-8"' },
-    },
-  );
-}
+const AREE_PROTETTE = ["/admin", "/area", "/redazione"];
 
 export function middleware(request: NextRequest) {
-  const demo = inDemo();
-  const user = process.env.ADMIN_USER ?? (demo ? DEMO_USER : undefined);
-  const password = process.env.ADMIN_PASSWORD ?? (demo ? DEMO_PASSWORD : undefined);
-
-  if (!user || !password) {
-    return new NextResponse(
-      "Admin non configurato: imposta ADMIN_USER e ADMIN_PASSWORD fra le variabili d'ambiente.",
-      { status: 503 },
-    );
+  const percorso = request.nextUrl.pathname;
+  if (!AREE_PROTETTE.some((a) => percorso === a || percorso.startsWith(`${a}/`))) {
+    return NextResponse.next();
   }
 
-  const auth = request.headers.get("authorization");
-  if (!auth) return richiediCredenziali(demo);
+  const haCookie = COOKIE_SESSIONE.some((nome) => request.cookies.has(nome));
+  if (haCookie) return NextResponse.next();
 
-  const [scheme, encoded] = auth.split(" ");
-  if (scheme !== "Basic" || !encoded) return richiediCredenziali(demo);
-
-  let decoded: string;
-  try {
-    // `atob` è disponibile sul runtime edge del middleware.
-    decoded = atob(encoded);
-  } catch {
-    return richiediCredenziali(demo);
-  }
-
-  const idx = decoded.indexOf(":");
-  if (idx === -1) return richiediCredenziali(demo);
-
-  const u = decoded.slice(0, idx);
-  const p = decoded.slice(idx + 1);
-
-  // Entrambi i confronti vengono eseguiti sempre: nessun cortocircuito.
-  const okUser = ugualeCostante(u, user);
-  const okPass = ugualeCostante(p, password);
-  if (okUser && okPass) return NextResponse.next();
-
-  return richiediCredenziali(demo);
+  const destinazione = new URL("/accedi", request.url);
+  destinazione.searchParams.set("da", percorso);
+  return NextResponse.redirect(destinazione);
 }
 
 export const config = {
-  matcher: ["/admin/:path*"],
+  matcher: ["/admin/:path*", "/area/:path*", "/redazione/:path*"],
 };

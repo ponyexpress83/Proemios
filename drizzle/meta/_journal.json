@@ -15,6 +15,13 @@
       "when": 1788029900000,
       "tag": "0001_ads_attribution",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1788562725423,
+      "tag": "0002_parallel_nitro",
+      "breakpoints": true
     }
   ]
 }

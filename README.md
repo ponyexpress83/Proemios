@@ -68,7 +68,7 @@ Cosa cambia:
 | Analisi manoscritto | metriche vere sul file, giudizio d'esempio       | giudizio del modello            |
 | Acconto             | conferma simulata, nessun addebito               | Stripe Checkout                 |
 | Email               | non inviate                                      | Resend                          |
-| `/admin`            | credenziali `demo` / `proemios`, righe d'esempio | `ADMIN_USER` / `ADMIN_PASSWORD` |
+| `/admin`            | aperto solo con `DEMO_MODE=on`, righe d'esempio | account staff con accesso via link email |
 | Indicizzazione      | `robots.txt` chiuso, pagine `noindex`            | aperta                          |
 
 Ogni schermata che simula qualcosa lo dichiara: fascia in testa al sito, avviso sul
@@ -90,7 +90,7 @@ Tutte documentate in `.env.example`. In sintesi:
 | `ANTHROPIC_API_KEY`                                                                | Analisi manoscritto                                  |
 | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Checkout acconti + webhook                           |
 | `RESEND_API_KEY`, `EMAIL_FROM`, `EMAIL_INTERNAL`                                   | Email transazionali e notifiche interne              |
-| `ADMIN_USER`, `ADMIN_PASSWORD`                                                     | Basic Auth su `/admin`                               |
+| `AUTH_SECRET`, `AUTH_URL`, `AUTH_EMAIL_FROM`                                       | accesso all'area riservata (Auth.js + Resend)        |
 | `NEXT_PUBLIC_CALENDAR_URL`                                                         | Embed calendario in `/contatti`                      |
 | `NEXT_PUBLIC_ANALYTICS_DOMAIN`                                                     | Analytics cookieless (opzionale)                     |
 | `MANUSCRIPT_RETENTION_DAYS`                                                        | Giorni prima della cancellazione delle analisi       |
@@ -160,7 +160,7 @@ dichiarato come prima diagnosi automatica.
 | Strumenti AI: piani mensile/annuale + lista d'attesa                                          | ✅    |
 | Stripe Checkout acconto 40% + webhook firmato                                                 | ✅    |
 | Email transazionali (Resend) + notifiche interne                                              | ✅    |
-| Admin con Basic Auth, filtri periodo/stato                                                    | ✅    |
+| Area riservata con accesso via link email, ruoli e permessi server-side                      | ✅    |
 | Blog MDX (12 outline), casi studio, chi siamo, contatti                                       | ✅    |
 | Legali: privacy, termini, cookie (testo completo, anagrafica in `config/legal.ts`)            | ✅    |
 | Modalità demo integrale senza variabili d'ambiente                                            | ✅    |
@@ -175,7 +175,7 @@ Il sito funziona anche senza segreti (le funzioni degradano con un messaggio chi
 ma per la produzione servono:
 
 1. **Segreti**: `DATABASE_URL`, `ANTHROPIC_API_KEY`, `STRIPE_*`, `RESEND_API_KEY`,
-   `ADMIN_USER`/`ADMIN_PASSWORD`, `NEXT_PUBLIC_CALENDAR_URL`.
+   `AUTH_SECRET`, `NEXT_PUBLIC_CALENDAR_URL`.
 2. **Database**: `npm run db:migrate` su Neon.
 3. **Pagine legali**: il testo è completo e l'anagrafica del titolare
    (Smart Content S.r.l.s.) è compilata in `config/legal.ts` sulla base della visura

@@ -12,8 +12,6 @@ const serverSchema = z.object({
   RESEND_API_KEY: z.string().min(1).optional(),
   EMAIL_FROM: z.string().optional(),
   EMAIL_INTERNAL: z.string().email().optional(),
-  ADMIN_USER: z.string().optional(),
-  ADMIN_PASSWORD: z.string().optional(),
   MANUSCRIPT_RETENTION_DAYS: z.coerce.number().int().positive().default(30),
   /**
    * Forza la modalità demo ("on") o la esclude ("off"). Senza valore decide
@@ -23,6 +21,19 @@ const serverSchema = z.object({
    * compare vuota, e copiare quel file non deve far fallire l'avvio.
    */
   DEMO_MODE: z.preprocess((v) => (v === "" ? undefined : v), z.enum(["on", "off"]).optional()),
+
+  /**
+   * Chiave di firma delle sessioni Auth.js. Obbligatoria in produzione: senza,
+   * i cookie di sessione non sono verificabili. In sviluppo Auth.js ne genera
+   * una effimera, che invalida le sessioni a ogni riavvio.
+   */
+  AUTH_SECRET: z.string().min(32).optional(),
+  /** URL canonico usato da Auth.js per costruire i link dei magic link. */
+  AUTH_URL: z.string().url().optional(),
+  /** Mittente dei magic link. Deve essere un dominio verificato su Resend. */
+  AUTH_EMAIL_FROM: z.string().optional(),
+  /** Durata della sessione in giorni. */
+  AUTH_SESSION_DAYS: z.coerce.number().int().positive().max(90).default(30),
 });
 
 const clientSchema = z.object({
@@ -41,10 +52,12 @@ export const env = serverSchema.parse({
   RESEND_API_KEY: process.env.RESEND_API_KEY,
   EMAIL_FROM: process.env.EMAIL_FROM,
   EMAIL_INTERNAL: process.env.EMAIL_INTERNAL,
-  ADMIN_USER: process.env.ADMIN_USER,
-  ADMIN_PASSWORD: process.env.ADMIN_PASSWORD,
   MANUSCRIPT_RETENTION_DAYS: process.env.MANUSCRIPT_RETENTION_DAYS,
   DEMO_MODE: process.env.DEMO_MODE,
+  AUTH_SECRET: process.env.AUTH_SECRET,
+  AUTH_URL: process.env.AUTH_URL,
+  AUTH_EMAIL_FROM: process.env.AUTH_EMAIL_FROM,
+  AUTH_SESSION_DAYS: process.env.AUTH_SESSION_DAYS,
 });
 
 /** Env pubbliche (safe per il client). */

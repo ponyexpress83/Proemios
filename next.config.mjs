@@ -5,7 +5,7 @@ const nextConfig = {
   // Rotte tipizzate: un link a una pagina inesistente rompe la build, non la produzione.
   typedRoutes: true,
   // mammoth e pdf-parse girano solo server-side: fuori dal bundle client.
-  serverExternalPackages: ["mammoth", "pdf-parse"],
+  serverExternalPackages: ["mammoth", "pdf-parse", "pg"],
 
   /**
    * I sei pacchetti pre-catalogo erano indicizzati con questi URL. Il catalogo

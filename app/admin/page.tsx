@@ -7,7 +7,8 @@ import { leads, quotes, manuscriptAnalyses, agencyLeads } from "@/db/schema";
 import { Gabbia, Filetto, cn } from "@/components/ui/primitivi";
 import { euro, numero, dataEstesa } from "@/lib/format";
 import { BRAND } from "@/config/brand";
-import { demoAttiva, datiAdminDemo } from "@/lib/demo";
+import { demoAttiva, demoEsplicita, datiAdminDemo } from "@/lib/demo";
+import { staffPerPagina } from "@/lib/auth/sessione";
 import type { QuotePackage } from "@/lib/pricing";
 
 export const metadata: Metadata = {
@@ -16,6 +17,21 @@ export const metadata: Metadata = {
 };
 
 export const dynamic = "force-dynamic";
+
+/**
+ * Il cruscotto è riservato allo staff. La verifica è qui, lato server: il
+ * middleware si limita a rimandare alla pagina di accesso chi non ha un cookie,
+ * e un cookie non prova nulla.
+ *
+ * L'unica eccezione è la demo **richiesta esplicitamente** (`DEMO_MODE=on`),
+ * che non ha un database dietro e quindi non ha dati veri da proteggere. Una
+ * demo dedotta dall'assenza di `DATABASE_URL` non basta: un deploy mal
+ * configurato aprirebbe il cruscotto a chiunque.
+ */
+async function verificaAccesso() {
+  if (demoEsplicita()) return;
+  await staffPerPagina("/admin", "crm.vedi_lead");
+}
 
 const STATO_ETICHETTA: Record<string, string> = {
   draft: "Bozza",
@@ -120,6 +136,8 @@ export default async function AdminPage({
 }: {
   searchParams: Promise<{ periodo?: string; stato?: string }>;
 }) {
+  await verificaAccesso();
+
   const sp = await searchParams;
   const periodoKey: PeriodoKey = (
     sp.periodo && sp.periodo in PERIODI ? sp.periodo : "30"

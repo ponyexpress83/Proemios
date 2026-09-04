@@ -21,12 +21,16 @@ export interface EsitoLimite {
   scadeIl: number;
 }
 
-export function verificaLimite(chiave: string, massimo: number): EsitoLimite {
+export function verificaLimite(
+  chiave: string,
+  massimo: number,
+  finestraMs: number = FINESTRA_MS,
+): EsitoLimite {
   const ora = Date.now();
   const voce = registro.get(chiave);
 
   if (!voce || voce.scadeIl <= ora) {
-    const scadeIl = ora + FINESTRA_MS;
+    const scadeIl = ora + finestraMs;
     registro.set(chiave, { conteggio: 1, scadeIl });
     return { consentito: true, rimanenti: massimo - 1, scadeIl };
   }
@@ -44,4 +48,18 @@ export function ipClient(req: Request): string {
   const fwd = req.headers.get("x-forwarded-for");
   if (fwd) return fwd.split(",")[0]!.trim();
   return req.headers.get("x-real-ip")?.trim() ?? "sconosciuto";
+}
+
+/**
+ * Variante con finestra esplicita, per i limiti che non sono giornalieri
+ * (invio dei link di accesso, invii di modulo). Restituisce `{ ok }` perché
+ * i chiamanti che la usano non hanno bisogno del conteggio residuo.
+ */
+export function limitaRichieste(
+  chiave: string,
+  massimo: number,
+  finestraMs: number,
+): { ok: boolean; scadeIl: number } {
+  const esito = verificaLimite(chiave, massimo, finestraMs);
+  return { ok: esito.consentito, scadeIl: esito.scadeIl };
 }

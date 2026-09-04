@@ -4,11 +4,75 @@
  */
 import "dotenv/config";
 import { db } from "./index";
-import { leads, quotes, manuscriptAnalyses, agencyLeads } from "./schema";
+import { eq } from "drizzle-orm";
+import {
+  leads,
+  quotes,
+  manuscriptAnalyses,
+  agencyLeads,
+  organizations,
+  users,
+  staffAccounts,
+} from "./schema";
 import { computeQuote } from "../lib/pricing";
 
+/**
+ * Organizzazione dello studio e primo amministratore.
+ *
+ * Serve anche in produzione, una volta sola: senza un'organizzazione `studio` e
+ * un `super_admin` non esiste nessuno che possa invitare gli altri. È l'unico
+ * account creato senza invito, ed è idempotente — rieseguire il seed non
+ * duplica nulla e non tocca un account esistente.
+ *
+ * L'indirizzo si passa con SEED_ADMIN_EMAIL. Nessuna password: si entra con il
+ * link di accesso.
+ */
+async function fondazione() {
+  const emailAdmin = process.env.SEED_ADMIN_EMAIL?.trim().toLowerCase();
+
+  let [studio] = await db.select().from(organizations).where(eq(organizations.slug, "proemios"));
+  if (!studio) {
+    [studio] = await db
+      .insert(organizations)
+      .values({ slug: "proemios", nome: "Proemios", tipo: "studio" })
+      .returning();
+    console.log("Seed: creata l'organizzazione studio.");
+  }
+
+  if (!emailAdmin) {
+    console.log(
+      "Seed: SEED_ADMIN_EMAIL non impostata, nessun amministratore creato.\n" +
+        "      Per crearne uno: SEED_ADMIN_EMAIL=tu@dominio.it npm run db:seed",
+    );
+    return studio!;
+  }
+
+  const [esistente] = await db.select().from(users).where(eq(users.email, emailAdmin));
+  if (esistente) {
+    console.log(`Seed: l'amministratore ${emailAdmin} esiste già, lasciato invariato.`);
+    return studio!;
+  }
+
+  const [admin] = await db
+    .insert(users)
+    .values({
+      email: emailAdmin,
+      name: "Amministratore",
+      ruolo: "super_admin",
+      organizationId: studio!.id,
+      emailVerified: new Date(),
+    })
+    .returning();
+  await db.insert(staffAccounts).values({ userId: admin!.id, titolo: "Amministratore" });
+  console.log(`Seed: creato l'amministratore ${emailAdmin}.`);
+
+  return studio!;
+}
+
 async function seed() {
-  console.log("Seed: pulizia tabelle…");
+  const studio = await fondazione();
+
+  console.log("Seed: pulizia dei dati dimostrativi…");
   await db.delete(quotes);
   await db.delete(manuscriptAnalyses);
   await db.delete(agencyLeads);
@@ -19,6 +83,7 @@ async function seed() {
   const [lauraLead] = await db
     .insert(leads)
     .values({
+      organizationId: studio.id,
       nome: "Laura Bianchi",
       email: "laura.bianchi@example.com",
       telefono: "+39 340 1112233",
@@ -32,6 +97,7 @@ async function seed() {
   const [marcoLead] = await db
     .insert(leads)
     .values({
+      organizationId: studio.id,
       nome: "Marco Verdi",
       email: "marco.verdi@example.com",
       fonte: "analisi",
@@ -44,6 +110,7 @@ async function seed() {
   const [giuliaLead] = await db
     .insert(leads)
     .values({
+      organizationId: studio.id,
       nome: "Giulia Neri",
       email: "giulia.neri@example.com",
       telefono: "+39 333 4455667",
@@ -57,6 +124,7 @@ async function seed() {
   const [agenziaLead] = await db
     .insert(leads)
     .values({
+      organizationId: studio.id,
       nome: "Studio Ponti (referente: Anna Ponti)",
       email: "anna@studioponti.example",
       fonte: "agenzie",
