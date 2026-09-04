@@ -13,8 +13,15 @@ import {
   organizations,
   users,
   staffAccounts,
+  clients,
+  projects,
+  projectStages,
+  projectMembers,
+  milestones,
+  messages,
 } from "./schema";
 import { computeQuote } from "../lib/pricing";
+import { TAPPE_PREDEFINITE } from "../lib/progetti/tappe";
 
 /**
  * Organizzazione dello studio e primo amministratore.
@@ -67,6 +74,153 @@ async function fondazione() {
   console.log(`Seed: creato l'amministratore ${emailAdmin}.`);
 
   return studio!;
+}
+
+/**
+ * Progetti dimostrativi, per lavorare sul back-office e sull'area cliente
+ * senza doverli creare a mano ogni volta. Idempotente: se esistono già, li
+ * lascia stare.
+ */
+async function progettiDimostrativi(studioId: string) {
+  const [esistente] = await db.select().from(projects).limit(1);
+  if (esistente) {
+    console.log("Seed: progetti già presenti, lasciati invariati.");
+    return;
+  }
+
+  console.log("Seed: progetti dimostrativi…");
+
+  const [utenteCliente] = await db
+    .insert(users)
+    .values({
+      email: "cliente.demo@example.com",
+      name: "Chiara Neri",
+      ruolo: "client",
+      organizationId: studioId,
+      emailVerified: new Date(),
+    })
+    .returning();
+
+  const [redattore] = await db
+    .insert(users)
+    .values({
+      email: "redattore.demo@example.com",
+      name: "Philippe Marchand",
+      ruolo: "editor_reviewer",
+      organizationId: studioId,
+      emailVerified: new Date(),
+    })
+    .returning();
+  await db.insert(staffAccounts).values({ userId: redattore!.id, titolo: "Redattore" });
+
+  const [cliente] = await db
+    .insert(clients)
+    .values({
+      organizationId: studioId,
+      userId: utenteCliente!.id,
+      nome: "Chiara",
+      cognome: "Neri",
+      email: "cliente.demo@example.com",
+      telefono: "+39 347 5551234",
+      alias: "Autore 07",
+      noteCommerciali: "Molto attenta ai tempi. Preferisce aggiornamenti scritti.",
+    })
+    .returning();
+
+  const definizioni = [
+    {
+      codice: "P-184",
+      titolo: "Le stagioni di Villa Aldini",
+      titoloAlias: "Memoir familiare",
+      stato: "in_corso" as const,
+      avanzamento: 50,
+      parole: 82_430,
+      giorni: 21,
+      servizi: ["correzione-bozze", "impaginazione"],
+    },
+    {
+      codice: "P-185",
+      titolo: "Manuale di negoziazione applicata",
+      titoloAlias: null,
+      stato: "in_attesa_cliente" as const,
+      avanzamento: 33,
+      parole: 41_200,
+      giorni: 40,
+      servizi: ["editing-stilistico"],
+    },
+  ];
+
+  for (const d of definizioni) {
+    const [progetto] = await db
+      .insert(projects)
+      .values({
+        codice: d.codice,
+        organizationId: studioId,
+        clientId: cliente!.id,
+        titolo: d.titolo,
+        titoloAlias: d.titoloAlias,
+        stato: d.stato,
+        avanzamento: d.avanzamento,
+        conteggioParole: d.parole,
+        serviziSlug: d.servizi,
+        percorsoSlug: "ho-gia-scritto-il-libro",
+        scadenzaAt: new Date(Date.now() + d.giorni * 86_400_000),
+        istruzioniEditoriali:
+          "Conservare i corsivi dell'autrice. Non uniformare i dialoghi in dialetto.",
+        noteInterne: "Margine sottile: non allargare lo scope senza rifare il preventivo.",
+      })
+      .returning();
+
+    await db.insert(projectStages).values(
+      TAPPE_PREDEFINITE.map((t, i) => ({
+        projectId: progetto!.id,
+        nome: t.nome,
+        descrizione: t.descrizione,
+        ordine: i,
+        stato:
+          i < Math.floor((d.avanzamento / 100) * TAPPE_PREDEFINITE.length)
+            ? ("completata" as const)
+            : i === Math.floor((d.avanzamento / 100) * TAPPE_PREDEFINITE.length)
+              ? ("in_corso" as const)
+              : ("attesa" as const),
+        completataAt:
+          i < Math.floor((d.avanzamento / 100) * TAPPE_PREDEFINITE.length) ? new Date() : null,
+      })),
+    );
+
+    await db.insert(projectMembers).values([
+      { projectId: progetto!.id, userId: redattore!.id, ruolo: "editor_reviewer" },
+    ]);
+
+    await db.insert(milestones).values([
+      {
+        projectId: progetto!.id,
+        nome: "Consegna della prima parte",
+        descrizione: "I primi otto capitoli, con le revisioni tracciate.",
+        stato: "in_corso",
+        ordine: 0,
+        importoCent: 120_000,
+        scadenzaAt: new Date(Date.now() + 10 * 86_400_000),
+      },
+    ]);
+
+    await db.insert(messages).values([
+      {
+        projectId: progetto!.id,
+        autoreId: null,
+        corpo: "Abbiamo ricevuto il file e cominciato la lettura. Ti aggiorniamo entro venerdì.",
+        visibileAlCliente: true,
+      },
+      {
+        projectId: progetto!.id,
+        autoreId: null,
+        corpo: "Nota interna: chiedere all'autrice se i corsivi al capitolo 4 sono voluti.",
+        visibileAlCliente: false,
+      },
+    ]);
+  }
+
+  console.log("Seed: due progetti, un cliente e un redattore dimostrativi.");
 }
 
 async function seed() {
@@ -202,6 +356,8 @@ async function seed() {
     serviziEsternalizzati: "Ghostwriting, impaginazione",
     volumeStimato: "2-4 libri/mese",
   });
+
+  await progettiDimostrativi(studio.id);
 
   console.log("Seed completato.");
 }

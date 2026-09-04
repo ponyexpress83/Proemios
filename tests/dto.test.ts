@@ -246,6 +246,16 @@ describe("DTO progetto", () => {
     }
   });
 
+  it("a finance non arrivano le istruzioni editoriali", () => {
+    // Emettere una fattura non richiede di sapere come trattare i dialoghi.
+    const chiavi = chiaviDi(progettoDTO(attore("finance"), PROGETTO));
+    expect(chiavi).not.toContain("istruzioniEditoriali");
+    expect(chiavi).not.toContain("noteInterne");
+    // Ma il collegamento all'ordine e al cliente sì: le servono per fatturare.
+    expect(chiavi).toContain("clientId");
+    expect(chiavi).toContain("orderId");
+  });
+
   it("nessun DTO del cliente contiene chiavi di back-office", () => {
     const chiavi = chiaviDi(progettoDTO(attore("client", { clientId: CLIENTE.id }), PROGETTO));
     for (const vietata of CHIAVI_VIETATE_AL_CLIENTE) {

@@ -3,9 +3,6 @@ import Script from "next/script";
 import { BRAND } from "@/config/brand";
 import { UI } from "@/config/copy";
 import { fontVariables } from "./fonts";
-import { Testata } from "@/components/layout/testata";
-import { Colophon } from "@/components/layout/colophon";
-import { FasciaDemo } from "@/components/layout/fascia-demo";
 import { AttributionCapture } from "@/components/marketing/attribution-capture";
 import { demoAttiva } from "@/lib/demo";
 import { JsonLd, organizationJsonLd } from "@/lib/seo";
@@ -67,12 +64,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         >
           {UI.saltaAlContenuto}
         </a>
-        <FasciaDemo />
-        <Testata />
-        <main id="contenuto" className="flex-1">
-          {children}
-        </main>
-        <Colophon />
+        {children}
       </body>
     </html>
   );

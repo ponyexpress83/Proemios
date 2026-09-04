@@ -52,7 +52,25 @@ export type ProgettoPerStaff = ProgettoPerCliente & {
   briefVerificatoAt: string | null;
 };
 
-export type ProgettoDTO = ProgettoPerRedattore | ProgettoPerCliente | ProgettoPerStaff;
+/**
+ * Ciò che vede l'amministrazione: il progetto come voce contabile.
+ *
+ * Non ha `istruzioniEditoriali`: emettere una fattura non richiede di sapere
+ * come vanno trattati i dialoghi in dialetto. Il principio è lo stesso che
+ * tiene i manoscritti fuori dalla portata di finance.
+ */
+export type ProgettoPerFinanza = ProgettoPerCliente & {
+  clientId: string;
+  organizationId: string;
+  orderId: string | null;
+  projectManagerId: string | null;
+};
+
+export type ProgettoDTO =
+  | ProgettoPerRedattore
+  | ProgettoPerCliente
+  | ProgettoPerFinanza
+  | ProgettoPerStaff;
 
 export function progettoPerRedattore(p: Progetto): ProgettoPerRedattore {
   return sigilla({
@@ -101,9 +119,22 @@ export function progettoPerStaff(p: Progetto): ProgettoPerStaff {
   });
 }
 
+export function progettoPerFinanza(p: Progetto): ProgettoPerFinanza {
+  return sigilla({
+    ...progettoPerCliente(p),
+    clientId: p.clientId,
+    organizationId: p.organizationId,
+    orderId: p.orderId,
+    projectManagerId: p.projectManagerId,
+  });
+}
+
 export function progettoDTO(attore: Attore, p: Progetto): ProgettoDTO {
   if (attore.ruolo === "client") return progettoPerCliente(p);
   if (attore.ruolo === "editor_reviewer") return progettoPerRedattore(p);
+  // Finance vede il progetto come voce contabile, non come lavorazione: il suo
+  // DTO non ha i campi editoriali, non li ha nascosti.
+  if (attore.ruolo === "finance") return progettoPerFinanza(p);
   if (haPermesso(attore, "progetto.vedi_tutti")) return progettoPerStaff(p);
   return progettoPerRedattore(p);
 }

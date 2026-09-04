@@ -151,3 +151,99 @@ export async function creaLead(dati: {
     .returning();
   return lead!;
 }
+
+/** Crea un'anagrafica cliente, facoltativamente legata a un account. */
+export async function creaCliente(dati: {
+  nome: string;
+  email: string;
+  organizationId: string;
+  userId?: string;
+  alias?: string;
+}) {
+  const d = await preparaDatabase();
+  const [cliente] = await d
+    .insert(schema.clients)
+    .values({
+      organizationId: dati.organizationId,
+      userId: dati.userId ?? null,
+      nome: dati.nome,
+      email: dati.email,
+      alias: dati.alias ?? null,
+      telefono: "+39 333 0000000",
+      partitaIva: "01234567890",
+      noteCommerciali: "Budget alto, insistere.",
+    })
+    .returning();
+  return cliente!;
+}
+
+/** Crea un account cliente e la sua anagrafica, e restituisce l'attore. */
+export async function creaAttoreCliente(dati: {
+  email: string;
+  nome: string;
+  organizationId: string;
+}): Promise<Attore & { clientId: string }> {
+  const d = await preparaDatabase();
+  const [u] = await d
+    .insert(schema.users)
+    .values({
+      email: dati.email,
+      name: dati.nome,
+      ruolo: "client",
+      organizationId: dati.organizationId,
+    })
+    .returning();
+  const cliente = await creaCliente({
+    nome: dati.nome,
+    email: dati.email,
+    organizationId: dati.organizationId,
+    userId: u!.id,
+  });
+  return {
+    userId: u!.id,
+    email: dati.email,
+    nome: dati.nome,
+    ruolo: "client",
+    organizationId: dati.organizationId,
+    clientId: cliente.id,
+    attivo: true,
+  };
+}
+
+/** Crea un progetto direttamente in database, con le sue tappe. */
+export async function creaProgettoDiretto(dati: {
+  codice: string;
+  titolo: string;
+  titoloAlias?: string;
+  organizationId: string;
+  clientId: string;
+  membri?: { userId: string; ruolo: (typeof schema.ruoloEnum.enumValues)[number] }[];
+}) {
+  const d = await preparaDatabase();
+  const [progetto] = await d
+    .insert(schema.projects)
+    .values({
+      codice: dati.codice,
+      titolo: dati.titolo,
+      titoloAlias: dati.titoloAlias ?? null,
+      organizationId: dati.organizationId,
+      clientId: dati.clientId,
+      istruzioniEditoriali: "Non toccare i dialoghi.",
+      noteInterne: "Margine basso, non allargare lo scope.",
+      serviziSlug: ["correzione-bozze"],
+    })
+    .returning();
+
+  await d.insert(schema.projectStages).values([
+    { projectId: progetto!.id, nome: "Avvio", ordine: 0, stato: "in_corso" },
+    { projectId: progetto!.id, nome: "Lavorazione", ordine: 1, stato: "attesa" },
+  ]);
+
+  for (const m of dati.membri ?? []) {
+    await d
+      .insert(schema.projectMembers)
+      .values({ projectId: progetto!.id, userId: m.userId, ruolo: m.ruolo });
+  }
+
+  return progetto!;
+}

@@ -3,6 +3,7 @@ import type { Route } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Gabbia } from "@/components/ui/primitivi";
+import { Marchio } from "@/components/layout/marchio";
 import { BottoneEsci } from "@/components/auth/bottone-esci";
 import { attorePerPagina } from "@/lib/auth/sessione";
 
@@ -30,26 +31,29 @@ export default async function LayoutArea({ children }: { children: React.ReactNo
 
   return (
     <div className="min-h-[80dvh]">
-      <div className="border-b border-bordo bg-fondo-alto">
+      <div className="border-bordo bg-fondo-alto border-b">
         <Gabbia className="flex flex-wrap items-center justify-between gap-4 py-4">
-          <nav aria-label="Area riservata" className="flex gap-1">
-            {VOCI.map((v) => (
-              <Link
-                key={v.href}
-                href={v.href as Route}
-                className="garbo rounded-md px-3 py-2 text-sm text-testo-attenuato hover:bg-superficie hover:text-testo"
-              >
-                {v.titolo}
-              </Link>
-            ))}
-          </nav>
+          <div className="flex items-center gap-5">
+            <Marchio misura="piccola" />
+            <nav aria-label="Area riservata" className="flex gap-1">
+              {VOCI.map((v) => (
+                <Link
+                  key={v.href}
+                  href={v.href as Route}
+                  className="garbo text-testo-attenuato hover:bg-superficie hover:text-testo rounded-md px-3 py-2 text-sm"
+                >
+                  {v.titolo}
+                </Link>
+              ))}
+            </nav>
+          </div>
           <div className="flex items-center gap-4">
-            <span className="text-sm text-testo-tenue">{attore.email}</span>
+            <span className="text-testo-tenue text-sm">{attore.email}</span>
             <BottoneEsci />
           </div>
         </Gabbia>
       </div>
-      {children}
+      <main id="contenuto">{children}</main>
     </div>
   );
 }

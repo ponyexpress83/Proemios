@@ -8,21 +8,36 @@ export function Progresso({
   valore,
   etichetta,
   mostraValore = true,
+  mostraEtichetta = true,
   tono = "viola",
   className,
 }: {
   valore: number;
+  /** Sempre obbligatoria: è il nome accessibile della barra, anche se nascosta. */
   etichetta: string;
   mostraValore?: boolean;
+  /** In una cella di tabella l'etichetta è già l'intestazione di colonna. */
+  mostraEtichetta?: boolean;
   tono?: "viola" | "lime" | "attenzione";
   className?: string;
 }) {
-  const pct = Math.max(0, Math.min(100, Math.round(valore)));
+  // Un valore non numerico (un campo assente in un DTO più stretto) darebbe
+  // "NaN%" nell'interfaccia: meglio zero, che è vero quanto basta.
+  const pct = Number.isFinite(valore) ? Math.max(0, Math.min(100, Math.round(valore))) : 0;
   const toni = { viola: "bg-viola", lime: "bg-lime", attenzione: "bg-attenzione" } as const;
   return (
     <div className={cn("flex flex-col gap-2", className)}>
-      <div className="flex items-baseline justify-between gap-3">
-        <span className="etichetta text-testo-tenue">{etichetta}</span>
+      <div
+        className={cn(
+          "flex items-baseline justify-between gap-3",
+          !mostraEtichetta && !mostraValore && "hidden",
+        )}
+      >
+        {mostraEtichetta ? (
+          <span className="etichetta text-testo-tenue">{etichetta}</span>
+        ) : (
+          <span />
+        )}
         {mostraValore ? <span className="cifre text-sm text-testo">{pct}%</span> : null}
       </div>
       <div
