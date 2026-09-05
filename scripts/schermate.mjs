@@ -5,6 +5,7 @@
  *   SHOT=/tmp/x BASE=http://localhost:3000 node scripts/schermate.mjs
  */
 import { chromium } from "@playwright/test";
+import { opzioniBrowser } from "./browser.mjs";
 const dir = process.env.SHOT ?? ".schermate";
 await (await import("node:fs/promises")).mkdir(dir, { recursive: true });
 const BASE = process.env.BASE ?? "http://localhost:3114";
@@ -17,7 +18,7 @@ const pagine = [
   ["preventivo", "/preventivo"],
   ["come-funziona", "/come-funziona"],
 ];
-const b = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium" });
+const b = await chromium.launch(opzioniBrowser());
 const p = await b.newPage({ viewport: { width: 1440, height: 1000 } });
 for (const [nome, url] of pagine) {
   await p.goto((process.env.BASE ?? "http://localhost:3114") + url, { waitUntil: "networkidle" });

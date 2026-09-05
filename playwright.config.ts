@@ -1,4 +1,5 @@
 import { defineConfig, devices } from "@playwright/test";
+import { existsSync } from "node:fs";
 
 /**
  * Configurazione dei test end-to-end.
@@ -13,10 +14,15 @@ import { defineConfig, devices } from "@playwright/test";
 const PORTA = Number(process.env.E2E_PORT ?? 3210);
 const BASE = `http://localhost:${PORTA}`;
 
-/** Vuota o assente in CI, dove `playwright install` mette i browser al loro posto. */
+/**
+ * In questo ambiente di sviluppo Chromium è preinstallato; in CI lo mette
+ * `playwright install` al proprio posto, e imporre un percorso lo farebbe
+ * fallire. Si usa quello locale solo se esiste davvero.
+ */
+const PREINSTALLATO = "/opt/pw-browsers/chromium";
 const eseguibile =
-  process.env.PLAYWRIGHT_CHROMIUM ??
-  (process.env.CI ? undefined : "/opt/pw-browsers/chromium");
+  process.env.PLAYWRIGHT_CHROMIUM ||
+  (existsSync(PREINSTALLATO) ? PREINSTALLATO : undefined);
 
 export default defineConfig({
   testDir: "./e2e",
@@ -41,11 +47,6 @@ export default defineConfig({
       name: "chromium",
       use: {
         ...devices["Desktop Chrome"],
-        /*
-         * In questo ambiente Chromium è già installato in `/opt/pw-browsers`; in
-         * CI lo installa `playwright install`, e allora si lascia decidere a
-         * Playwright. `PLAYWRIGHT_CHROMIUM=` (vuota) è il modo di dirlo.
-         */
         launchOptions: eseguibile ? { executablePath: eseguibile } : {},
       },
     },

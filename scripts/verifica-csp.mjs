@@ -9,9 +9,10 @@
  *   node scripts/verifica-csp.mjs
  */
 import { chromium } from "@playwright/test";
+import { opzioniBrowser } from "./browser.mjs";
 
 const PAGINE = ["/", "/servizi", "/preventivo", "/percorsi", "/contatti", "/analisi-manoscritto", "/per-agenzie", "/blog"];
-const browser = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium" });
+const browser = await chromium.launch(opzioniBrowser());
 const pagina = await browser.newPage();
 
 const violazioni = [];

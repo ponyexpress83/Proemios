@@ -9,6 +9,7 @@
  */
 import { chromium } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
+import { opzioniBrowser } from "./browser.mjs";
 
 const BASE = process.env.BASE ?? "http://localhost:3130";
 const PAGINE = [
@@ -24,7 +25,7 @@ const PAGINE = [
 ];
 
 const browser = await chromium.launch({
-  executablePath: process.env.CHROMIUM ?? "/opt/pw-browsers/chromium",
+  ...opzioniBrowser(),
 });
 const contesto = await browser.newContext({ viewport: { width: 1280, height: 900 } });
 const page = await contesto.newPage();

@@ -6,6 +6,7 @@
  */
 import { chromium } from "@playwright/test";
 import { mkdir } from "node:fs/promises";
+import { opzioniBrowser } from "./browser.mjs";
 
 const BASE = process.env.BASE ?? "http://localhost:3150";
 const dir = process.env.SHOT ?? ".schermate";
@@ -18,7 +19,7 @@ const SESSIONI = [
 ];
 
 const browser = await chromium.launch({
-  executablePath: process.env.CHROMIUM ?? "/opt/pw-browsers/chromium",
+  ...opzioniBrowser(),
 });
 
 for (const s of SESSIONI) {
