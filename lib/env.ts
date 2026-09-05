@@ -34,6 +34,25 @@ const serverSchema = z.object({
   AUTH_EMAIL_FROM: z.string().optional(),
   /** Durata della sessione in giorni. */
   AUTH_SESSION_DAYS: z.coerce.number().int().positive().max(90).default(30),
+
+  /** Storage dei file. In produzione dev'essere "s3". */
+  STORAGE_DRIVER: z.preprocess(
+    (v) => (v === "" ? undefined : v),
+    z.enum(["s3", "filesystem"]).optional(),
+  ),
+  S3_BUCKET: z.string().optional(),
+  S3_REGION: z.string().optional(),
+  S3_ACCESS_KEY_ID: z.string().optional(),
+  S3_SECRET_ACCESS_KEY: z.string().optional(),
+  S3_ENDPOINT: z.string().optional(),
+  STORAGE_ROOT: z.string().optional(),
+  STORAGE_SIGNING_SECRET: z.string().optional(),
+
+  /** Coda dei lavori durevole. */
+  INNGEST_EVENT_KEY: z.string().optional(),
+  INNGEST_SIGNING_KEY: z.string().optional(),
+
+  OPENAI_API_KEY: z.string().min(1).optional(),
 });
 
 const clientSchema = z.object({
@@ -58,6 +77,17 @@ export const env = serverSchema.parse({
   AUTH_URL: process.env.AUTH_URL,
   AUTH_EMAIL_FROM: process.env.AUTH_EMAIL_FROM,
   AUTH_SESSION_DAYS: process.env.AUTH_SESSION_DAYS,
+  STORAGE_DRIVER: process.env.STORAGE_DRIVER,
+  S3_BUCKET: process.env.S3_BUCKET,
+  S3_REGION: process.env.S3_REGION,
+  S3_ACCESS_KEY_ID: process.env.S3_ACCESS_KEY_ID,
+  S3_SECRET_ACCESS_KEY: process.env.S3_SECRET_ACCESS_KEY,
+  S3_ENDPOINT: process.env.S3_ENDPOINT,
+  STORAGE_ROOT: process.env.STORAGE_ROOT,
+  STORAGE_SIGNING_SECRET: process.env.STORAGE_SIGNING_SECRET,
+  INNGEST_EVENT_KEY: process.env.INNGEST_EVENT_KEY,
+  INNGEST_SIGNING_KEY: process.env.INNGEST_SIGNING_KEY,
+  OPENAI_API_KEY: process.env.OPENAI_API_KEY,
 });
 
 /** Env pubbliche (safe per il client). */
