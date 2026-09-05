@@ -119,13 +119,22 @@ jobs:
           DEMO_MODE: on
       # Server e verifica nello stesso passo: ogni `run` è una shell nuova, e un
       # processo avviato in background nel passo precedente non ci sarebbe più.
+      #
+      # La porta compare una volta sola: passarla sia a `next start` sia a
+      # `BASE` da due punti diversi è il modo in cui le due si separano, e il
+      # sintomo è un ERR_CONNECTION_REFUSED che sembra un guasto del browser.
       - name: axe-core su un'applicazione costruita
         run: |
-          npx next start -p 3000 &
-          for i in $(seq 1 60); do
-            curl -sf http://localhost:3000 > /dev/null && break
+          PORTA=3130
+          npx next start -p "$PORTA" &
+          for _ in $(seq 1 60); do
+            curl -sf "http://localhost:$PORTA/" > /dev/null && break
             sleep 1
           done
-          node scripts/accessibilita.mjs
+          if ! curl -sf "http://localhost:$PORTA/" > /dev/null; then
+            echo "Il server non è partito entro 60 secondi." >&2
+            exit 1
+          fi
+          BASE="http://localhost:$PORTA" node scripts/accessibilita.mjs
         env:
           DEMO_MODE: on
