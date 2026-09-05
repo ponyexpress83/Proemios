@@ -1,46 +1,33 @@
-import { Fraunces, Spectral, IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
 
 /**
- * Tre famiglie, tre ruoli distinti (DESIGN_PLAN §Tipografia).
- * Self-hosted da next/font: zero layout shift, nessuna richiesta a runtime.
+ * Tre famiglie, tre ruoli. Self-hosted da next/font: nessuna richiesta a
+ * runtime, nessun layout shift.
  */
 
-/** Display — titoli e versali di apertura. Serif old-style con voce, non Playfair. */
-export const fraunces = Fraunces({
+/** Interfaccia e titoli. Sans contemporanea, numerali eccellenti. */
+export const geist = Geist({
   subsets: ["latin"],
   display: "swap",
-  variable: "--font-display",
-  axes: ["SOFT", "WONK", "opsz"],
+  variable: "--font-geist",
 });
 
-/** Lettura — corpo del testo lungo, composto come in un libro. */
-export const spectral = Spectral({
+/** Apparato tecnico: prezzi, conteggi, codici progetto, etichette di stato. */
+export const geistMono = Geist_Mono({
   subsets: ["latin"],
   display: "swap",
-  variable: "--font-lettura",
-  weight: ["300", "400", "500", "600"],
+  variable: "--font-geist-mono",
+});
+
+/** Accento editoriale: citazioni e occhielli. Mai per l'interfaccia. */
+export const serifEditoriale = Instrument_Serif({
+  subsets: ["latin"],
+  display: "swap",
+  weight: "400",
   style: ["normal", "italic"],
+  variable: "--font-serif-editoriale",
 });
 
-/** Interfaccia — nav, bottoni, form. */
-export const plexSans = IBM_Plex_Sans({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-ui",
-  weight: ["400", "500", "600"],
-});
-
-/** Apparato tecnico — prezzi, metriche, folî, etichette da scheda. */
-export const plexMono = IBM_Plex_Mono({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-mono",
-  weight: ["400", "500", "600"],
-});
-
-export const fontVariables = [
-  fraunces.variable,
-  spectral.variable,
-  plexSans.variable,
-  plexMono.variable,
-].join(" ");
+export const fontVariables = [geist.variable, geistMono.variable, serifEditoriale.variable].join(
+  " ",
+);

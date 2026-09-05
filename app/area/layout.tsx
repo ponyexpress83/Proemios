@@ -1,0 +1,92 @@
+import type { Metadata } from "next";
+import type { Route } from "next";
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import { Gabbia } from "@/components/ui/primitivi";
+import { Marchio } from "@/components/layout/marchio";
+import { BottoneEsci } from "@/components/auth/bottone-esci";
+import { Campanella } from "@/components/layout/campanella";
+import { elencaNotifiche } from "@/lib/dati/notifiche";
+import { organizzazioneCorrente } from "@/lib/dati/organizzazioni";
+import { nomeVisibile, variabiliStile } from "@/lib/branding";
+import { BRAND } from "@/config/brand";
+import { attorePerPagina } from "@/lib/auth/sessione";
+
+export const metadata: Metadata = {
+  title: { default: "Area riservata", template: "%s · Area riservata" },
+  robots: { index: false, follow: false },
+};
+
+export const dynamic = "force-dynamic";
+
+const VOCI = [
+  { href: "/area", titolo: "I miei progetti" },
+  { href: "/area/pagamenti", titolo: "Pagamenti" },
+  { href: "/area/profilo", titolo: "Profilo e accessi" },
+] as const;
+
+/**
+ * Guscio dell'area cliente. L'autenticazione è verificata qui, lato server, e
+ * di nuovo in ogni pagina che legge dati: un layout non è una barriera —
+ * Next.js può servire una pagina figlia senza rieseguire il layout.
+ */
+export default async function LayoutArea({ children }: { children: React.ReactNode }) {
+  const attore = await attorePerPagina("/area");
+  // Lo staff ha il proprio back-office: qui non ci fa nulla.
+  if (attore.ruolo !== "client") redirect("/admin");
+
+  const [notifiche, organizzazione] = await Promise.all([
+    elencaNotifiche(attore, { limite: 20 }),
+    organizzazioneCorrente(attore),
+  ]);
+
+  // Il colore dell'agenzia sovrascrive l'identità solo per i suoi clienti.
+  // Passa da `style`, non da un tag <style>: React lo scrive con setProperty,
+  // che rifiuta i valori malformati e non può chiudere una regola.
+  const stile = variabiliStile(organizzazione.branding);
+  const marchio = nomeVisibile(
+    organizzazione.branding,
+    organizzazione.proemiosInvisibile,
+    BRAND.name,
+  );
+
+  return (
+    <div className="min-h-[80dvh]" style={stile as React.CSSProperties}>
+      <div className="border-bordo bg-fondo-alto border-b">
+        <Gabbia className="flex flex-wrap items-center justify-between gap-4 py-4">
+          <div className="flex items-center gap-5">
+            {organizzazione.branding?.logoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={organizzazione.branding.logoUrl}
+                alt={marchio || organizzazione.nome}
+                className="h-7 w-auto"
+              />
+            ) : marchio ? (
+              <Marchio misura="piccola" />
+            ) : (
+              <span className="text-testo text-sm font-semibold">{organizzazione.nome}</span>
+            )}
+            <nav aria-label="Area riservata" className="flex gap-1">
+              {VOCI.map((v) => (
+                <Link
+                  key={v.href}
+                  href={v.href as Route}
+                  className="garbo text-testo-attenuato hover:bg-superficie hover:text-testo rounded-md px-3 py-2 text-sm"
+                >
+                  {v.titolo}
+                </Link>
+              ))}
+            </nav>
+          </div>
+          <div className="flex items-center gap-4">
+            <span className="text-testo-tenue text-sm">{attore.email}</span>
+            <Campanella notifiche={notifiche} />
+            <BottoneEsci />
+          </div>
+        </Gabbia>
+      </div>
+      <main id="contenuto">{children}</main>
+    </div>
+  );
+}

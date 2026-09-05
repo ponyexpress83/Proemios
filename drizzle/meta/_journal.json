@@ -15,6 +15,27 @@
       "when": 1788029900000,
       "tag": "0001_ads_attribution",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1788562725423,
+      "tag": "0002_parallel_nitro",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1788570970817,
+      "tag": "0003_square_tag",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1788571953379,
+      "tag": "0004_silent_obadiah_stane",
+      "breakpoints": true
     }
   ]
 }

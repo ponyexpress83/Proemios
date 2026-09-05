@@ -107,11 +107,19 @@ export function serviceJsonLd(params: {
   return base;
 }
 
-export function faqJsonLd(voci: { q: string; a: string }[]): Json {
+/**
+ * Accetta entrambe le forme in circolazione: `{q, a}` di config/services.ts e
+ * `{domanda, risposta}` del catalogo. Normalizzare qui evita di sparpagliare
+ * conversioni nelle pagine.
+ */
+export function faqJsonLd(
+  voci: ReadonlyArray<{ q: string; a: string } | { domanda: string; risposta: string }>,
+): Json {
+  const normalizzate = voci.map((v) => ("q" in v ? v : { q: v.domanda, a: v.risposta }));
   return {
     "@context": "https://schema.org",
     "@type": "FAQPage",
-    mainEntity: voci.map((f) => ({
+    mainEntity: normalizzate.map((f) => ({
       "@type": "Question",
       name: f.q,
       acceptedAnswer: { "@type": "Answer", text: f.a },

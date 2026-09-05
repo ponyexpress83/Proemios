@@ -8,6 +8,8 @@ on:
       - ads-ready-sep-2026
 
 jobs:
+  # Controlli rapidi: girano su ogni push e danno la risposta in un paio di
+  # minuti. Tutto ciò che non ha bisogno di un database sta qui.
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -22,5 +24,117 @@ jobs:
       - run: npm run test
       - run: npx eslint .
       - run: npm run build
+        env:
+          DEMO_MODE: on
+
+  # I test che hanno bisogno di un PostgreSQL vero. Non usano mock: un mock che
+  # accetta qualunque query non può dimostrare che un tenant non veda i dati di
+  # un altro, ed è esattamente ciò che questi test devono dimostrare.
+  integrazione:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: proemios_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/proemios_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run test:integrazione
+
+  # End-to-end su un'applicazione **costruita**: la CSP, le intestazioni e il
+  # middleware si comportano diversamente in sviluppo, e provare quello
+  # sbagliato darebbe una sicurezza falsa.
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: proemios_e2e
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/proemios_e2e
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/proemios_e2e
+      AUTH_SECRET: chiave-di-test-lunga-almeno-trentadue-caratteri
+      DEMO_MODE: "off"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run db:migrate
+      - run: npm run build
+      - run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+
+  # L'accessibilità è un requisito, non un'aspirazione: axe-core fallisce alla
+  # prima violazione WCAG 2.1 A/AA.
+  accessibilita:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run build
+        env:
+          DEMO_MODE: on
+      # Server e verifica nello stesso passo: ogni `run` è una shell nuova, e un
+      # processo avviato in background nel passo precedente non ci sarebbe più.
+      #
+      # La porta compare una volta sola: passarla sia a `next start` sia a
+      # `BASE` da due punti diversi è il modo in cui le due si separano, e il
+      # sintomo è un ERR_CONNECTION_REFUSED che sembra un guasto del browser.
+      - name: axe-core su un'applicazione costruita
+        run: |
+          PORTA=3130
+          npx next start -p "$PORTA" &
+          for _ in $(seq 1 60); do
+            curl -sf "http://localhost:$PORTA/" > /dev/null && break
+            sleep 1
+          done
+          if ! curl -sf "http://localhost:$PORTA/" > /dev/null; then
+            echo "Il server non è partito entro 60 secondi." >&2
+            exit 1
+          fi
+          BASE="http://localhost:$PORTA" node scripts/accessibilita.mjs
         env:
           DEMO_MODE: on

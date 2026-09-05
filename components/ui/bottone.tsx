@@ -1,47 +1,57 @@
 import type { Route } from "next";
 import Link from "next/link";
+import { Slot } from "@radix-ui/react-slot";
 import type { ComponentProps, ReactNode } from "react";
-import { cx } from "./primitivi";
+import { cn } from "@/lib/cn";
 
-type Variante = "primario" | "secondario" | "secondarioNotte" | "quieto" | "quietoNotte" | "chiaro";
-type Misura = "media" | "grande";
+export type VarianteBottone =
+  | "primario"
+  | "identita"
+  | "secondario"
+  | "fantasma"
+  | "quieto"
+  | "distruttivo";
+export type MisuraBottone = "piccola" | "media" | "grande";
 
 const base =
-  "garbo inline-flex select-none items-center justify-center gap-2 font-ui font-medium " +
-  "rounded-campo disabled:cursor-not-allowed disabled:opacity-40";
+  "garbo relative inline-flex select-none items-center justify-center gap-2 rounded-md font-medium " +
+  "whitespace-nowrap disabled:pointer-events-none disabled:opacity-40 " +
+  "active:translate-y-px";
 
 /**
- * Le varianti "…Notte" esistono come varianti proprie e non come override via
- * className: sovrascrivere `text-inchiostro` con `text-carta` dipende
- * dall'ordine nel CSS generato, non da quello nella stringa, e produce testo
- * illeggibile in modo intermittente.
+ * Ogni variante definisce fondo, testo e bordo insieme: passare solo un colore
+ * di fondo via className lascerebbe il testo della variante precedente e
+ * produce combinazioni illeggibili a seconda dell'ordine nel CSS generato.
  */
-const varianti: Record<Variante, string> = {
-  // Verde bottiglia pieno: l'azione principale.
+const varianti: Record<VarianteBottone, string> = {
+  // Azione principale del prodotto.
   primario:
-    "bg-alloro text-carta border border-alloro hover:bg-alloro-chiaro hover:border-alloro-chiaro",
-  // Filetto: presenza tipografica, non peso cromatico.
+    "bg-viola text-white border border-viola hover:bg-viola-chiaro hover:border-viola-chiaro shadow-sollevata",
+  // CTA commerciale: il lime resta raro e sempre su testo scurissimo.
+  identita:
+    "bg-lime text-fondo border border-lime font-semibold hover:bg-lime-scuro hover:border-lime-scuro",
+  // Azione alternativa: presenza per bordo, non per colore.
   secondario:
-    "bg-transparent text-inchiostro border border-filetto-forte hover:border-alloro hover:text-alloro",
-  // Come sopra, ma su fondo notte.
-  secondarioNotte:
-    "bg-transparent text-carta border border-carta/30 hover:border-ottone hover:text-ottone",
-  // Solo testo, con filetto di sottolineatura all'hover.
-  quieto: "bg-transparent text-alloro underline-offset-4 hover:underline border border-transparent",
-  quietoNotte:
-    "bg-transparent text-ottone underline-offset-4 hover:underline border border-transparent",
-  // Riempito, su fondo notte.
-  chiaro: "bg-carta text-notte border border-carta hover:bg-ottone hover:border-ottone",
+    "bg-superficie text-testo border border-bordo-forte hover:bg-superficie-viva hover:border-viola",
+  // Su fondali già carichi (hero, immagini).
+  fantasma:
+    "bg-transparent text-testo border border-bordo-forte hover:bg-superficie hover:border-bordo-forte",
+  // Solo testo.
+  quieto:
+    "bg-transparent text-viola-chiaro border border-transparent underline-offset-4 hover:underline",
+  distruttivo:
+    "bg-transparent text-errore border border-errore/40 hover:bg-errore/10 hover:border-errore",
 };
 
-const misure: Record<Misura, string> = {
-  media: "px-5 py-2.5 text-sm",
-  grande: "px-7 py-3.5 text-base",
+const misure: Record<MisuraBottone, string> = {
+  piccola: "h-8 px-3 text-[0.8125rem]",
+  media: "h-10 px-5 text-sm",
+  grande: "h-12 px-7 text-base",
 };
 
 interface Comuni {
-  variante?: Variante;
-  misura?: Misura;
+  variante?: VarianteBottone;
+  misura?: MisuraBottone;
   className?: string;
   children: ReactNode;
 }
@@ -50,13 +60,15 @@ export function Bottone({
   variante = "primario",
   misura = "media",
   className,
+  asChild = false,
   children,
   ...resto
-}: Comuni & ComponentProps<"button">) {
+}: Comuni & { asChild?: boolean } & ComponentProps<"button">) {
+  const Comp = asChild ? Slot : "button";
   return (
-    <button className={cx(base, varianti[variante], misure[misura], className)} {...resto}>
+    <Comp className={cn(base, varianti[variante], misure[misura], className)} {...resto}>
       {children}
-    </button>
+    </Comp>
   );
 }
 
@@ -74,10 +86,42 @@ export function BottoneLink({
   return (
     <Link
       href={href as Route}
-      className={cx(base, varianti[variante], misure[misura], className)}
+      className={cn(base, varianti[variante], misure[misura], className)}
       {...resto}
     >
       {children}
     </Link>
+  );
+}
+
+/** Bottone quadrato per sole icone: richiede sempre un'etichetta accessibile. */
+export function BottoneIcona({
+  etichetta,
+  misura = "media",
+  variante = "secondario",
+  className,
+  children,
+  ...resto
+}: {
+  etichetta: string;
+  misura?: MisuraBottone;
+  variante?: VarianteBottone;
+  className?: string;
+  children: ReactNode;
+} & ComponentProps<"button">) {
+  const quadrate: Record<MisuraBottone, string> = {
+    piccola: "size-8",
+    media: "size-10",
+    grande: "size-12",
+  };
+  return (
+    <button
+      aria-label={etichetta}
+      title={etichetta}
+      className={cn(base, varianti[variante], quadrate[misura], "px-0", className)}
+      {...resto}
+    >
+      {children}
+    </button>
   );
 }

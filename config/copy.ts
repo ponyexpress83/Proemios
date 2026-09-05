@@ -5,55 +5,6 @@
  * riscrivere le pagine. Nessuna stringa di UI va scritta dentro i componenti.
  */
 
-export const NAV_PRINCIPALE = [
-  { label: "Come funziona", href: "/come-funziona" },
-  { label: "Servizi", href: "/servizi" },
-  { label: "Strumenti AI", href: "/strumenti-ai" },
-  { label: "Casi studio", href: "/casi-studio" },
-  { label: "Blog", href: "/blog" },
-  { label: "Chi siamo", href: "/chi-siamo" },
-] as const;
-
-export const NAV_COLOPHON: { titolo: string; voci: { label: string; href: string }[] }[] = [
-  {
-    titolo: "Servizi",
-    voci: [
-      { label: "Valutazione editoriale", href: "/servizi/valutazione-editoriale" },
-      { label: "Revisione e pubblicazione", href: "/servizi/revisione-e-pubblicazione" },
-      { label: "Dal diario al libro", href: "/dal-diario-al-libro" },
-      { label: "Libro per professionisti", href: "/libro-per-professionisti" },
-      { label: "Copertina e impaginazione", href: "/servizi/copertina-e-impaginazione" },
-      { label: "Partner white label", href: "/per-agenzie" },
-    ],
-  },
-  {
-    titolo: "Strumenti",
-    voci: [
-      { label: "Analisi del manoscritto", href: "/analisi-manoscritto" },
-      { label: "Calcola il preventivo", href: "/preventivo" },
-      { label: "Piani Strumenti AI", href: "/strumenti-ai" },
-    ],
-  },
-  {
-    titolo: "Studio",
-    voci: [
-      { label: "Chi siamo", href: "/chi-siamo" },
-      { label: "Come funziona", href: "/come-funziona" },
-      { label: "Casi studio", href: "/casi-studio" },
-      { label: "Blog", href: "/blog" },
-      { label: "Contatti", href: "/contatti" },
-    ],
-  },
-  {
-    titolo: "Legale",
-    voci: [
-      { label: "Privacy", href: "/privacy" },
-      { label: "Termini", href: "/termini" },
-      { label: "Cookie", href: "/cookie" },
-    ],
-  },
-];
-
 /** Le due azioni ricorrenti. Stesso nome per la stessa azione, ovunque. */
 export const AZIONI = {
   preventivo: "Calcola il preventivo",

@@ -7,7 +7,7 @@ export const alt = `${BRAND.name} — ${BRAND.payoff}`;
 
 /**
  * Immagine Open Graph: composta come la copertina di un libro.
- * Carta, filetto, marchio con la P in alloro, payoff in apparato.
+ * Carta, filetto, marchio con la P in alloro, payoff in etichetta.
  */
 export default function OgImage() {
   return new ImageResponse(
