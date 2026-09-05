@@ -33,6 +33,7 @@ import {
 import { PacchettoDocx, PARTE_DOCUMENTO } from "@/lib/docx/pacchetto";
 import { accettaTutte, rifiutaTutte, testoParagrafi } from "@/lib/docx/revisioni-simulazione";
 import { estraiParagrafiDocx } from "@/lib/docx/estrazione";
+import { calibrazione } from "@/lib/dati/calibrazione";
 import { NonAutorizzato, NonTrovato } from "@/lib/auth/errori";
 import { haPermesso } from "@/lib/auth/attore";
 import * as schema from "@/db/schema";
@@ -387,5 +388,49 @@ describe("confini di ruolo attorno alla consegna", () => {
     await expect(
       approvaEditorialmente(scenario.attori.adminAgenziaA!, p.jobId),
     ).rejects.toBeInstanceOf(NonTrovato);
+  });
+});
+
+describe("calibrazione", () => {
+  it("misura l'accordo dalle decisioni già registrate, senza dati in più", async () => {
+    // Il tasso di disaccordo era misurabile dal primo Job: la tabella conserva
+    // sia la proposta sia la decisione della persona. Bastava guardarci.
+    const p = await preparaJobInRevisione();
+    const redattore = scenario.attori.redattore!;
+
+    await decidiInterventi(redattore, p.jobId, [
+      { interventoId: p.interventi[0]!.id, decisione: "accepted" },
+      { interventoId: p.interventi[1]!.id, decisione: "modified", testoModificato: "altro" },
+      { interventoId: p.interventi[2]!.id, decisione: "rejected" },
+    ]);
+
+    const esito = await calibrazione(scenario.attori.responsabile!, 90);
+    expect(esito.decisioniTotali).toBe(3);
+    expect(esito.jobConsiderati).toBe(1);
+
+    const refusi = esito.perCategoria.find((c) => c.categoria === "refuso")!;
+    // Due refusi: uno accettato, uno rifiutato.
+    expect(refusi.proposti).toBe(2);
+    expect(refusi.accordoPieno).toBeCloseTo(0.5);
+    // Con due sole decisioni non si allenta niente.
+    expect(refusi.raccomandazione.azione).toBe("campione-insufficiente");
+  });
+
+  it("il redattore non vede la calibrazione: è materiale di chi risponde della qualità", async () => {
+    await expect(calibrazione(scenario.attori.redattore!, 90)).rejects.toBeInstanceOf(
+      NonAutorizzato,
+    );
+  });
+
+  it("non mescola la calibrazione di due tenant", async () => {
+    const p = await preparaJobInRevisione();
+    await decidiInterventi(scenario.attori.redattore!, p.jobId, [
+      { interventoId: p.interventi[0]!.id, decisione: "accepted" },
+    ]);
+
+    // L'agenzia ha i propri manoscritti: un numero che le mescolasse non
+    // descriverebbe nessuna delle due.
+    const altrui = await calibrazione(scenario.attori.adminAgenziaA!, 90);
+    expect(altrui.decisioniTotali).toBe(0);
   });
 });

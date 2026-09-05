@@ -6,6 +6,7 @@ import { Marchio } from "@/components/layout/marchio";
 import { BottoneEsci } from "@/components/auth/bottone-esci";
 import { staffPerPagina } from "@/lib/auth/sessione";
 import { ETICHETTE_RUOLO } from "@/lib/auth/ruoli";
+import { haPermesso } from "@/lib/auth/attore";
 
 export const metadata: Metadata = {
   title: { default: "Banco di revisione", template: "%s · Banco di revisione" },
@@ -39,6 +40,14 @@ export default async function LayoutRedazione({ children }: { children: React.Re
             >
               Banco di revisione
             </Link>
+            {haPermesso(attore, "job.vedi_run_ai") ? (
+              <Link
+                href="/redazione/calibrazione"
+                className="garbo text-testo-attenuato hover:text-testo text-sm"
+              >
+                Calibrazione
+              </Link>
+            ) : null}
             <Badge tono="viola">{ETICHETTE_RUOLO[attore.ruolo]}</Badge>
           </div>
           <div className="flex items-center gap-4">

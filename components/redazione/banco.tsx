@@ -10,6 +10,7 @@ import { Nota } from "@/components/ui/primitivi";
 import { cn } from "@/lib/cn";
 import { ETICHETTA_CATEGORIA } from "@/lib/ai/livelli";
 import { decidi } from "@/app/redazione/azioni";
+import { VistaGruppi } from "./gruppi";
 import type { InterventoPerRedattore } from "@/lib/dto/job";
 
 /**
@@ -69,6 +70,13 @@ export function BancoRevisione({
   const [ricerca, setRicerca] = useState("");
   const [selezione, setSelezione] = useState<Set<string>>(new Set());
   const [finestra, setFinestra] = useState(PASSO_FINESTRA);
+  /**
+   * La vista raggruppata è quella predefinita: su un manoscritto vero le voci
+   * sono centinaia, e aprirle una per una è il motivo per cui il triage esiste.
+   */
+  const [vista, setVista] = useState<"gruppi" | "voci">("gruppi");
+  /** Sottoinsieme aperto da un gruppo, per guardarlo riga per riga. */
+  const [apertiDaGruppo, setApertiDaGruppo] = useState<Set<string> | null>(null);
   const [errore, setErrore] = useState<string | null>(null);
   const [inCorso, avvia] = useTransition();
 
@@ -77,12 +85,13 @@ export function BancoRevisione({
   const filtrati = useMemo(() => {
     const cerca = ricerca.trim().toLowerCase();
     return voci.filter((i) => {
+      if (apertiDaGruppo && !apertiDaGruppo.has(i.id)) return false;
       if (filtroStato !== "tutti" && i.stato !== filtroStato) return false;
       if (filtroCategoria !== "tutte" && i.categoria !== filtroCategoria) return false;
       if (cerca && !`${i.prima} ${i.dopo}`.toLowerCase().includes(cerca)) return false;
       return true;
     });
-  }, [voci, filtroStato, filtroCategoria, ricerca]);
+  }, [voci, filtroStato, filtroCategoria, ricerca, apertiDaGruppo]);
 
   const visibili = filtrati.slice(0, finestra);
   const inSospeso = voci.filter((i) => i.stato === "pending").length;
@@ -144,161 +153,212 @@ export function BancoRevisione({
         </Avviso>
       ) : null}
 
-      {/* ── Filtri ─────────────────────────────────────────────── */}
-      <div className="border-bordo bg-superficie flex flex-wrap items-end gap-3 rounded-lg border p-4">
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="filtro-stato" className="etichetta text-testo-tenue">
-            Stato
-          </label>
-          <Selezione
-            id="filtro-stato"
-            className="h-9 w-44 text-sm"
-            value={filtroStato}
-            onChange={(e) => {
-              setFiltroStato(e.target.value as StatoFiltro);
-              setFinestra(PASSO_FINESTRA);
-            }}
-          >
-            <option value="pending">Da decidere</option>
-            <option value="accepted">Accettati</option>
-            <option value="modified">Modificati</option>
-            <option value="rejected">Rifiutati</option>
-            <option value="tutti">Tutti</option>
-          </Selezione>
-        </div>
-
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="filtro-categoria" className="etichetta text-testo-tenue">
-            Categoria
-          </label>
-          <Selezione
-            id="filtro-categoria"
-            className="h-9 w-52 text-sm"
-            value={filtroCategoria}
-            onChange={(e) => {
-              setFiltroCategoria(e.target.value);
-              setFinestra(PASSO_FINESTRA);
-            }}
-          >
-            <option value="tutte">Tutte</option>
-            {categorie.map((c) => (
-              <option key={c} value={c}>
-                {ETICHETTA_CATEGORIA[c as never] ?? c}
-              </option>
-            ))}
-          </Selezione>
-        </div>
-
-        <div className="flex min-w-52 flex-1 flex-col gap-1.5">
-          <label htmlFor="filtro-ricerca" className="etichetta text-testo-tenue">
-            Cerca nel testo
-          </label>
-          <Input
-            id="filtro-ricerca"
-            className="h-9 text-sm"
-            value={ricerca}
-            placeholder="una parola o un frammento"
-            onChange={(e) => {
-              setRicerca(e.target.value);
-              setFinestra(PASSO_FINESTRA);
-            }}
-          />
-        </div>
-
-        <p aria-live="polite" className="text-testo-tenue pb-2 text-sm">
-          {filtrati.length} di {voci.length} · {inSospeso} da decidere
-        </p>
-      </div>
-
-      {/* ── Azioni in blocco ───────────────────────────────────── */}
-      {modificabile ? (
-        <div className="flex flex-wrap items-center gap-3">
-          <label className="text-testo-attenuato flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              className="accent-viola size-4"
-              checked={visibili.length > 0 && visibili.every((i) => selezione.has(i.id))}
-              onChange={(e) => {
-                const nuova = new Set(selezione);
-                for (const i of visibili) {
-                  if (e.target.checked) nuova.add(i.id);
-                  else nuova.delete(i.id);
-                }
-                setSelezione(nuova);
-              }}
-            />
-            Seleziona i {visibili.length} visibili
-          </label>
-
-          <Bottone
-            misura="piccola"
-            variante="secondario"
-            disabled={selezione.size === 0 || inCorso}
-            onClick={() => decidiSelezionati("accepted")}
-          >
-            Accetta {selezione.size > 0 ? `(${selezione.size})` : ""}
-          </Bottone>
-          <Bottone
-            misura="piccola"
-            variante="distruttivo"
-            disabled={selezione.size === 0 || inCorso}
-            onClick={() => decidiSelezionati("rejected")}
-          >
-            Rifiuta {selezione.size > 0 ? `(${selezione.size})` : ""}
-          </Bottone>
-
-          <span className="bg-bordo mx-1 h-5 w-px" aria-hidden />
-
-          {/* Accettare in blocco è comodo e pericoloso: il conteggio nel testo
-              del pulsante costringe a leggere quante voci si stanno decidendo. */}
+      {/* ── Vista ──────────────────────────────────────────────── */}
+      <div className="flex flex-wrap items-center gap-2">
+        <Bottone
+          misura="piccola"
+          variante={vista === "gruppi" ? "primario" : "secondario"}
+          onClick={() => {
+            setVista("gruppi");
+            setApertiDaGruppo(null);
+          }}
+        >
+          Raggruppati
+        </Bottone>
+        <Bottone
+          misura="piccola"
+          variante={vista === "voci" ? "primario" : "secondario"}
+          onClick={() => setVista("voci")}
+        >
+          Voce per voce
+        </Bottone>
+        {apertiDaGruppo ? (
           <Bottone
             misura="piccola"
             variante="quieto"
-            disabled={filtrati.length === 0 || inCorso}
-            onClick={() => decidiFiltrati("accepted")}
+            onClick={() => {
+              setApertiDaGruppo(null);
+              setVista("gruppi");
+            }}
           >
-            Accetta tutti i {filtrati.length} filtrati
+            ← Torna ai gruppi ({apertiDaGruppo.size} voci aperte)
           </Bottone>
-          {inCorso ? <Nota>Salvataggio in corso…</Nota> : null}
-        </div>
-      ) : (
-        <Avviso tono="informazione" titolo="Revisione chiusa">
-          Questa lavorazione non è più in revisione: gli interventi restano consultabili ma non si
-          possono più cambiare.
-        </Avviso>
-      )}
+        ) : null}
+      </div>
 
-      {/* ── Elenco ─────────────────────────────────────────────── */}
-      {filtrati.length === 0 ? (
-        <Nota>Nessun intervento corrisponde ai filtri.</Nota>
+      {vista === "gruppi" && !apertiDaGruppo ? (
+        <VistaGruppi
+          interventi={voci}
+          inCorso={inCorso}
+          onDecidiGruppo={(ids, decisione) =>
+            invia(ids.map((interventoId) => ({ interventoId, decisione })))
+          }
+          onApriGruppo={(ids) => {
+            setApertiDaGruppo(new Set(ids));
+            setVista("voci");
+            setFiltroStato("pending");
+            setFinestra(PASSO_FINESTRA);
+          }}
+        />
       ) : (
-        <ul className="flex flex-col gap-3">
-          {visibili.map((i) => (
-            <li key={i.id}>
-              <VoceIntervento
-                intervento={i}
-                selezionato={selezione.has(i.id)}
-                modificabile={modificabile}
-                puoModificare={puoModificare}
-                inCorso={inCorso}
-                onSeleziona={(attivo) => {
-                  const nuova = new Set(selezione);
-                  if (attivo) nuova.add(i.id);
-                  else nuova.delete(i.id);
-                  setSelezione(nuova);
+        <>
+          {/* ── Filtri ─────────────────────────────────────────────── */}
+          <div className="border-bordo bg-superficie flex flex-wrap items-end gap-3 rounded-lg border p-4">
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="filtro-stato" className="etichetta text-testo-tenue">
+                Stato
+              </label>
+              <Selezione
+                id="filtro-stato"
+                className="h-9 w-44 text-sm"
+                value={filtroStato}
+                onChange={(e) => {
+                  setFiltroStato(e.target.value as StatoFiltro);
+                  setFinestra(PASSO_FINESTRA);
                 }}
-                onDecidi={(d) => invia([{ interventoId: i.id, ...d }])}
-              />
-            </li>
-          ))}
-        </ul>
-      )}
+              >
+                <option value="pending">Da decidere</option>
+                <option value="accepted">Accettati</option>
+                <option value="modified">Modificati</option>
+                <option value="rejected">Rifiutati</option>
+                <option value="tutti">Tutti</option>
+              </Selezione>
+            </div>
 
-      {finestra < filtrati.length ? (
-        <Bottone variante="secondario" onClick={() => setFinestra((f) => f + PASSO_FINESTRA)}>
-          Mostra altri {Math.min(PASSO_FINESTRA, filtrati.length - finestra)}
-        </Bottone>
-      ) : null}
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="filtro-categoria" className="etichetta text-testo-tenue">
+                Categoria
+              </label>
+              <Selezione
+                id="filtro-categoria"
+                className="h-9 w-52 text-sm"
+                value={filtroCategoria}
+                onChange={(e) => {
+                  setFiltroCategoria(e.target.value);
+                  setFinestra(PASSO_FINESTRA);
+                }}
+              >
+                <option value="tutte">Tutte</option>
+                {categorie.map((c) => (
+                  <option key={c} value={c}>
+                    {ETICHETTA_CATEGORIA[c as never] ?? c}
+                  </option>
+                ))}
+              </Selezione>
+            </div>
+
+            <div className="flex min-w-52 flex-1 flex-col gap-1.5">
+              <label htmlFor="filtro-ricerca" className="etichetta text-testo-tenue">
+                Cerca nel testo
+              </label>
+              <Input
+                id="filtro-ricerca"
+                className="h-9 text-sm"
+                value={ricerca}
+                placeholder="una parola o un frammento"
+                onChange={(e) => {
+                  setRicerca(e.target.value);
+                  setFinestra(PASSO_FINESTRA);
+                }}
+              />
+            </div>
+
+            <p aria-live="polite" className="text-testo-tenue pb-2 text-sm">
+              {filtrati.length} di {voci.length} · {inSospeso} da decidere
+            </p>
+          </div>
+
+          {/* ── Azioni in blocco ───────────────────────────────────── */}
+          {modificabile ? (
+            <div className="flex flex-wrap items-center gap-3">
+              <label className="text-testo-attenuato flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  className="accent-viola size-4"
+                  checked={visibili.length > 0 && visibili.every((i) => selezione.has(i.id))}
+                  onChange={(e) => {
+                    const nuova = new Set(selezione);
+                    for (const i of visibili) {
+                      if (e.target.checked) nuova.add(i.id);
+                      else nuova.delete(i.id);
+                    }
+                    setSelezione(nuova);
+                  }}
+                />
+                Seleziona i {visibili.length} visibili
+              </label>
+
+              <Bottone
+                misura="piccola"
+                variante="secondario"
+                disabled={selezione.size === 0 || inCorso}
+                onClick={() => decidiSelezionati("accepted")}
+              >
+                Accetta {selezione.size > 0 ? `(${selezione.size})` : ""}
+              </Bottone>
+              <Bottone
+                misura="piccola"
+                variante="distruttivo"
+                disabled={selezione.size === 0 || inCorso}
+                onClick={() => decidiSelezionati("rejected")}
+              >
+                Rifiuta {selezione.size > 0 ? `(${selezione.size})` : ""}
+              </Bottone>
+
+              <span className="bg-bordo mx-1 h-5 w-px" aria-hidden />
+
+              {/* Accettare in blocco è comodo e pericoloso: il conteggio nel testo
+              del pulsante costringe a leggere quante voci si stanno decidendo. */}
+              <Bottone
+                misura="piccola"
+                variante="quieto"
+                disabled={filtrati.length === 0 || inCorso}
+                onClick={() => decidiFiltrati("accepted")}
+              >
+                Accetta tutti i {filtrati.length} filtrati
+              </Bottone>
+              {inCorso ? <Nota>Salvataggio in corso…</Nota> : null}
+            </div>
+          ) : (
+            <Avviso tono="informazione" titolo="Revisione chiusa">
+              Questa lavorazione non è più in revisione: gli interventi restano consultabili ma non
+              si possono più cambiare.
+            </Avviso>
+          )}
+
+          {/* ── Elenco ─────────────────────────────────────────────── */}
+          {filtrati.length === 0 ? (
+            <Nota>Nessun intervento corrisponde ai filtri.</Nota>
+          ) : (
+            <ul className="flex flex-col gap-3">
+              {visibili.map((i) => (
+                <li key={i.id}>
+                  <VoceIntervento
+                    intervento={i}
+                    selezionato={selezione.has(i.id)}
+                    modificabile={modificabile}
+                    puoModificare={puoModificare}
+                    inCorso={inCorso}
+                    onSeleziona={(attivo) => {
+                      const nuova = new Set(selezione);
+                      if (attivo) nuova.add(i.id);
+                      else nuova.delete(i.id);
+                      setSelezione(nuova);
+                    }}
+                    onDecidi={(d) => invia([{ interventoId: i.id, ...d }])}
+                  />
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {finestra < filtrati.length ? (
+            <Bottone variante="secondario" onClick={() => setFinestra((f) => f + PASSO_FINESTRA)}>
+              Mostra altri {Math.min(PASSO_FINESTRA, filtrati.length - finestra)}
+            </Bottone>
+          ) : null}
+        </>
+      )}
     </div>
   );
 }
