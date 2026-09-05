@@ -21,11 +21,7 @@ import { nomeSicuro, validaFile } from "@/lib/file/validazione";
 import { progettoAccessibile } from "./comunicazioni";
 
 export type RuoloVersione =
-  | "originale"
-  | "lavorazione"
-  | "revisionata"
-  | "approvata"
-  | "deliverable";
+  "originale" | "lavorazione" | "revisionata" | "approvata" | "deliverable";
 
 export type VersioneDTO = {
   id: string;
@@ -112,9 +108,7 @@ export async function elencaFile(attore: Attore, progettoId: string): Promise<Fi
       // Il cliente non deve vedere le versioni di lavorazione interne: per lui
       // esistono l'originale che ha caricato e ciò che gli è stato consegnato.
       .filter((v) =>
-        attore.ruolo === "client"
-          ? v.ruolo === "originale" || v.ruolo === "deliverable"
-          : true,
+        attore.ruolo === "client" ? v.ruolo === "originale" || v.ruolo === "deliverable" : true,
       )
       .map(versioneDTO),
   }));
@@ -143,11 +137,27 @@ export type DatiCaricamento = {
  * manutenzione periodica può rimuovere — l'inverso, una riga senza file, è
  * molto peggio, perché il sistema crede di avere qualcosa che non ha.
  */
-export async function caricaVersione(
-  attore: Attore,
-  dati: DatiCaricamento,
-): Promise<VersioneDTO> {
+export async function caricaVersione(attore: Attore, dati: DatiCaricamento): Promise<VersioneDTO> {
   esigiPermesso(attore, "file.carica");
+  return registraVersione(attore, dati);
+}
+
+/**
+ * Registra una versione **senza** chiedere `file.carica`.
+ *
+ * Esiste per un caso preciso: gli artefatti che la piattaforma produce da sé
+ * come effetto di un'azione già autorizzata altrove. Il documento con le
+ * revisioni tracciate ne è l'esempio — nasce dall'approvazione editoriale, che
+ * ha il proprio permesso (`job.approva_editorialmente`), e chiedere in più il
+ * permesso di caricare file costringerebbe a darlo a chi non deve caricare
+ * niente.
+ *
+ * Non è una scorciatoia: **il chiamante deve aver già verificato un permesso
+ * proprio**, e la funzione resta interna al modulo dati. Tutto il resto —
+ * appartenenza al progetto, validazione del contenuto, immutabilità
+ * dell'originale, audit — continua a valere identico.
+ */
+async function registraVersione(attore: Attore, dati: DatiCaricamento): Promise<VersioneDTO> {
   const progetto = await progettoAccessibile(attore, dati.progettoId);
 
   const nome = nomeSicuro(dati.nomeFile);
@@ -285,6 +295,21 @@ export async function caricaVersione(
 }
 
 /**
+ * Registra il documento revisionato prodotto da un'approvazione editoriale.
+ *
+ * Ha un permesso proprio — quello dell'azione che lo genera — e un ruolo di
+ * versione fissato: non è un varco per caricare qualunque file aggirando
+ * `file.carica`, perché non lascia scegliere né il ruolo né il momento.
+ */
+export async function registraVersioneRevisionata(
+  attore: Attore,
+  dati: Omit<DatiCaricamento, "ruolo">,
+): Promise<VersioneDTO> {
+  esigiPermesso(attore, "job.approva_editorialmente");
+  return registraVersione(attore, { ...dati, ruolo: "revisionata" });
+}
+
+/**
  * URL firmato per scaricare una versione.
  *
  * Ogni accesso è registrato: chi ha scaricato cosa e quando è un'informazione
@@ -387,10 +412,7 @@ export async function segnalaDaVerificare(
     .update(fileVersions)
     .set({ stato: "needs_review", notaVerifica: nota.slice(0, 500), updatedAt: new Date() })
     .where(
-      and(
-        eq(fileVersions.id, versioneId),
-        eq(fileVersions.organizationId, attore.organizationId),
-      ),
+      and(eq(fileVersions.id, versioneId), eq(fileVersions.organizationId, attore.organizationId)),
     );
 }
 

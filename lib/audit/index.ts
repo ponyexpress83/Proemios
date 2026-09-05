@@ -52,6 +52,7 @@ export const AZIONI_AUDIT = [
   "job.modello_cambiato",
   "job.rigenerato",
   "intervento.modificato",
+  "documento.revisionato_generato",
   "approvazione.editoriale",
   "approvazione.operativa",
   "approvazione.respinta",
@@ -167,9 +168,7 @@ export async function registra(
       entita: voce.entita ?? null,
       entitaId: voce.entitaId ?? null,
       esito: voce.esito ?? "ok",
-      metadati: voce.metadati
-        ? (sanitizza(voce.metadati) as Record<string, unknown>)
-        : null,
+      metadati: voce.metadati ? (sanitizza(voce.metadati) as Record<string, unknown>) : null,
       indirizzoIp: voce.indirizzoIp ?? null,
       userAgent: voce.userAgent?.slice(0, 400) ?? null,
       richiestaId: voce.richiestaId ?? null,

@@ -19,13 +19,39 @@ export type VoceBackOffice = {
 
 export const NAV_BACK_OFFICE: VoceBackOffice[] = [
   { href: "/admin", titolo: "Cruscotto", permesso: "progetto.vedi_assegnati", gruppo: "lavoro" },
-  { href: "/admin/progetti", titolo: "Progetti", permesso: "progetto.vedi_assegnati", gruppo: "lavoro" },
-  { href: "/admin/approvazioni", titolo: "Approvazioni", permesso: "progetto.vedi_assegnati", gruppo: "lavoro" },
+  {
+    href: "/admin/progetti",
+    titolo: "Progetti",
+    permesso: "progetto.vedi_assegnati",
+    gruppo: "lavoro",
+  },
+  {
+    href: "/admin/approvazioni",
+    titolo: "Approvazioni",
+    permesso: "progetto.vedi_assegnati",
+    gruppo: "lavoro",
+  },
+  {
+    href: "/redazione",
+    titolo: "Banco di revisione",
+    permesso: "job.vedi_assegnati",
+    gruppo: "lavoro",
+  },
 
   { href: "/admin/crm", titolo: "CRM", permesso: "crm.vedi_lead", gruppo: "commerciale" },
-  { href: "/admin/clienti", titolo: "Clienti", permesso: "cliente.vedi_identita", gruppo: "commerciale" },
+  {
+    href: "/admin/clienti",
+    titolo: "Clienti",
+    permesso: "cliente.vedi_identita",
+    gruppo: "commerciale",
+  },
 
-  { href: "/admin/pagamenti", titolo: "Pagamenti", permesso: "pagamento.vedi", gruppo: "amministrazione" },
+  {
+    href: "/admin/pagamenti",
+    titolo: "Pagamenti",
+    permesso: "pagamento.vedi",
+    gruppo: "amministrazione",
+  },
 
   { href: "/admin/staff", titolo: "Staff", permesso: "staff.vedi", gruppo: "piattaforma" },
   { href: "/admin/audit", titolo: "Audit", permesso: "audit.vedi", gruppo: "piattaforma" },

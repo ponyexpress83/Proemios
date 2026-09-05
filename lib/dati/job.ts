@@ -8,12 +8,7 @@
  */
 import { and, count, desc, eq, inArray, sql } from "drizzle-orm";
 import { getDb } from "@/db";
-import {
-  aiJobRuns,
-  editorialInterventions,
-  editorialJobs,
-  reviews,
-} from "@/db/schema/produzione";
+import { aiJobRuns, editorialInterventions, editorialJobs, reviews } from "@/db/schema/produzione";
 import { projects, projectMembers } from "@/db/schema/progetti";
 import { fileVersions } from "@/db/schema/file";
 import type { Attore } from "@/lib/auth/attore";
@@ -37,6 +32,7 @@ import {
 } from "@/lib/dto/job";
 import type { LivelloServizio } from "@/lib/ai/livelli";
 import { registra } from "@/lib/audit";
+import { generaVersioneRevisionata } from "@/lib/produzione/documento";
 import { progettoAccessibile } from "./comunicazioni";
 
 /**
@@ -73,7 +69,10 @@ export async function elencaJob(
   attore: Attore,
   filtri: FiltriJob = {},
 ): Promise<{ voci: JobPerRedattore[]; totale: number }> {
-  esigiPermesso(attore, haPermesso(attore, "job.vedi_tutti") ? "job.vedi_tutti" : "job.vedi_assegnati");
+  esigiPermesso(
+    attore,
+    haPermesso(attore, "job.vedi_tutti") ? "job.vedi_tutti" : "job.vedi_assegnati",
+  );
   const db = getDb();
 
   const pagina = Math.max(1, filtri.pagina ?? 1);
@@ -92,7 +91,11 @@ export async function elencaJob(
       .from(editorialJobs)
       .innerJoin(projects, eq(projects.id, editorialJobs.projectId))
       .where(dove)
-      .orderBy(desc(editorialJobs.prioritaria), editorialJobs.scadenzaAt, desc(editorialJobs.createdAt))
+      .orderBy(
+        desc(editorialJobs.prioritaria),
+        editorialJobs.scadenzaAt,
+        desc(editorialJobs.createdAt),
+      )
       .limit(perPagina)
       .offset((pagina - 1) * perPagina),
     db.select({ n: count() }).from(editorialJobs).where(dove),
@@ -131,7 +134,11 @@ export async function leggiJob(attore: Attore, jobId: string): Promise<Dettaglio
   // Le run sono materiale di back-office: il redattore non le riceve, e la
   // query non parte nemmeno se non ha il permesso.
   const run = haPermesso(attore, "job.vedi_run_ai")
-    ? await db.select().from(aiJobRuns).where(eq(aiJobRuns.jobId, jobId)).orderBy(aiJobRuns.iniziataAt)
+    ? await db
+        .select()
+        .from(aiJobRuns)
+        .where(eq(aiJobRuns.jobId, jobId))
+        .orderBy(aiJobRuns.iniziataAt)
     : [];
 
   const perCategoria = new Map<string, { totale: number; daRivedere: number }>();
@@ -490,4 +497,82 @@ export async function registraRevisione(
     noteInterne: noteInterne ?? null,
     esito,
   });
+}
+
+/**
+ * Approvazione editoriale: genera il documento revisionato e porta il Job in
+ * `editorially_approved`.
+ *
+ * L'ordine conta. Il documento si genera **prima** del cambio di stato: se la
+ * generazione fallisce, il Job resta in revisione e il redattore vede l'errore,
+ * invece di risultare approvato con dentro un allegato che non esiste. È il
+ * motivo per cui `generaVersioneRevisionata` non tocca lo stato da sé.
+ *
+ * Questa funzione non consegna nulla al cliente. Il redattore che la chiama
+ * chiude il proprio anello; la consegna richiede `progetto.approva_consegna` e
+ * poi `progetto.consegna_al_cliente`, e la macchina a stati non conosce
+ * scorciatoie fra i due.
+ */
+export async function approvaEditorialmente(
+  attore: Attore,
+  jobId: string,
+): Promise<{
+  versioneId: string | null;
+  applicati: number;
+  richiedeVerifica: boolean;
+  nota?: string;
+}> {
+  esigiPermesso(attore, "job.approva_editorialmente");
+  const db = getDb();
+
+  const [riga] = await db
+    .select({ job: editorialJobs })
+    .from(editorialJobs)
+    .where(and(eq(editorialJobs.id, jobId), condizioneVisibilita(attore)))
+    .limit(1);
+  if (!riga) throw new NonTrovato(`job ${jobId} inesistente o non visibile a ${attore.userId}`);
+  const job = riga.job;
+
+  if (job.stato !== "needs_review" && job.stato !== "needs_input") {
+    throw new Error(`Il Job è in stato ${job.stato}: non è in revisione.`);
+  }
+  if (!job.fileVersionOrigineId) {
+    throw new Error("Il Job non ha una versione di origine: non c'è documento da revisionare.");
+  }
+
+  const interventi = await db
+    .select({
+      id: editorialInterventions.id,
+      stato: editorialInterventions.stato,
+      ancora: editorialInterventions.ancora,
+      prima: editorialInterventions.prima,
+      dopo: editorialInterventions.dopo,
+      testoModificato: editorialInterventions.testoModificato,
+      commentoPerAutore: editorialInterventions.commentoPerAutore,
+    })
+    .from(editorialInterventions)
+    .where(eq(editorialInterventions.jobId, jobId))
+    .limit(50_000);
+
+  const esito = await generaVersioneRevisionata(attore, {
+    jobId,
+    progettoId: job.projectId,
+    fileVersionOrigineId: job.fileVersionOrigineId,
+    interventi,
+    autore: attore.nome || "Redazione Proemios",
+  });
+
+  await db
+    .update(editorialJobs)
+    .set({ fileVersionEsitoId: esito.versioneId, updatedAt: new Date() })
+    .where(eq(editorialJobs.id, jobId));
+
+  await cambiaStatoJob(attore, jobId, "editorially_approved");
+
+  return {
+    versioneId: esito.versioneId,
+    applicati: esito.applicati,
+    richiedeVerifica: esito.richiedeVerifica,
+    nota: esito.notaVerifica,
+  };
 }

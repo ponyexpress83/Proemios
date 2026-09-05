@@ -175,6 +175,25 @@ export function leggiParagrafi(xml: string): ParagrafoOoxml[] {
  * `scostamento` riporta le posizioni all'inizio del documento: dentro questa
  * funzione gli indici sono relativi al corpo del paragrafo.
  */
+/**
+ * Trova l'apertura della `<w:r>` che contiene una certa posizione.
+ *
+ * Non basta un `lastIndexOf("<w:r")`: `<w:rPr>` comincia con gli stessi
+ * caratteri e sta *dentro* la run, quindi verrebbe scambiato per la sua
+ * apertura. Il carattere successivo al nome deve essere uno spazio, `>` o `/`.
+ */
+function inizioRunCheContiene(xml: string, posizione: number): number {
+  let cursore = posizione;
+  while (cursore >= 0) {
+    const candidato = xml.lastIndexOf("<w:r", cursore);
+    if (candidato === -1) return -1;
+    const dopo = xml[candidato + 4];
+    if (dopo === " " || dopo === ">" || dopo === "/") return candidato;
+    cursore = candidato - 1;
+  }
+  return -1;
+}
+
 function leggiRun(corpoParagrafo: string, scostamento: number): RunTesto[] {
   const run: RunTesto[] = [];
   let posizione = 0;
@@ -223,9 +242,9 @@ function leggiRun(corpoParagrafo: string, scostamento: number): RunTesto[] {
 
     const testo = decodificaXml(corpoParagrafo.slice(fineTagApertura + 1, chiusura));
 
-    // Estremi della `<w:r>` che contiene questo `<w:t>`: servono alla Fase 5,
-    // che deve avvolgere o duplicare la run intera, non il solo testo.
-    const inizioRun = corpoParagrafo.lastIndexOf("<w:r", inizioT);
+    // Estremi della `<w:r>` che contiene questo `<w:t>`: servono al motore
+    // delle revisioni, che deve avvolgere la run intera, non il solo testo.
+    const inizioRun = inizioRunCheContiene(corpoParagrafo, inizioT);
     const fineRun = inizioRun === -1 ? -1 : fineElemento(corpoParagrafo, "w:r", inizioRun);
 
     run.push({

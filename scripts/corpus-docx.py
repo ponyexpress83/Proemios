@@ -155,12 +155,17 @@ def lungo(percorso: Path, parole_obiettivo: int = 82_000) -> None:
 
     parole = 0
     capitolo = 0
+    # Il contatore dei paragrafi, non quello delle parole, fa ruotare le frasi:
+    # il conteggio parole cresce a passi multipli della lunghezza dell'elenco e
+    # lascerebbe l'indice fermo.
+    paragrafo = 0
     while parole < parole_obiettivo:
         capitolo += 1
         d.add_heading(f"Capitolo {capitolo}", level=1)
         for _ in range(40):
-            frase = " ".join(FRASI[(parole + _) % len(FRASI)] for _ in range(4))
+            frase = " ".join(FRASI[(paragrafo + k) % len(FRASI)] for k in range(4))
             d.add_paragraph(frase)
+            paragrafo += 1
             parole += len(frase.split())
             if parole >= parole_obiettivo:
                 break

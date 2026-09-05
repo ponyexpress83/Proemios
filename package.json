@@ -25,7 +25,8 @@
     "db:genera-rollback": "node scripts/genera-rollback.mjs",
     "test:integrazione": "TEST_DATABASE_URL=${TEST_DATABASE_URL:-postgres://postgres@localhost:5433/proemios_test?sslmode=disable} vitest run tests/integrazione",
     "coda:dev": "npx inngest-cli@latest dev -u http://localhost:3000/api/inngest",
-    "corpus": "python3 scripts/corpus-docx.py tests/corpus"
+    "corpus": "python3 scripts/corpus-docx.py tests/corpus",
+    "docx:verifica": "node --import tsx scripts/verifica-revisioni.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.1",
@@ -83,6 +84,7 @@
     "drizzle-kit": "^0.30.2",
     "eslint": "^9.39.5",
     "eslint-config-next": "^15.5.22",
+    "fast-xml-parser": "^5.11.1",
     "postcss": "^8.5.1",
     "prettier": "^3.9.6",
     "prettier-plugin-tailwindcss": "^0.8.1",
