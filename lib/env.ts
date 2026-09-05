@@ -53,6 +53,17 @@ const serverSchema = z.object({
   INNGEST_SIGNING_KEY: z.string().optional(),
 
   OPENAI_API_KEY: z.string().min(1).optional(),
+
+  /**
+   * Fatturazione. Senza queste il provider è `manuale`: la riga resta
+   * `da_emettere` e nessuno finge di aver emesso una fattura.
+   */
+  FATTURE_IN_CLOUD_TOKEN: z.string().optional(),
+  FATTURE_IN_CLOUD_AZIENDA_ID: z.string().optional(),
+
+  /** WhatsApp Cloud API. Senza queste il provider è spento. */
+  WHATSAPP_TOKEN: z.string().optional(),
+  WHATSAPP_NUMERO_ID: z.string().optional(),
 });
 
 const clientSchema = z.object({
@@ -60,6 +71,8 @@ const clientSchema = z.object({
   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: z.string().optional(),
   NEXT_PUBLIC_CALENDAR_URL: z.string().url().optional(),
   NEXT_PUBLIC_ANALYTICS_DOMAIN: z.string().optional(),
+  /** Numero per i link wa.me. Nessun invio: apre WhatsApp su chi clicca. */
+  NEXT_PUBLIC_WHATSAPP_NUMERO: z.string().optional(),
 });
 
 /** Env server-side. Non importare da componenti client. */
@@ -88,6 +101,10 @@ export const env = serverSchema.parse({
   INNGEST_EVENT_KEY: process.env.INNGEST_EVENT_KEY,
   INNGEST_SIGNING_KEY: process.env.INNGEST_SIGNING_KEY,
   OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+  FATTURE_IN_CLOUD_TOKEN: process.env.FATTURE_IN_CLOUD_TOKEN,
+  FATTURE_IN_CLOUD_AZIENDA_ID: process.env.FATTURE_IN_CLOUD_AZIENDA_ID,
+  WHATSAPP_TOKEN: process.env.WHATSAPP_TOKEN,
+  WHATSAPP_NUMERO_ID: process.env.WHATSAPP_NUMERO_ID,
 });
 
 /** Env pubbliche (safe per il client). */
@@ -96,4 +113,5 @@ export const publicEnv = clientSchema.parse({
   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
   NEXT_PUBLIC_CALENDAR_URL: process.env.NEXT_PUBLIC_CALENDAR_URL,
   NEXT_PUBLIC_ANALYTICS_DOMAIN: process.env.NEXT_PUBLIC_ANALYTICS_DOMAIN,
+  NEXT_PUBLIC_WHATSAPP_NUMERO: process.env.NEXT_PUBLIC_WHATSAPP_NUMERO,
 });

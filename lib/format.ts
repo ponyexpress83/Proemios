@@ -37,3 +37,19 @@ export function tariffaParola(min: number, max: number): string {
   });
   return min === max ? `${f.format(min)} a parola` : `${f.format(min)} – ${f.format(max)} a parola`;
 }
+
+/**
+ * Euro da centesimi interi, con i decimali.
+ *
+ * Il listino pubblico è in euro tondi e usa `euro()`; una rata calcolata in
+ * percentuale quasi mai lo è, e mostrare «€ 1.333» al posto di «€ 1.333,20»
+ * farebbe sembrare sbagliata la somma delle rate.
+ */
+export function euroDaCentesimi(cent: number): string {
+  return new Intl.NumberFormat("it-IT", {
+    style: "currency",
+    currency: "EUR",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(cent / 100);
+}

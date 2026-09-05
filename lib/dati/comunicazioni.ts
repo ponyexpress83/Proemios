@@ -24,6 +24,7 @@ import { haPermesso } from "@/lib/auth/attore";
 import { esigiPermesso } from "@/lib/auth/guardie";
 import { NonAutorizzato, NonTrovato } from "@/lib/auth/errori";
 import { registra } from "@/lib/audit";
+import { notificaClienteDiProgetto } from "./notifiche";
 
 /**
  * Verifica che l'attore possa operare su questo progetto e restituisce i dati
@@ -145,6 +146,15 @@ export async function scriviMessaggio(
     })
     .returning();
 
+  // Un messaggio non visibile al cliente è una nota interna: avvisare il
+  // cliente che «c'è un messaggio» che poi non può leggere sarebbe peggio che
+  // non avvisarlo.
+  if (visibile && attore.ruolo !== "client") {
+    await notificaClienteDiProgetto(progettoId, "messaggio.ricevuto", {
+      mittente: attore.nome ?? undefined,
+    });
+  }
+
   return {
     id: riga!.id,
     corpo: riga!.corpo,
@@ -255,6 +265,8 @@ export async function inoltraChiarimento(
       updatedAt: new Date(),
     })
     .where(eq(clarificationRequests.id, chiarimentoId));
+
+  await notificaClienteDiProgetto(riga.projectId, "chiarimento.richiesto");
 }
 
 export async function rispondiChiarimento(
@@ -481,6 +493,13 @@ export async function richiediApprovazione(
       .update(milestones)
       .set({ stato: "in_approvazione" })
       .where(eq(milestones.id, dati.milestoneId));
+  }
+
+  // Solo l'approvazione del cliente lo riguarda: quella editoriale e quella
+  // operativa sono passaggi interni, e avvisarlo lo farebbe entrare in un
+  // flusso che non è suo.
+  if (dati.tipo === "milestone_cliente") {
+    await notificaClienteDiProgetto(dati.progettoId, "approvazione.richiesta");
   }
 
   return riga!.id;

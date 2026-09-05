@@ -71,6 +71,9 @@ export const PERMESSI = [
   "prezzo.vedi",
   "contratto.vedi",
   "contratto.modifica",
+  "ordine.vedi",
+  "ordine.crea",
+  "ordine.annulla",
 
   // ── Amministrazione ──
   "pagamento.vedi",
@@ -133,6 +136,9 @@ export const PERMESSI_PER_RUOLO: Record<Ruolo, readonly Permesso[]> = {
     "prezzo.vedi",
     "contratto.vedi",
     "contratto.modifica",
+    "ordine.vedi",
+    "ordine.crea",
+    "ordine.annulla",
     "pagamento.vedi",
     "pagamento.registra",
     "fattura.vedi",
@@ -195,6 +201,7 @@ export const PERMESSI_PER_RUOLO: Record<Ruolo, readonly Permesso[]> = {
     "preventivo.vedi",
     "prezzo.vedi",
     "contratto.vedi",
+    "ordine.vedi",
     "pagamento.vedi",
     "pagamento.registra",
     "pagamento.rimborsa",

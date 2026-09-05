@@ -4,6 +4,8 @@ import Link from "next/link";
 import { Gabbia } from "@/components/ui/primitivi";
 import { Marchio } from "@/components/layout/marchio";
 import { BottoneEsci } from "@/components/auth/bottone-esci";
+import { Campanella } from "@/components/layout/campanella";
+import { elencaNotifiche } from "@/lib/dati/notifiche";
 import { staffPerPagina } from "@/lib/auth/sessione";
 import { haPermesso } from "@/lib/auth/attore";
 import { ETICHETTE_RUOLO } from "@/lib/auth/ruoli";
@@ -34,6 +36,7 @@ export default async function LayoutBackOffice({ children }: { children: React.R
   }
 
   const attore = await staffPerPagina("/admin");
+  const notifiche = await elencaNotifiche(attore, { limite: 20 });
   const gruppi = new Map<VoceBackOffice["gruppo"], VoceBackOffice[]>();
   for (const voce of NAV_BACK_OFFICE) {
     if (!haPermesso(attore, voce.permesso)) continue;
@@ -52,6 +55,7 @@ export default async function LayoutBackOffice({ children }: { children: React.R
           </div>
           <div className="flex items-center gap-4">
             <span className="hidden text-sm text-testo-tenue sm:inline">{attore.email}</span>
+            <Campanella notifiche={notifiche} />
             <BottoneEsci />
           </div>
         </Gabbia>

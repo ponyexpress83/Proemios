@@ -165,12 +165,12 @@ export async function POST(req: Request) {
       `<p>Ciao ${esc(gate.data.nome)},</p>
        <p>ecco la sintesi della prima diagnosi su <em>${esc(file.name)}</em>
        (${numero(metriche.parole)} parole, circa ${numero(metriche.pagineStimate)} pagine):</p>
-       <p style="background:#eae9e2;padding:14px;border-left:2px solid #22483b;">${esc(report.sintesi)}</p>
+       <p style="background:#f0eef7;padding:14px;border-left:2px solid #5b3df5;">${esc(report.sintesi)}</p>
        <p><strong>Intervento consigliato:</strong> ${esc(report.livelloIntervento)}<br/>
        <strong>Fascia di costo indicativa:</strong> ${euro(report.fasciaCosto.min)} – ${euro(report.fasciaCosto.max)}<br/>
        <strong>Leggibilità (Gulpease):</strong> ${metriche.gulpease}/100</p>
-       <p><a href="${assoluto("/preventivo")}?parole=${metriche.parole}" style="color:#22483b;">Calcola il preventivo esatto</a></p>
-       <p style="font-size:13px;color:#6c6f67;">${BRAND.aiAnalysisNotice}</p>
+       <p><a href="${assoluto("/preventivo")}?parole=${metriche.parole}" style="color:#5b3df5;">Calcola il preventivo esatto</a></p>
+       <p style="font-size:13px;color:#5f5b72;">${BRAND.aiAnalysisNotice}</p>
        <p>A presto,<br/>${BRAND.name}</p>`,
     ),
   }).catch((e) => console.error(JSON.stringify({ evt: "analisi.email-cliente", err: String(e) })));
@@ -186,7 +186,7 @@ export async function POST(req: Request) {
        Gulpease ${metriche.gulpease}</p>
        <p>Livello: ${esc(report.livelloIntervento)} ·
        Fascia: ${euro(report.fasciaCosto.min)}–${euro(report.fasciaCosto.max)}</p>
-       <p style="font-size:13px;color:#6c6f67;">Marketing: ${gate.data.consensoMarketing ? "sì" : "no"}</p>`,
+       <p style="font-size:13px;color:#5f5b72;">Marketing: ${gate.data.consensoMarketing ? "sì" : "no"}</p>`,
     ),
   }).catch((e) => console.error(JSON.stringify({ evt: "analisi.email-interna", err: String(e) })));
 

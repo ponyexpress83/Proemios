@@ -74,7 +74,7 @@ export async function POST(req: Request) {
       `<p><strong>${esc(d.nome)}</strong><br/>
        ${esc(d.email)} · ${esc(d.telefono || "nessun telefono")}</p>
        <p>${esc(d.messaggio).replace(/\n/g, "<br/>")}</p>
-       <p style="font-size:13px;color:#6c6f67;">Marketing: ${d.consensoMarketing ? "sì" : "no"}</p>`,
+       <p style="font-size:13px;color:#5f5b72;">Marketing: ${d.consensoMarketing ? "sì" : "no"}</p>`,
     ),
   }).catch((e) => console.error(JSON.stringify({ evt: "contatto.email-interna", err: String(e) })));
 

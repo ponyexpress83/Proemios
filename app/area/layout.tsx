@@ -5,6 +5,8 @@ import { redirect } from "next/navigation";
 import { Gabbia } from "@/components/ui/primitivi";
 import { Marchio } from "@/components/layout/marchio";
 import { BottoneEsci } from "@/components/auth/bottone-esci";
+import { Campanella } from "@/components/layout/campanella";
+import { elencaNotifiche } from "@/lib/dati/notifiche";
 import { attorePerPagina } from "@/lib/auth/sessione";
 
 export const metadata: Metadata = {
@@ -16,6 +18,7 @@ export const dynamic = "force-dynamic";
 
 const VOCI = [
   { href: "/area", titolo: "I miei progetti" },
+  { href: "/area/pagamenti", titolo: "Pagamenti" },
   { href: "/area/profilo", titolo: "Profilo e accessi" },
 ] as const;
 
@@ -28,6 +31,8 @@ export default async function LayoutArea({ children }: { children: React.ReactNo
   const attore = await attorePerPagina("/area");
   // Lo staff ha il proprio back-office: qui non ci fa nulla.
   if (attore.ruolo !== "client") redirect("/admin");
+
+  const notifiche = await elencaNotifiche(attore, { limite: 20 });
 
   return (
     <div className="min-h-[80dvh]">
@@ -49,6 +54,7 @@ export default async function LayoutArea({ children }: { children: React.ReactNo
           </div>
           <div className="flex items-center gap-4">
             <span className="text-testo-tenue text-sm">{attore.email}</span>
+            <Campanella notifiche={notifiche} />
             <BottoneEsci />
           </div>
         </Gabbia>
