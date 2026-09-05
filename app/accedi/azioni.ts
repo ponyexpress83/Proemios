@@ -2,7 +2,8 @@
 
 import { z } from "zod";
 import { signIn, signOut } from "@/auth";
-import { limitaRichieste } from "@/lib/rate-limit";
+import { chiaveLimite, origineRichiesta, REGOLE } from "@/lib/sicurezza";
+import { conta } from "@/lib/sicurezza/store-limite";
 import { headers } from "next/headers";
 
 const schema = z.object({
@@ -29,13 +30,12 @@ export async function richiediLinkAccesso(dati: {
   }
 
   const intestazioni = await headers();
-  const ip =
-    intestazioni.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-    intestazioni.get("x-real-ip") ??
-    "sconosciuto";
-
-  const consentito = limitaRichieste(`accesso:${ip}`, 5, 15 * 60_000);
-  if (!consentito.ok) {
+  // Il contatore vive in database, non in memoria: su un runtime serverless un
+  // limite per istanza si aggira aprendo connessioni finché non se ne prende
+  // una nuova, e l'accesso è il bersaglio di chi prova indirizzi a caso.
+  const chiave = await chiaveLimite("accesso", origineRichiesta(intestazioni));
+  const consentito = await conta(chiave, REGOLE.accesso!);
+  if (!consentito.ammessa) {
     return {
       ok: false,
       messaggio: "Troppi tentativi. Riprova fra un quarto d'ora.",

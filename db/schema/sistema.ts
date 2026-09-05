@@ -5,6 +5,7 @@ import {
   varchar,
   jsonb,
   boolean,
+  integer,
   timestamp,
   index,
 } from "drizzle-orm/pg-core";
@@ -129,3 +130,30 @@ export type NuovoEventoAudit = typeof auditEvents.$inferInsert;
 export type Notifica = typeof notifications.$inferSelect;
 export type NuovaNotifica = typeof notifications.$inferInsert;
 export type PolicyProvider = typeof providerPolicies.$inferSelect;
+
+/**
+ * Contatori per la limitazione della frequenza delle richieste.
+ *
+ * In database e non in memoria: su un runtime serverless ogni istanza ha la
+ * propria memoria, e un contatore per istanza si aggira aprendo connessioni
+ * finché non se ne prende una fresca. Un limite che si aggira così non è un
+ * limite.
+ *
+ * La chiave contiene un hash dell'origine, non l'origine: un elenco di
+ * indirizzi IP in chiaro è un dato personale che non serve conservare — per
+ * contare basta sapere che due richieste vengono dalla stessa parte.
+ */
+export const rateLimits = pgTable(
+  "rate_limits",
+  {
+    chiave: varchar("chiave", { length: 120 }).primaryKey(),
+    conteggio: integer("conteggio").notNull().default(0),
+    finestraInizio: timestamp("finestra_inizio", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    finestraIdx: index("rate_limits_finestra_idx").on(t.finestraInizio),
+  }),
+);
+
+export type LimiteRichieste = typeof rateLimits.$inferSelect;

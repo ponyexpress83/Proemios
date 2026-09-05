@@ -14,15 +14,15 @@ riscrive.
 
 ## I moduli
 
-| File | Responsabilità |
-| --- | --- |
-| `lib/docx/pacchetto.ts` | Apre e richiude lo ZIP. Le parti non modificate sono ricopiate senza passare da un serializzatore. |
-| `lib/docx/ooxml.ts` | Legge paragrafi e run dalla stringa XML, con gli offset assoluti di ciascuno. Non costruisce un albero. |
-| `lib/docx/revisioni.ts` | Scrive `<w:ins>` e `<w:del>` dentro l'XML esistente. |
-| `lib/docx/commenti.ts` | Aggiunge `word/comments.xml`, il content type e la relazione. |
-| `lib/docx/motore.ts` | Orchestrazione: verifica gli interventi, applica, riporta cosa è stato saltato. |
-| `lib/docx/revisioni-simulazione.ts` | Simula «accetta tutte» e «rifiuta tutte». Serve ai test, non alla produzione. |
-| `lib/produzione/documento.ts` | Dagli interventi decisi in database alla nuova versione di file. |
+| File                                | Responsabilità                                                                                          |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `lib/docx/pacchetto.ts`             | Apre e richiude lo ZIP. Le parti non modificate sono ricopiate senza passare da un serializzatore.      |
+| `lib/docx/ooxml.ts`                 | Legge paragrafi e run dalla stringa XML, con gli offset assoluti di ciascuno. Non costruisce un albero. |
+| `lib/docx/revisioni.ts`             | Scrive `<w:ins>` e `<w:del>` dentro l'XML esistente.                                                    |
+| `lib/docx/commenti.ts`              | Aggiunge `word/comments.xml`, il content type e la relazione.                                           |
+| `lib/docx/motore.ts`                | Orchestrazione: verifica gli interventi, applica, riporta cosa è stato saltato.                         |
+| `lib/docx/revisioni-simulazione.ts` | Simula «accetta tutte» e «rifiuta tutte». Serve ai test, non alla produzione.                           |
+| `lib/produzione/documento.ts`       | Dagli interventi decisi in database alla nuova versione di file.                                        |
 
 ## Perché stringhe e non un parser XML
 
@@ -100,11 +100,11 @@ se ha entrambi i permessi: la separazione è sulla persona, non sul ruolo
 
 ## Verifica
 
-| Comando | Cosa prova |
-| --- | --- |
-| `npx vitest run tests/docx-*.test.ts` | Struttura, scala (1932 interventi), accetta/rifiuta, XML ben formato secondo un parser di terze parti. |
-| `npm run docx:verifica` | Apre i documenti generati con **LibreOffice**. È la verifica più vicina a «Word li apre senza chiedere di ripararli» che si possa fare senza Word. |
-| `npm run test:integrazione` | Il percorso completo su Postgres e storage veri: l'originale resta intatto, la versione nuova è legata al Job, i confini di ruolo tengono. |
+| Comando                               | Cosa prova                                                                                                                                         |
+| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npx vitest run tests/docx-*.test.ts` | Struttura, scala (1932 interventi), accetta/rifiuta, XML ben formato secondo un parser di terze parti.                                             |
+| `npm run docx:verifica`               | Apre i documenti generati con **LibreOffice**. È la verifica più vicina a «Word li apre senza chiedere di ripararli» che si possa fare senza Word. |
+| `npm run test:integrazione`           | Il percorso completo su Postgres e storage veri: l'originale resta intatto, la versione nuova è legata al Job, i confini di ruolo tengono.         |
 
 Il corpus (`tests/corpus/`) è generato da `scripts/corpus-docx.py` con
 `python-docx`: documenti Word veri, non finti, compreso un manoscritto da

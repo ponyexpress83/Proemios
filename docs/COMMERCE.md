@@ -37,12 +37,12 @@ legge e lo converte in punti base; un test verifica che i due restino allineati.
 
 ## Modalità di pagamento
 
-| Modalità | Rate |
-| --- | --- |
-| `acconto_saldo` | Acconto alla conferma, saldo alla consegna. Predefinita. |
-| `milestone` | Acconto, poi una rata per tappa, con quote in punti base che devono sommare a 10000. |
-| `unica` | Una rata sola. |
-| `personalizzato` | Rate scritte a mano, che devono quadrare sul totale. |
+| Modalità         | Rate                                                                                 |
+| ---------------- | ------------------------------------------------------------------------------------ |
+| `acconto_saldo`  | Acconto alla conferma, saldo alla consegna. Predefinita.                             |
+| `milestone`      | Acconto, poi una rata per tappa, con quote in punti base che devono sommare a 10000. |
+| `unica`          | Una rata sola.                                                                       |
+| `personalizzato` | Rate scritte a mano, che devono quadrare sul totale.                                 |
 
 ## Il ciclo
 

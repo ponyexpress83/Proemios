@@ -8,10 +8,16 @@ import { assoluto } from "@/lib/seo";
 import { BRAND } from "@/config/brand";
 import type { QuotePackage } from "@/lib/pricing";
 import { demoAttiva, segnaAccontoPagato } from "@/lib/demo";
+import { proteggi } from "@/lib/sicurezza";
 
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
+  // Limite di frequenza: un form pubblico senza limite è un modo per
+  // riempire il database e la casella di posta di chiunque.
+  const limite = await proteggi("checkout", req);
+  if (limite) return limite;
+
   const demo = demoAttiva();
 
   if (!demo && !stripeConfigurato()) {

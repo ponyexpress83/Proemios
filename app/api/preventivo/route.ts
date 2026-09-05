@@ -9,10 +9,16 @@ import { BRAND } from "@/config/brand";
 import { assoluto } from "@/lib/seo";
 import { demoAttiva, registraLead, registraPreventivo } from "@/lib/demo";
 import { attributionFromRequest, scoreLead } from "@/lib/attribution";
+import { proteggi } from "@/lib/sicurezza";
 
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
+  // Limite di frequenza: un form pubblico senza limite è un modo per
+  // riempire il database e la casella di posta di chiunque.
+  const limite = await proteggi("preventivo", req);
+  if (limite) return limite;
+
   let corpo: unknown;
   try {
     corpo = await req.json();

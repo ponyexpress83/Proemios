@@ -10,14 +10,14 @@ nell'interfaccia non è sicurezza: è cortesia verso l'utente.
 
 ## I sei ruoli
 
-| Ruolo | Cosa fa |
-|---|---|
-| `super_admin` | Tutto. Va assegnato a pochissime persone. |
-| `operations_admin` | Clienti, progetti, consegne, denaro in entrata. Non entra nel merito editoriale. |
+| Ruolo               | Cosa fa                                                                           |
+| ------------------- | --------------------------------------------------------------------------------- |
+| `super_admin`       | Tutto. Va assegnato a pochissime persone.                                         |
+| `operations_admin`  | Clienti, progetti, consegne, denaro in entrata. Non entra nel merito editoriale.  |
 | `editorial_manager` | Qualità editoriale: assegna, guarda le run, rigenera, forza un secondo controllo. |
-| `editor_reviewer` | Il redattore. Vede il lavoro assegnato e nient'altro. |
-| `finance` | Cliente, contratto, prezzo, pagamenti, fatture. Non i manoscritti. |
-| `client` | Il proprio progetto. Nessun permesso di back-office. |
+| `editor_reviewer`   | Il redattore. Vede il lavoro assegnato e nient'altro.                             |
+| `finance`           | Cliente, contratto, prezzo, pagamenti, fatture. Non i manoscritti.                |
+| `client`            | Il proprio progetto. Nessun permesso di back-office.                              |
 
 La matrice completa è in `lib/auth/ruoli.ts`, deliberatamente esplicita e
 verbosa: un elenco leggibile riga per riga è l'unico modo per accorgersi che un

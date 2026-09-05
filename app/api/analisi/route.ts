@@ -6,7 +6,6 @@ import { estraiTesto, estensioneDi, MAX_BYTES, EstrazioneError } from "@/lib/ext
 import { calcolaMetriche } from "@/lib/metrics";
 import { analizza, aiConfigurata, AiError, type ReportCompleto } from "@/lib/ai";
 import { costBandForAnalysis } from "@/lib/pricing";
-import { verificaLimite, ipClient } from "@/lib/rate-limit";
 import { inviaEmail, impaginaEmail, esc, destinatarioInterno } from "@/lib/email";
 import { env } from "@/lib/env";
 import { euro, numero } from "@/lib/format";
@@ -14,19 +13,19 @@ import { ANALISI } from "@/config/copy";
 import { BRAND } from "@/config/brand";
 import { assoluto } from "@/lib/seo";
 import { demoAttiva, reportDemo, registraAnalisi, registraLead } from "@/lib/demo";
+import { proteggi } from "@/lib/sicurezza";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-const MAX_AL_GIORNO = 3;
 const PAROLE_MINIME = 100;
 
 export async function POST(req: Request) {
-  // Rate limit per IP: contiene il costo delle chiamate al modello.
-  const limite = verificaLimite(`analisi:${ipClient(req)}`, MAX_AL_GIORNO);
-  if (!limite.consentito) {
-    return NextResponse.json({ errore: ANALISI.erroreLimite }, { status: 429 });
-  }
+  // Limite di frequenza. Contiene il costo delle chiamate al modello: ogni
+  // analisi fa lavorare davvero un modello, e senza limite basta uno script per
+  // trasformarla in una bolletta.
+  const limite = await proteggi("analisi", req);
+  if (limite) return NextResponse.json({ errore: ANALISI.erroreLimite }, { status: 429 });
 
   // In demo il modello non viene interpellato: il report lo costruisce
   // `lib/demo.ts` sulle metriche reali del file caricato.

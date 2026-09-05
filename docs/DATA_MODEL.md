@@ -20,17 +20,17 @@ PostgreSQL, schema Drizzle in `db/schema/`, diviso per dominio. Migrazioni in
 
 ## Domini
 
-| File | Contenuto |
-|---|---|
-| `comuni.ts` | enum condivisi, colonne temporali |
-| `organizzazioni.ts` | `organizations` — il tenant |
-| `utenti.ts` | `users`, `accounts`, `sessions`, `verification_tokens`, `staff_accounts`, `inviti` |
-| `crm.ts` | `clients`, `leads`, `lead_events`, `quotes`, `quote_items`, `manuscript_analyses`, `agency_leads` |
-| `commercio.ts` | `orders`, `contracts`, `payments`, `invoices` |
-| `progetti.ts` | `projects`, `project_members`, `project_stages`, `milestones`, `tasks`, `messages`, `clarification_requests`, `approvals` |
-| `file.ts` | `files`, `file_versions`, `deliverables` |
-| `produzione.ts` | `editorial_jobs`, `ai_job_runs`, `editorial_interventions`, `reviews` |
-| `sistema.ts` | `audit_events`, `notifications`, `provider_policies` |
+| File                | Contenuto                                                                                                                 |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `comuni.ts`         | enum condivisi, colonne temporali                                                                                         |
+| `organizzazioni.ts` | `organizations` — il tenant                                                                                               |
+| `utenti.ts`         | `users`, `accounts`, `sessions`, `verification_tokens`, `staff_accounts`, `inviti`                                        |
+| `crm.ts`            | `clients`, `leads`, `lead_events`, `quotes`, `quote_items`, `manuscript_analyses`, `agency_leads`                         |
+| `commercio.ts`      | `orders`, `contracts`, `payments`, `invoices`                                                                             |
+| `progetti.ts`       | `projects`, `project_members`, `project_stages`, `milestones`, `tasks`, `messages`, `clarification_requests`, `approvals` |
+| `file.ts`           | `files`, `file_versions`, `deliverables`                                                                                  |
+| `produzione.ts`     | `editorial_jobs`, `ai_job_runs`, `editorial_interventions`, `reviews`                                                     |
+| `sistema.ts`        | `audit_events`, `notifications`, `provider_policies`                                                                      |
 
 ## Scelte che vale la pena spiegare
 

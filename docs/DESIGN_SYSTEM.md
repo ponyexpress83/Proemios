@@ -21,23 +21,23 @@ esiste, si aggiunge un token.
 
 ### Colore
 
-| Token | Valore | Uso |
-|---|---|---|
-| `fondo` | `#08080D` | fondale di pagina |
-| `fondo-alto` | `#0D0D14` | fasce e sezioni sollevate |
-| `superficie` | `#14141D` | schede, pannelli, righe |
-| `superficie-alta` | `#191923` | modali, cassetti, schede in rilievo |
-| `superficie-viva` | `#20202C` | hover, riga selezionata |
-| `testo` | `#F6F4FA` | testo primario |
-| `testo-attenuato` | `#A9A3BE` | testo secondario |
-| `testo-tenue` | `#8C87A0` | meta, etichette |
-| `viola` | `#6C4BFF` | azione primaria, bordi attivi |
-| `viola-chiaro` | `#8B72FF` | viola **come testo** |
-| `viola-scuro` | `#4B2FD8` | stato premuto |
-| `lime` | `#B7FF3C` | CTA commerciale, indicatori |
-| `lime-scuro` | `#8FCE1F` | hover su lime |
-| `successo` / `attenzione` / `errore` | `#4ADE80` / `#FFB84D` / `#FF6B6B` | stati |
-| `bordo` / `bordo-forte` / `bordo-viola` | alpha su bianco caldo | separazioni |
+| Token                                   | Valore                            | Uso                                 |
+| --------------------------------------- | --------------------------------- | ----------------------------------- |
+| `fondo`                                 | `#08080D`                         | fondale di pagina                   |
+| `fondo-alto`                            | `#0D0D14`                         | fasce e sezioni sollevate           |
+| `superficie`                            | `#14141D`                         | schede, pannelli, righe             |
+| `superficie-alta`                       | `#191923`                         | modali, cassetti, schede in rilievo |
+| `superficie-viva`                       | `#20202C`                         | hover, riga selezionata             |
+| `testo`                                 | `#F6F4FA`                         | testo primario                      |
+| `testo-attenuato`                       | `#A9A3BE`                         | testo secondario                    |
+| `testo-tenue`                           | `#8C87A0`                         | meta, etichette                     |
+| `viola`                                 | `#6C4BFF`                         | azione primaria, bordi attivi       |
+| `viola-chiaro`                          | `#8B72FF`                         | viola **come testo**                |
+| `viola-scuro`                           | `#4B2FD8`                         | stato premuto                       |
+| `lime`                                  | `#B7FF3C`                         | CTA commerciale, indicatori         |
+| `lime-scuro`                            | `#8FCE1F`                         | hover su lime                       |
+| `successo` / `attenzione` / `errore`    | `#4ADE80` / `#FFB84D` / `#FF6B6B` | stati                               |
+| `bordo` / `bordo-forte` / `bordo-viola` | alpha su bianco caldo             | separazioni                         |
 
 Due regole non negoziabili:
 
@@ -76,18 +76,18 @@ rotazione di tinta passa dal ciano, che non è in palette.
 `components/ui/` è il design system. Nessuna pagina definisce stili propri per
 cose che esistono qui.
 
-| File | Componenti |
-|---|---|
-| `primitivi.tsx` | `Gabbia` `Sezione` `Occhiello` `Titolo` `Filetto` `Etichetta` `Nota` `Dato` `Impaginato` `Folio` `NotaMargine` `Apertura` |
-| `bottone.tsx` | `Bottone` `BottoneLink` `BottoneIcona` |
-| `scheda.tsx` | `Scheda` `SchedaTestata` `SchedaCorpo` `SchedaPiede` `SchedaMetrica` |
-| `badge.tsx` | `Badge` `BadgeStato` |
-| `campi.tsx` | `Campo` `Input` `AreaTesto` `Selezione` `Consenso` `ScelteScheda` |
-| `tabella.tsx` | `Tabella` `Riga` `Cella` |
-| `progresso.tsx` | `Progresso` `AnelloProgresso` |
-| `cronologia.tsx` | `Cronologia` `Tappa` |
-| `stati.tsx` | `StatoVuoto` `Scheletro` `ScheletroTesto` `Avviso` |
-| `modale.tsx` `cassetto.tsx` `tab.tsx` `toast.tsx` | overlay e navigazione, su Radix |
+| File                                              | Componenti                                                                                                                |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `primitivi.tsx`                                   | `Gabbia` `Sezione` `Occhiello` `Titolo` `Filetto` `Etichetta` `Nota` `Dato` `Impaginato` `Folio` `NotaMargine` `Apertura` |
+| `bottone.tsx`                                     | `Bottone` `BottoneLink` `BottoneIcona`                                                                                    |
+| `scheda.tsx`                                      | `Scheda` `SchedaTestata` `SchedaCorpo` `SchedaPiede` `SchedaMetrica`                                                      |
+| `badge.tsx`                                       | `Badge` `BadgeStato`                                                                                                      |
+| `campi.tsx`                                       | `Campo` `Input` `AreaTesto` `Selezione` `Consenso` `ScelteScheda`                                                         |
+| `tabella.tsx`                                     | `Tabella` `Riga` `Cella`                                                                                                  |
+| `progresso.tsx`                                   | `Progresso` `AnelloProgresso`                                                                                             |
+| `cronologia.tsx`                                  | `Cronologia` `Tappa`                                                                                                      |
+| `stati.tsx`                                       | `StatoVuoto` `Scheletro` `ScheletroTesto` `Avviso`                                                                        |
+| `modale.tsx` `cassetto.tsx` `tab.tsx` `toast.tsx` | overlay e navigazione, su Radix                                                                                           |
 
 `Sezione` porta sempre la propria `Gabbia`: una pagina non deve ricordarsi di
 annidarla. `senzaGabbia` è l'eccezione per le fasce a tutta larghezza.

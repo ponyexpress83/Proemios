@@ -16,16 +16,16 @@ inviata, un ordine pagato per bonifico. Il `dataLayer` non li vedrà mai.
 
 Farli scattare con un pixel sarebbe possibile solo mentendo: bisognerebbe
 sparare `purchase` quando il cliente torna sulla pagina di ringraziamento — cioè
-misurare *il ritorno alla pagina* invece dell'incasso. Si perderebbe ogni
+misurare _il ritorno alla pagina_ invece dell'incasso. Si perderebbe ogni
 bonifico, ogni pagamento fatto da un altro dispositivo, ogni scheda chiusa
 subito dopo il pagamento. Perciò gli eventi di esito si registrano lato server
 in `conversions`, con la loro attribuzione, e si caricano su Google Ads come
 **conversioni offline**.
 
-| Evento | Dove nasce |
-| --- | --- |
-| `lead_created`, `quote_started`, `quote_generated`, `consultation_clicked`, `checkout_started`, `manuscript_analysis_completed` | browser → dataLayer |
-| `qualified_lead`, `proposal_sent`, `client_won`, `purchase` | server → tabella `conversions` |
+| Evento                                                                                                                          | Dove nasce                     |
+| ------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
+| `lead_created`, `quote_started`, `quote_generated`, `consultation_clicked`, `checkout_started`, `manuscript_analysis_completed` | browser → dataLayer            |
+| `qualified_lead`, `proposal_sent`, `client_won`, `purchase`                                                                     | server → tabella `conversions` |
 
 ## Il funnel misurato è il funnel reale
 
