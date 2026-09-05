@@ -90,6 +90,8 @@ export const PERMESSI = [
   "staff.disattiva",
   "organizzazione.vedi",
   "organizzazione.gestisci",
+  "provider.vedi_policy",
+  "provider.approva_policy",
   "audit.vedi",
   "configurazione.gestisci",
   "analytics.vedi",
@@ -145,6 +147,7 @@ export const PERMESSI_PER_RUOLO: Record<Ruolo, readonly Permesso[]> = {
     "staff.vedi",
     "staff.invita",
     "organizzazione.vedi",
+    "provider.vedi_policy",
     "audit.vedi",
     "analytics.vedi",
   ],
@@ -170,6 +173,7 @@ export const PERMESSI_PER_RUOLO: Record<Ruolo, readonly Permesso[]> = {
     "progetto.modifica",
     "progetto.assegna_membri",
     "staff.vedi",
+    "provider.vedi_policy",
   ],
 
   /**

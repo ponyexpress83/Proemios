@@ -31,7 +31,7 @@ personale: è il lavoro di anni di una persona.
 ## AI e dati
 
 Un modello non viene interpellato se il suo provider non ha una **policy privacy
-approvata** in database (`provider_policies`): addestramento escluso, zero data
+approvata** in database (`provider_policies`, gestita da `/admin/provider`): addestramento escluso, zero data
 retention, DPA disponibile, regione dei dati. Il cancello privacy è il **primo**
 filtro del router, prima della qualità e prima del costo — un provider che non
 passa non viene considerato, qualunque sia il suo punteggio.

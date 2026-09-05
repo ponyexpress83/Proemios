@@ -72,7 +72,10 @@ pagamento reale.
 - [x] Il router rifiuta i provider senza policy privacy approvata
 - [x] Il livello di servizio limita le categorie di intervento
 - [x] Nessuna proposta raggiunge il cliente senza revisione umana
-- [ ] **[umano]** `provider_policies` popolata con i dati veri dei contratti
+- [ ] **[umano]** Policy dei provider approvate in `/admin/provider`, con i dati veri
+      dei contratti firmati. **Finché nessuna è approvata, nessuna lavorazione
+      parte**: il router esclude ogni modello e i Job falliscono con «nessun
+      modello ammesso»
 - [ ] **[umano]** Chiavi API di produzione, con tetto di spesa impostato
 
 ## 7. Marketing

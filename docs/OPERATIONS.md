@@ -65,6 +65,11 @@ schema c'è una finestra in cui l'applicazione vecchia parla con lo schema nuovo
 
 ## Quando qualcosa va storto
 
+**Un Job fallisce con «nessun modello ammesso».** Non è un guasto: nessuna
+policy provider è approvata. Vai in `/admin/provider`, leggi il contratto del
+fornitore, compila le condizioni e approva. Serve il ruolo di amministratore:
+approvare un trattamento dei dati non è un'operazione di conduzione.
+
 **Un Job resta in `running`.** Guarda `ai_job_runs`: se l'ultima run è in errore,
 il messaggio è sanitizzato e dice il tipo di problema. I job Inngest hanno
 `onFailure`: un fallimento porta il Job in `failed`, da cui si può ritentare.

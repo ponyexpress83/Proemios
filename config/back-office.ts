@@ -56,6 +56,7 @@ export const NAV_BACK_OFFICE: VoceBackOffice[] = [
   { href: "/admin/staff", titolo: "Staff", permesso: "staff.vedi", gruppo: "piattaforma" },
   { href: "/admin/analytics", titolo: "Funnel", permesso: "analytics.vedi", gruppo: "commerciale" },
   { href: "/admin/organizzazione", titolo: "Organizzazione", permesso: "organizzazione.vedi", gruppo: "piattaforma" },
+  { href: "/admin/provider", titolo: "Provider AI", permesso: "provider.vedi_policy", gruppo: "piattaforma" },
   { href: "/admin/audit", titolo: "Audit", permesso: "audit.vedi", gruppo: "piattaforma" },
 ];
 

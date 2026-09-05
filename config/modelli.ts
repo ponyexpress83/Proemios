@@ -16,7 +16,14 @@
  * responsabile. Questo file serve al primo popolamento e ai test.
  */
 
-export type Provider = "openai" | "anthropic";
+/**
+ * I provider ammessi. L'elenco è un valore e non solo un tipo perché serve
+ * anche a runtime: la pagina delle policy deve poterli elencare, e una
+ * validazione che confronta con un tipo TypeScript non esiste a runtime.
+ */
+export const PROVIDER = ["anthropic", "openai"] as const;
+
+export type Provider = (typeof PROVIDER)[number];
 
 export type Capacita =
   | "proofreading"
