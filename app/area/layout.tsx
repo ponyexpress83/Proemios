@@ -7,6 +7,9 @@ import { Marchio } from "@/components/layout/marchio";
 import { BottoneEsci } from "@/components/auth/bottone-esci";
 import { Campanella } from "@/components/layout/campanella";
 import { elencaNotifiche } from "@/lib/dati/notifiche";
+import { organizzazioneCorrente } from "@/lib/dati/organizzazioni";
+import { nomeVisibile, variabiliStile } from "@/lib/branding";
+import { BRAND } from "@/config/brand";
 import { attorePerPagina } from "@/lib/auth/sessione";
 
 export const metadata: Metadata = {
@@ -32,14 +35,38 @@ export default async function LayoutArea({ children }: { children: React.ReactNo
   // Lo staff ha il proprio back-office: qui non ci fa nulla.
   if (attore.ruolo !== "client") redirect("/admin");
 
-  const notifiche = await elencaNotifiche(attore, { limite: 20 });
+  const [notifiche, organizzazione] = await Promise.all([
+    elencaNotifiche(attore, { limite: 20 }),
+    organizzazioneCorrente(attore),
+  ]);
+
+  // Il colore dell'agenzia sovrascrive l'identità solo per i suoi clienti.
+  // Passa da `style`, non da un tag <style>: React lo scrive con setProperty,
+  // che rifiuta i valori malformati e non può chiudere una regola.
+  const stile = variabiliStile(organizzazione.branding);
+  const marchio = nomeVisibile(
+    organizzazione.branding,
+    organizzazione.proemiosInvisibile,
+    BRAND.name,
+  );
 
   return (
-    <div className="min-h-[80dvh]">
+    <div className="min-h-[80dvh]" style={stile as React.CSSProperties}>
       <div className="border-bordo bg-fondo-alto border-b">
         <Gabbia className="flex flex-wrap items-center justify-between gap-4 py-4">
           <div className="flex items-center gap-5">
-            <Marchio misura="piccola" />
+            {organizzazione.branding?.logoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={organizzazione.branding.logoUrl}
+                alt={marchio || organizzazione.nome}
+                className="h-7 w-auto"
+              />
+            ) : marchio ? (
+              <Marchio misura="piccola" />
+            ) : (
+              <span className="text-testo text-sm font-semibold">{organizzazione.nome}</span>
+            )}
             <nav aria-label="Area riservata" className="flex gap-1">
               {VOCI.map((v) => (
                 <Link

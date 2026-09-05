@@ -51,7 +51,7 @@ export async function svuota() {
   const d = await preparaDatabase();
   await d.execute(sql`
     TRUNCATE TABLE
-      audit_events, notifications, provider_policies,
+      audit_events, notifications, provider_policies, conversions,
       editorial_interventions, ai_job_runs, reviews, editorial_jobs,
       deliverables, file_versions, files,
       approvals, clarification_requests, messages, tasks, milestones,

@@ -14,7 +14,7 @@
 import { and, count, desc, eq, inArray, sql } from "drizzle-orm";
 import { getDb, type EsecutoreDb } from "@/db";
 import { invoices, orders, payments } from "@/db/schema/commercio";
-import { clients } from "@/db/schema/crm";
+import { clients, leads } from "@/db/schema/crm";
 import type { Attore } from "@/lib/auth/attore";
 import { haPermesso } from "@/lib/auth/attore";
 import { esigiPermesso } from "@/lib/auth/guardie";
@@ -22,6 +22,7 @@ import { NonTrovato } from "@/lib/auth/errori";
 import { registra } from "@/lib/audit";
 import { pagamentoPerCliente, pagamentoPerStaff } from "@/lib/dto/commercio";
 import { notifica } from "./notifiche";
+import { registraConversione } from "./conversioni";
 import { euroDaCentesimi } from "@/lib/format";
 
 /** Metodi di pagamento registrabili a mano. Stripe non passa da qui. */
@@ -169,6 +170,7 @@ export async function segnaIncassata(
     if (!riga) return { aggiornata: false, ordineId: null };
 
     if (riga.orderId) await aggiornaStatoOrdine(tx, riga.orderId);
+    await registraAcquisto(riga, tx);
     await avvisaIncasso(riga.clientId, riga.importoCent);
     return { aggiornata: true, ordineId: riga.orderId };
   });
@@ -257,6 +259,7 @@ export async function registraPagamentoManuale(
 
     if (riga.orderId) await aggiornaStatoOrdine(tx, riga.orderId);
 
+    await registraAcquisto(riga, tx);
     await avvisaIncasso(riga.clientId, riga.importoCent);
 
     await registra(
@@ -527,4 +530,43 @@ async function avvisaIncasso(clientId: string | null, importoCent: number): Prom
   } catch {
     // Silenzio voluto: vedi sopra.
   }
+}
+
+
+/**
+ * Registra l'incasso come conversione `purchase`.
+ *
+ * Vale per ogni incasso, non solo per quelli di Stripe: un bonifico è una
+ * vendita esattamente quanto una carta, e misurarne solo una metà darebbe alle
+ * campagne un'immagine sistematicamente sbagliata del ritorno.
+ *
+ * La chiave di deduplicazione è la rata: la stessa rata non genera due
+ * `purchase`, nemmeno se l'evento Stripe viene riconsegnato.
+ */
+async function registraAcquisto(
+  riga: { id: string; organizationId: string; clientId: string | null; importoCent: number },
+  tx: EsecutoreDb,
+): Promise<void> {
+  const leadId = riga.clientId ? await leadDiCliente(riga.clientId, tx) : null;
+  await registraConversione(
+    {
+      evento: "purchase",
+      chiaveDedup: `pagamento-${riga.id}-purchase`,
+      organizationId: riga.organizationId,
+      leadId,
+      valoreCent: riga.importoCent,
+    },
+    tx,
+  );
+}
+
+/** Il lead da cui è nato un cliente: serve a ritrovarne l'attribuzione. */
+async function leadDiCliente(clientId: string, tx: EsecutoreDb): Promise<string | null> {
+  const [riga] = await tx
+    .select({ id: leads.id })
+    .from(leads)
+    .where(eq(leads.clientId, clientId))
+    .orderBy(leads.createdAt)
+    .limit(1);
+  return riga?.id ?? null;
 }

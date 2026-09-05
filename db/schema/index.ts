@@ -20,3 +20,4 @@ export * from "./progetti";
 export * from "./file";
 export * from "./produzione";
 export * from "./sistema";
+export * from "./analytics";

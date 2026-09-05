@@ -64,6 +64,16 @@ const serverSchema = z.object({
   /** WhatsApp Cloud API. Senza queste il provider è spento. */
   WHATSAPP_TOKEN: z.string().optional(),
   WHATSAPP_NUMERO_ID: z.string().optional(),
+
+  /**
+   * Google Ads — conversioni offline. Senza queste le conversioni restano
+   * registrate e non inviate, visibili nel cruscotto.
+   */
+  GOOGLE_ADS_TOKEN: z.string().optional(),
+  GOOGLE_ADS_DEVELOPER_TOKEN: z.string().optional(),
+  GOOGLE_ADS_CUSTOMER_ID: z.string().optional(),
+  /** Mappa evento→azione: "qualified_lead=customers/1/conversionActions/2,...". */
+  GOOGLE_ADS_AZIONI: z.string().optional(),
 });
 
 const clientSchema = z.object({
@@ -105,6 +115,10 @@ export const env = serverSchema.parse({
   FATTURE_IN_CLOUD_AZIENDA_ID: process.env.FATTURE_IN_CLOUD_AZIENDA_ID,
   WHATSAPP_TOKEN: process.env.WHATSAPP_TOKEN,
   WHATSAPP_NUMERO_ID: process.env.WHATSAPP_NUMERO_ID,
+  GOOGLE_ADS_TOKEN: process.env.GOOGLE_ADS_TOKEN,
+  GOOGLE_ADS_DEVELOPER_TOKEN: process.env.GOOGLE_ADS_DEVELOPER_TOKEN,
+  GOOGLE_ADS_CUSTOMER_ID: process.env.GOOGLE_ADS_CUSTOMER_ID,
+  GOOGLE_ADS_AZIONI: process.env.GOOGLE_ADS_AZIONI,
 });
 
 /** Env pubbliche (safe per il client). */

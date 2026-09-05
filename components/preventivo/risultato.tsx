@@ -15,10 +15,10 @@ export function RisultatoPreventivo({ esito, quoteId }: { esito: QuoteResult; qu
   useEffect(() => {
     const consigliato = esito.packages.find((p) => p.recommended);
     trackEvent("quote_generated", {
-      quote_id: quoteId,
-      value: consigliato?.total,
-      currency: "EUR",
-      word_count: esito.wordCount,
+      quoteId,
+      // In centesimi: la conversione in euro avviene nel payload, una volta sola.
+      valoreCent: consigliato ? Math.round(consigliato.total * 100) : undefined,
+      extra: { word_count: esito.wordCount },
     });
   }, [esito, quoteId]);
 
@@ -27,10 +27,9 @@ export function RisultatoPreventivo({ esito, quoteId }: { esito: QuoteResult; qu
     setErrore("");
     const scelto = esito.packages.find((p) => p.tier === pacchetto);
     trackEvent("checkout_started", {
-      quote_id: quoteId,
-      package: pacchetto,
-      value: scelto?.deposit,
-      currency: "EUR",
+      quoteId,
+      valoreCent: scelto ? Math.round(scelto.deposit * 100) : undefined,
+      extra: { package: pacchetto },
     });
     try {
       const res = await fetch("/api/checkout", {
@@ -62,7 +61,7 @@ export function RisultatoPreventivo({ esito, quoteId }: { esito: QuoteResult; qu
         </div>
         <div
           className="mt-5 shrink-0 sm:mt-0"
-          onClick={() => trackEvent("consultation_clicked", { quote_id: quoteId })}
+          onClick={() => trackEvent("consultation_clicked", { quoteId })}
         >
           <BottoneLink href={`/contatti?quote=${encodeURIComponent(quoteId)}`} variante="identita">
             Prenota una call

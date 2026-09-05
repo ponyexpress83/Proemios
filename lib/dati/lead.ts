@@ -12,6 +12,8 @@ import { esigiPermesso } from "@/lib/auth/guardie";
 import { NonTrovato } from "@/lib/auth/errori";
 import { attribuzioneDTO, leadDTO, type AttribuzioneLead, type LeadPerStaff } from "@/lib/dto/lead";
 import { registra } from "@/lib/audit";
+import { registraConversione } from "./conversioni";
+import { EVENTO_PER_STATO_LEAD } from "@/lib/analytics/eventi";
 import {
   STATI_LEAD,
   statiRaggiungibili,
@@ -223,6 +225,29 @@ export async function cambiaStatoLead(
       descrizione: `${precedente} → ${nuovoStato}`,
       dettagli: motivo ? { motivo } : null,
     });
+
+    /*
+     * La conversione nasce dal cambio di stato, non da una chiamata a parte.
+     *
+     * È ciò che rende il funnel misurato **lo stesso** funnel reale: non si può
+     * segnare `client_won` senza che il lead sia diventato cliente, perché è la
+     * transizione a emetterlo. La chiave di deduplicazione è costruita sul
+     * fatto, così un lead che torna indietro e riavanza non conta due volte.
+     */
+    const evento = EVENTO_PER_STATO_LEAD[nuovoStato];
+    if (evento) {
+      await registraConversione(
+        {
+          evento,
+          chiaveDedup: `lead-${leadId}-${evento}`,
+          organizationId: riga.organizationId,
+          leadId,
+          valoreCent: riga.valoreStimato != null ? riga.valoreStimato * 100 : null,
+          avvenutaAt: adesso,
+        },
+        tx,
+      );
+    }
 
     await registra(
       attore,
