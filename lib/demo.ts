@@ -29,8 +29,19 @@ export function demoAttiva(): boolean {
   return !process.env.DATABASE_URL;
 }
 
-/** Credenziali del cruscotto quando non sono state configurate e siamo in demo. */
-export const ADMIN_DEMO = { utente: "demo", password: "proemios" } as const;
+/**
+ * Vero solo se la demo è stata **richiesta esplicitamente** con `DEMO_MODE=on`,
+ * non se è stata dedotta dall'assenza di `DATABASE_URL`.
+ *
+ * La distinzione conta per il back-office: dedurre la demo da una variabile
+ * mancante significa che un deploy mal configurato aprirebbe il cruscotto senza
+ * autenticazione. Le schermate riservate accettano la demo solo quando qualcuno
+ * l'ha chiesta apposta.
+ */
+export function demoEsplicita(): boolean {
+  const forzatura = process.env.DEMO_MODE?.toLowerCase();
+  return forzatura === "on" || forzatura === "1" || forzatura === "true";
+}
 
 /** Avviso mostrato in testa alle schermate che simulano un'operazione. */
 export const AVVISO_DEMO =

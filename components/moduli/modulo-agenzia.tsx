@@ -55,9 +55,9 @@ export function ModuloAgenzia() {
 
   if (stato === "inviato") {
     return (
-      <div className="rounded-scheda border-esito-positivo/40 bg-carta-alta border p-8">
-        <p className="apparato text-esito-positivo">Richiesta ricevuta</p>
-        <h3 className="font-display mt-3 text-xl font-medium">
+      <div className="rounded-lg border-esito-positivo/40 bg-superficie border p-8">
+        <p className="etichetta text-successo">Richiesta ricevuta</p>
+        <h3 className="mt-3 text-xl font-medium">
           Vi risponde una persona, non un bot
         </h3>
         <p className="prosa mt-3">
@@ -116,14 +116,14 @@ export function ModuloAgenzia() {
 
       <Consenso id="ag-consenso" name="consensoPrivacy" checked={consenso} onChange={setConsenso}>
         Ho letto la{" "}
-        <Link href={"/privacy" as Route} className="hover:text-alloro underline">
+        <Link href={"/privacy" as Route} className="hover:text-viola-chiaro underline">
           privacy policy
         </Link>{" "}
         e acconsento al trattamento dei dati per essere ricontattato.
       </Consenso>
 
       {errore && (
-        <p className="text-esito-critico text-sm" role="alert">
+        <p className="text-errore text-sm" role="alert">
           {errore}
         </p>
       )}

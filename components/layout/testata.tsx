@@ -1,113 +1,281 @@
 "use client";
 
-import type { Route } from "next";
 import Link from "next/link";
+import type { Route } from "next";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { ChevronDown, Menu, X } from "lucide-react";
 import { Marchio } from "./marchio";
 import { BottoneLink } from "@/components/ui/bottone";
-import { cx } from "@/components/ui/primitivi";
-import { NAV_PRINCIPALE, AZIONI, UI } from "@/config/copy";
+import { NAV_PERCORSI, NAV_PRINCIPALE, NAV_SERVIZI } from "@/config/navigazione";
+import { cn } from "@/lib/cn";
+
+type MenuAperto = "percorsi" | "servizi" | null;
 
 /**
- * Testata corrente: come la riga di testatina di un libro, resta in alto
- * e dice dove sei. Filetto di chiusura invece di ombra.
+ * Barra di navigazione. I due menu a tendina si aprono al click (non
+ * all'hover): l'hover esclude chi naviga da tastiera o da touch e apre pannelli
+ * per sbaglio mentre si scorre la pagina.
  */
 export function Testata() {
-  const pathname = usePathname();
-  const [aperto, setAperto] = useState(false);
-  const [ultimoPath, setUltimoPath] = useState(pathname);
+  const percorso = usePathname();
+  const [menu, setMenu] = useState<MenuAperto>(null);
+  const [mobileAperto, setMobileAperto] = useState(false);
+  const [scorso, setScorso] = useState(false);
+  const barra = useRef<HTMLElement>(null);
 
-  // Chiude il menu al cambio pagina (aggiustamento di stato in render).
-  if (pathname !== ultimoPath) {
-    setUltimoPath(pathname);
-    setAperto(false);
-  }
+  // Il menu si chiude cambiando pagina: altrimenti resta aperto sopra la nuova.
+  useEffect(() => {
+    setMenu(null);
+    setMobileAperto(false);
+  }, [percorso]);
+
+  useEffect(() => {
+    function suTasto(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        setMenu(null);
+        setMobileAperto(false);
+      }
+    }
+    function suClick(e: MouseEvent) {
+      if (barra.current && !barra.current.contains(e.target as Node)) setMenu(null);
+    }
+    document.addEventListener("keydown", suTasto);
+    document.addEventListener("mousedown", suClick);
+    return () => {
+      document.removeEventListener("keydown", suTasto);
+      document.removeEventListener("mousedown", suClick);
+    };
+  }, []);
+
+  useEffect(() => {
+    function suScroll() {
+      setScorso(window.scrollY > 8);
+    }
+    suScroll();
+    window.addEventListener("scroll", suScroll, { passive: true });
+    return () => window.removeEventListener("scroll", suScroll);
+  }, []);
+
+  const attivo = (href: string) => percorso === href || percorso.startsWith(`${href}/`);
 
   return (
-    <header className="border-filetto bg-carta/90 sticky top-0 z-50 border-b backdrop-blur-md">
+    <header
+      ref={barra}
+      className={cn(
+        "garbo sticky top-0 z-50 border-b",
+        scorso || menu
+          ? "border-bordo bg-fondo/85 backdrop-blur-xl"
+          : "border-transparent bg-transparent",
+      )}
+    >
       <div className="gabbia flex h-16 items-center justify-between gap-6">
         <Marchio />
 
-        <nav className="hidden items-center gap-6 lg:flex" aria-label="Navigazione principale">
-          {NAV_PRINCIPALE.map((voce) => {
-            const attiva = pathname === voce.href || pathname.startsWith(voce.href + "/");
-            return (
-              <Link
-                key={voce.href}
-                href={voce.href as Route}
-                aria-current={attiva ? "page" : undefined}
-                className={cx(
-                  "garbo font-ui text-sm",
-                  attiva ? "text-inchiostro" : "text-stampa hover:text-inchiostro",
-                )}
-              >
-                {voce.label}
-              </Link>
-            );
-          })}
+        <nav aria-label="Principale" className="hidden items-center gap-1 lg:flex">
+          <BottoneMenu
+            titolo="Percorsi"
+            aperto={menu === "percorsi"}
+            onToggle={() => setMenu(menu === "percorsi" ? null : "percorsi")}
+            attivo={attivo("/percorsi")}
+          />
+          <BottoneMenu
+            titolo="Servizi"
+            aperto={menu === "servizi"}
+            onToggle={() => setMenu(menu === "servizi" ? null : "servizi")}
+            attivo={attivo("/servizi")}
+          />
+          {NAV_PRINCIPALE.map((v) => (
+            <Link
+              key={v.href}
+              href={v.href as Route}
+              className={cn(
+                "garbo rounded-md px-3 py-2 text-sm",
+                attivo(v.href) ? "text-testo" : "text-testo-attenuato hover:text-testo",
+              )}
+              aria-current={attivo(v.href) ? "page" : undefined}
+            >
+              {v.titolo}
+            </Link>
+          ))}
         </nav>
 
-        <div className="hidden items-center gap-3 lg:flex">
-          <BottoneLink href="/analisi-manoscritto" variante="secondario">
-            {AZIONI.analisiBreve}
+        <div className="hidden items-center gap-2 lg:flex">
+          {/* L'accesso all'area riservata compare quando l'autenticazione è
+              attiva (Fase 2): un link a una pagina che non esiste vale meno
+              di nessun link. */}
+          <BottoneLink href="/preventivo" variante="identita" misura="piccola">
+            Preventivo
           </BottoneLink>
-          <BottoneLink href="/preventivo">{AZIONI.preventivo}</BottoneLink>
         </div>
 
         <button
           type="button"
-          className="rounded-campo border-filetto-forte grid size-10 place-items-center border lg:hidden"
-          aria-label={aperto ? UI.menuChiudi : UI.menuApri}
-          aria-expanded={aperto}
-          onClick={() => setAperto((v) => !v)}
+          className="garbo -mr-2 rounded-md p-2 text-testo lg:hidden"
+          aria-expanded={mobileAperto}
+          aria-controls="menu-mobile"
+          aria-label={mobileAperto ? "Chiudi il menu" : "Apri il menu"}
+          onClick={() => setMobileAperto((v) => !v)}
         >
-          <span className="relative block h-3 w-5" aria-hidden>
-            <span
-              className={cx(
-                "bg-inchiostro absolute inset-x-0 top-0 h-px transition-transform",
-                aperto && "translate-y-[6px] rotate-45",
-              )}
-            />
-            <span
-              className={cx(
-                "bg-inchiostro absolute inset-x-0 top-1/2 h-px -translate-y-1/2 transition-opacity",
-                aperto && "opacity-0",
-              )}
-            />
-            <span
-              className={cx(
-                "bg-inchiostro absolute inset-x-0 bottom-0 h-px transition-transform",
-                aperto && "-translate-y-[6px] -rotate-45",
-              )}
-            />
-          </span>
+          {mobileAperto ? <X className="size-5" aria-hidden /> : <Menu className="size-5" aria-hidden />}
         </button>
       </div>
 
-      {aperto && (
-        <div className="border-filetto bg-carta border-t lg:hidden">
-          <nav className="gabbia flex flex-col py-4" aria-label="Navigazione mobile">
-            {NAV_PRINCIPALE.map((voce) => (
+      {menu === "percorsi" ? <PannelloPercorsi /> : null}
+      {menu === "servizi" ? <PannelloServizi /> : null}
+
+      {mobileAperto ? <MenuMobile /> : null}
+    </header>
+  );
+}
+
+function BottoneMenu({
+  titolo,
+  aperto,
+  onToggle,
+  attivo,
+}: {
+  titolo: string;
+  aperto: boolean;
+  onToggle: () => void;
+  attivo: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-expanded={aperto}
+      className={cn(
+        "garbo flex items-center gap-1 rounded-md px-3 py-2 text-sm",
+        aperto || attivo ? "text-testo" : "text-testo-attenuato hover:text-testo",
+      )}
+    >
+      {titolo}
+      <ChevronDown
+        aria-hidden
+        className={cn("garbo size-3.5", aperto && "rotate-180")}
+      />
+    </button>
+  );
+}
+
+function PannelloPercorsi() {
+  return (
+    <div className="hidden border-t border-bordo bg-fondo-alto lg:block">
+      <div className="gabbia grid grid-cols-3 gap-x-8 gap-y-1 py-8">
+        {NAV_PERCORSI.map((p) => (
+          <Link
+            key={p.href}
+            href={p.href as Route}
+            className="garbo group rounded-md p-3 hover:bg-superficie"
+          >
+            <span className="block text-sm font-medium text-testo">{p.titolo}</span>
+            <span className="mt-1 block text-xs leading-relaxed text-testo-tenue">{p.sommario}</span>
+          </Link>
+        ))}
+        <Link
+          href="/percorsi"
+          className="garbo flex items-center rounded-md p-3 text-sm font-medium text-viola-chiaro hover:bg-superficie"
+        >
+          Vedi tutti i percorsi →
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+function PannelloServizi() {
+  return (
+    <div className="hidden max-h-[70vh] overflow-y-auto border-t border-bordo bg-fondo-alto lg:block">
+      <div className="gabbia grid grid-cols-4 gap-x-8 gap-y-8 py-8">
+        {NAV_SERVIZI.map((gruppo) => (
+          <div key={gruppo.area} className="flex flex-col gap-2">
+            <p className="etichetta text-testo-tenue">{gruppo.titolo}</p>
+            <ul className="flex flex-col">
+              {gruppo.voci.map((v) => (
+                <li key={v.href}>
+                  <Link
+                    href={v.href as Route}
+                    className="garbo -mx-2 block rounded-md px-2 py-1.5 text-sm text-testo-attenuato hover:bg-superficie hover:text-testo"
+                  >
+                    {v.titolo}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+      <div className="border-t border-bordo">
+        <div className="gabbia flex items-center justify-between py-4">
+          <p className="text-sm text-testo-tenue">
+            Non sai da quale servizio partire? Il preventivo lo stabilisce in due minuti.
+          </p>
+          <BottoneLink href="/servizi" variante="secondario" misura="piccola">
+            Tutti i servizi
+          </BottoneLink>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MenuMobile() {
+  return (
+    <div
+      id="menu-mobile"
+      className="max-h-[calc(100dvh-4rem)] overflow-y-auto border-t border-bordo bg-fondo-alto lg:hidden"
+    >
+      <div className="gabbia flex flex-col gap-6 py-6">
+        <div className="flex flex-col gap-2">
+          <p className="etichetta text-testo-tenue">Percorsi</p>
+          {NAV_PERCORSI.map((p) => (
+            <Link
+              key={p.href}
+              href={p.href as Route}
+              className="garbo -mx-2 rounded-md px-2 py-2.5 text-sm text-testo-attenuato hover:bg-superficie hover:text-testo"
+            >
+              {p.titolo}
+            </Link>
+          ))}
+        </div>
+
+        {NAV_SERVIZI.map((gruppo) => (
+          <div key={gruppo.area} className="flex flex-col gap-2">
+            <p className="etichetta text-testo-tenue">{gruppo.titolo}</p>
+            {gruppo.voci.map((v) => (
               <Link
-                key={voce.href}
-                href={voce.href as Route}
-                className="border-filetto font-ui text-inchiostro border-b py-3 text-base last:border-0"
+                key={v.href}
+                href={v.href as Route}
+                className="garbo -mx-2 rounded-md px-2 py-2.5 text-sm text-testo-attenuato hover:bg-superficie hover:text-testo"
               >
-                {voce.label}
+                {v.titolo}
               </Link>
             ))}
-            <div className="mt-4 flex flex-col gap-3">
-              <BottoneLink href="/analisi-manoscritto" variante="secondario" misura="grande">
-                {AZIONI.analisi}
-              </BottoneLink>
-              <BottoneLink href="/preventivo" misura="grande">
-                {AZIONI.preventivo}
-              </BottoneLink>
-            </div>
-          </nav>
+          </div>
+        ))}
+
+        <div className="flex flex-col gap-2 border-t border-bordo pt-6">
+          {NAV_PRINCIPALE.map((v) => (
+            <Link
+              key={v.href}
+              href={v.href as Route}
+              className="garbo -mx-2 rounded-md px-2 py-2.5 text-sm text-testo-attenuato hover:bg-superficie hover:text-testo"
+            >
+              {v.titolo}
+            </Link>
+          ))}
         </div>
-      )}
-    </header>
+
+        <div className="flex flex-col gap-3">
+          <BottoneLink href="/preventivo" variante="identita" misura="grande">
+            Fai un preventivo
+          </BottoneLink>
+          <BottoneLink href="/contatti" variante="secondario" misura="grande">
+            Parla con noi
+          </BottoneLink>
+        </div>
+      </div>
+    </div>
   );
 }

@@ -26,3 +26,30 @@ export function dataEstesa(v: Date | string): string {
     year: "numeric",
   }).format(d);
 }
+
+/** Tariffa a parola: "€ 0,014 – € 0,022 a parola". Tre decimali, come si quota. */
+export function tariffaParola(min: number, max: number): string {
+  const f = new Intl.NumberFormat("it-IT", {
+    style: "currency",
+    currency: "EUR",
+    minimumFractionDigits: 3,
+    maximumFractionDigits: 3,
+  });
+  return min === max ? `${f.format(min)} a parola` : `${f.format(min)} – ${f.format(max)} a parola`;
+}
+
+/**
+ * Euro da centesimi interi, con i decimali.
+ *
+ * Il listino pubblico è in euro tondi e usa `euro()`; una rata calcolata in
+ * percentuale quasi mai lo è, e mostrare «€ 1.333» al posto di «€ 1.333,20»
+ * farebbe sembrare sbagliata la somma delle rate.
+ */
+export function euroDaCentesimi(cent: number): string {
+  return new Intl.NumberFormat("it-IT", {
+    style: "currency",
+    currency: "EUR",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(cent / 100);
+}

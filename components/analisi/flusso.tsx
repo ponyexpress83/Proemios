@@ -5,7 +5,7 @@ import Link from "next/link";
 import type { Route } from "next";
 import { Bottone } from "@/components/ui/bottone";
 import { Campo, Input, Consenso } from "@/components/ui/campi";
-import { Filetto, cx } from "@/components/ui/primitivi";
+import { Filetto, cn } from "@/components/ui/primitivi";
 import { Report } from "./report";
 import { ANALISI, UI } from "@/config/copy";
 import type { ReportCompleto } from "@/lib/ai";
@@ -69,14 +69,14 @@ export function FlussoAnalisi({ giorniConservazione }: { giorniConservazione: nu
     <div className="mx-auto max-w-2xl">
       <form
         onSubmit={invia}
-        className="rounded-scheda border-filetto-notte bg-notte-alta border p-6 sm:p-8"
+        className="rounded-lg border-bordo bg-superficie border p-6 sm:p-8"
         noValidate
       >
         {/* Caricamento */}
         <label
-          className={cx(
-            "garbo rounded-scheda flex cursor-pointer flex-col items-center justify-center border border-dashed px-6 py-12 text-center",
-            nomeFile ? "border-ottone bg-ottone/5" : "border-filetto-notte hover:border-ottone",
+          className={cn(
+            "garbo rounded-lg flex cursor-pointer flex-col items-center justify-center border border-dashed px-6 py-12 text-center",
+            nomeFile ? "border-lime bg-lime/5" : "border-bordo hover:border-lime",
             inCorso && "pointer-events-none opacity-60",
           )}
         >
@@ -85,7 +85,7 @@ export function FlussoAnalisi({ giorniConservazione }: { giorniConservazione: nu
             height="28"
             viewBox="0 0 28 28"
             fill="none"
-            className="text-ottone"
+            className="text-lime"
             aria-hidden
           >
             <path
@@ -96,10 +96,10 @@ export function FlussoAnalisi({ giorniConservazione }: { giorniConservazione: nu
               strokeLinejoin="round"
             />
           </svg>
-          <span className="font-ui text-carta mt-4 text-[0.95rem] font-medium">
+          <span className="text-testo mt-4 text-[0.95rem] font-medium">
             {nomeFile || "Scegli il file o trascinalo qui"}
           </span>
-          <span className="apparato text-carta/40 mt-2">{ANALISI.formati}</span>
+          <span className="etichetta text-testo-tenue mt-2">{ANALISI.formati}</span>
           <input
             type="file"
             name="file"
@@ -110,21 +110,21 @@ export function FlussoAnalisi({ giorniConservazione }: { giorniConservazione: nu
           />
         </label>
 
-        <Filetto className="my-7" tono="notte" />
+        <Filetto className="my-7" />
 
         {/* Email gate */}
-        <p className="apparato text-ottone">{ANALISI.gateTitolo}</p>
-        <p className="prosa text-carta/65 mt-2 text-sm">{ANALISI.gateTesto}</p>
+        <p className="etichetta text-lime">{ANALISI.gateTitolo}</p>
+        <p className="prosa text-testo/65 mt-2 text-sm">{ANALISI.gateTesto}</p>
 
         <div className="mt-5 grid gap-5 sm:grid-cols-2">
           <Campo id="an-nome" label="Nome" obbligatorio>
             {(p) => (
-              <Input {...p} tono="notte" name="nome" required minLength={2} autoComplete="name" />
+              <Input {...p} name="nome" required minLength={2} autoComplete="name" />
             )}
           </Campo>
           <Campo id="an-email" label="Email" obbligatorio>
             {(p) => (
-              <Input {...p} tono="notte" name="email" type="email" required autoComplete="email" />
+              <Input {...p} name="email" type="email" required autoComplete="email" />
             )}
           </Campo>
         </div>
@@ -135,10 +135,9 @@ export function FlussoAnalisi({ giorniConservazione }: { giorniConservazione: nu
             name="consensoPrivacy"
             checked={consenso}
             onChange={setConsenso}
-            tono="notte"
           >
             Ho letto la{" "}
-            <Link href={"/privacy" as Route} className="hover:text-ottone underline">
+            <Link href={"/privacy" as Route} className="hover:text-lime underline">
               privacy policy
             </Link>{" "}
             e acconsento al trattamento dei dati per ricevere il report. *
@@ -148,21 +147,20 @@ export function FlussoAnalisi({ giorniConservazione }: { giorniConservazione: nu
             name="consensoMarketing"
             checked={marketing}
             onChange={setMarketing}
-            tono="notte"
           >
             Mandatemi anche le guide sull&rsquo;autopubblicazione. Facoltativo.
           </Consenso>
         </div>
 
         {errore && (
-          <p className="font-lettura text-ottone mt-5 text-sm leading-relaxed" role="alert">
+          <p className="text-lime mt-5 text-sm leading-relaxed" role="alert">
             {errore}
           </p>
         )}
 
         <Bottone
           type="submit"
-          variante="chiaro"
+          variante="identita"
           misura="grande"
           className="mt-6 w-full"
           disabled={inCorso}
@@ -170,7 +168,7 @@ export function FlussoAnalisi({ giorniConservazione }: { giorniConservazione: nu
           {inCorso ? ANALISI.inCorso : "Analizza il manoscritto"}
         </Bottone>
 
-        <p className="glossa text-carta/40 mt-5">{ANALISI.conservazione(giorniConservazione)}</p>
+        <p className="editoriale text-testo-tenue mt-5">{ANALISI.conservazione(giorniConservazione)}</p>
       </form>
     </div>
   );

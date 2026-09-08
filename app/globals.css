@@ -2,93 +2,124 @@
 
 /* ─────────────────────────────────────────────────────────────────────────
    Proemios — design system
-   Il sito è una pagina di libro composta: gabbia, margini, filetti, folî,
-   versali, colophon. Il lato software (configuratore, report) ribalta la
-   stessa gabbia su Notte tipografica, in registro da apparato critico.
-   Vedi DESIGN_PLAN.md.
+   Piattaforma editoriale premium: midnight + antracite, viola elettrico come
+   identità, lime acido solo per CTA e indicatori. Nessuna carta, nessun ottone.
+   Tutti i valori vivono qui: i componenti non hanno colori letterali.
+   Contrasti verificati WCAG AA (vedi docs/ARCHITECTURE.md §Design).
    ───────────────────────────────────────────────────────────────────────── */
 
 @theme {
-  /* ── Palette (6 valori nominati) ── */
-  --color-carta: #f4f4f0; /* sfondo principale, bianco carta neutro-freddo */
-  --color-carta-alta: #fbfbf9; /* superfici sollevate (schede) */
-  --color-carta-bassa: #eae9e2; /* fondi tenui, righe alterne */
-  --color-inchiostro: #1b1a17; /* testo e titoli, nero caldo di stampa */
-  --color-alloro: #22483b; /* accento primario, verde bottiglia */
-  --color-alloro-chiaro: #3a6b58; /* stati hover su fondo scuro */
-  --color-ottone: #9c7a3d; /* accento secondario, stampa a caldo */
-  --color-stampa: #6c6f67; /* testo secondario, note a margine */
-  --color-notte: #14201b; /* superfici del lato software */
-  --color-notte-alta: #1c2c25; /* schede dentro il lato software */
+  /* ── Fondali ── */
+  --color-fondo: #08080d; /* pagina */
+  --color-fondo-alto: #0d0d14; /* sezioni sollevate dalla pagina */
 
-  /* Semantici */
-  --color-esito-positivo: #2f6b4f;
-  --color-esito-critico: #8c3a26;
+  /* ── Superfici (card, pannelli, righe) ── */
+  --color-superficie: #14141d;
+  --color-superficie-alta: #191923;
+  --color-superficie-viva: #20202c; /* hover / riga selezionata */
 
-  /* Filetti */
-  --color-filetto: rgb(27 26 23 / 0.14);
-  --color-filetto-forte: rgb(27 26 23 / 0.28);
-  --color-filetto-notte: rgb(244 244 240 / 0.16);
+  /* ── Testo ── */
+  --color-testo: #f6f4fa; /* bianco caldo */
+  --color-testo-attenuato: #a9a3be; /* secondario — AA su superficie */
+  --color-testo-tenue: #8c87a0; /* meta, etichette — AA su superficie */
+
+  /* ── Identità ── */
+  --color-viola: #6c4bff; /* primario: fondi, bordi attivi */
+  --color-viola-chiaro: #8b72ff; /* viola come TESTO (AA su fondo) */
+  --color-viola-scuro: #4b2fd8; /* pressed */
+  --color-lime: #b7ff3c; /* CTA, indicatori, accenti puntuali */
+  --color-lime-scuro: #8fce1f;
+
+  /* ── Semantici ── */
+  --color-successo: #4ade80;
+  --color-attenzione: #ffb84d;
+  --color-errore: #ff6b6b;
+  --color-informazione: #8b72ff;
+
+  /* ── Bordi ── */
+  --color-bordo: rgb(246 244 250 / 0.09);
+  --color-bordo-forte: rgb(246 244 250 / 0.18);
+  --color-bordo-viola: rgb(108 75 255 / 0.45);
 
   /* ── Tipografia ── */
-  --font-display: var(--font-display), Georgia, "Times New Roman", serif;
-  --font-lettura: var(--font-lettura), Georgia, serif;
-  --font-ui: var(--font-ui), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-mono), ui-monospace, "SF Mono", monospace;
+  --font-sans: var(--font-geist), ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-serif: var(--font-serif-editoriale), Georgia, "Times New Roman", serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", monospace;
 
   /* ── Gabbia ── */
-  --spacing-gabbia: 78rem; /* larghezza totale con colonna margine */
-  --spacing-specchio: 44rem; /* specchio di stampa: misura di lettura */
+  --spacing-gabbia: 82rem;
+  --spacing-lettura: 42rem;
 
-  /* Raggi: minimi. La carta non ha angoli molto arrotondati. */
-  --radius-scheda: 3px;
-  --radius-campo: 3px;
+  /* ── Raggi ── */
+  --radius-xs: 6px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 22px;
+  --radius-2xl: 30px;
+
+  /* ── Ombre: profondità reale, non decorazione ── */
+  --shadow-sollevata: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px -12px rgb(0 0 0 / 0.6);
+  --shadow-fluttuante: 0 2px 4px rgb(0 0 0 / 0.4), 0 24px 56px -20px rgb(0 0 0 / 0.75);
+  --shadow-viola: 0 0 0 1px rgb(108 75 255 / 0.35), 0 18px 48px -20px rgb(108 75 255 / 0.55);
+  --shadow-lime: 0 12px 40px -18px rgb(183 255 60 / 0.5);
+
+  /* ── Motion ── */
+  --ease-garbo: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 /* ── Base ─────────────────────────────────────────────────────────────── */
 :root {
-  color-scheme: light;
+  color-scheme: dark;
 }
 
 html {
   -webkit-text-size-adjust: 100%;
-  text-rendering: optimizeLegibility;
   scroll-behavior: smooth;
 }
 
 body {
-  background-color: var(--color-carta);
-  color: var(--color-inchiostro);
-  font-family: var(--font-ui);
+  background-color: var(--color-fondo);
+  color: var(--color-testo);
+  font-family: var(--font-sans);
+  font-feature-settings: "cv11" 1, "ss01" 1;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
-/* Titoli: display con legature e crenatura tipografica. */
 h1,
 h2,
 h3,
 h4 {
-  font-family: var(--font-display);
-  font-feature-settings: "liga" 1, "calt" 1, "kern" 1;
-  letter-spacing: -0.015em;
+  letter-spacing: -0.022em;
   text-wrap: balance;
+  font-weight: 600;
 }
 
-/* Selezione in tinta alloro. */
+h1 {
+  letter-spacing: -0.034em;
+}
+
+p {
+  text-wrap: pretty;
+}
+
 ::selection {
-  background-color: rgb(34 72 59 / 0.2);
+  background-color: rgb(108 75 255 / 0.4);
+  color: var(--color-testo);
 }
 
-/* Focus visibile e coerente (accessibilità AA). */
-:where(a, button, input, textarea, select, summary, [tabindex]):focus-visible {
-  outline: 2px solid var(--color-alloro);
+/* Focus visibile ovunque, mai rimosso (AA 2.4.7). */
+:where(a, button, input, textarea, select, summary, [tabindex], [role="button"]):focus-visible {
+  outline: 2px solid var(--color-lime);
   outline-offset: 2px;
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
 }
 
-/* Su fondo notte il focus deve restare visibile. */
-.su-notte :where(a, button, input, textarea, select, summary, [tabindex]):focus-visible {
-  outline-color: var(--color-ottone);
+/* Scrollbar coerente col fondale (progressive enhancement). */
+* {
+  scrollbar-color: var(--color-superficie-viva) transparent;
+  scrollbar-width: thin;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -102,72 +133,78 @@ h4 {
   }
 }
 
-/* ── Utility di composizione ───────────────────────────────────────────── */
+/* ── Utility di composizione ──────────────────────────────────────────── */
 
-/** Gabbia: contenitore esterno con i suoi margini. */
+/** Contenitore principale del sito e delle dashboard. */
 @utility gabbia {
   width: 100%;
   max-width: var(--spacing-gabbia);
   margin-inline: auto;
-  padding-inline: 1.5rem;
+  padding-inline: 1.25rem;
 }
 
-/** Specchio di stampa: misura di lettura da libro (62-70 caratteri). */
-@utility specchio {
-  max-width: var(--spacing-specchio);
+@media (min-width: 768px) {
+  .gabbia {
+    padding-inline: 2rem;
+  }
 }
 
-/** Testo di lettura: Spectral, interlinea generosa, come una pagina composta. */
-@utility prosa {
-  font-family: var(--font-lettura);
-  font-size: 1.0625rem;
-  line-height: 1.75;
-  color: rgb(27 26 23 / 0.88);
+/** Misura di lettura per testi lunghi. */
+@utility lettura {
+  max-width: var(--spacing-lettura);
 }
 
-@utility prosa-grande {
-  font-family: var(--font-lettura);
-  font-size: 1.1875rem;
-  line-height: 1.7;
-  color: rgb(27 26 23 / 0.88);
-}
-
-/** Apparato: la voce "software" — monospazio, maiuscoletto spaziato. */
-@utility apparato {
+/** Etichetta tecnica: maiuscoletto spaziato, mono. Usata per meta e stati. */
+@utility etichetta {
   font-family: var(--font-mono);
   font-size: 0.6875rem;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
+  font-weight: 500;
 }
 
-/** Numerici tabellari: prezzi, metriche, conteggi. */
+/** Numeri: tabellari, per prezzi, conteggi, progressi. */
 @utility cifre {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum" 1;
 }
 
-/** Filetto orizzontale: la riga della pagina composta. */
-@utility filetto {
-  height: 1px;
-  background-color: var(--color-filetto);
-  border: 0;
+/** Serif editoriale: solo citazioni e occhielli. Mai per l'interfaccia. */
+@utility editoriale {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  letter-spacing: -0.01em;
 }
 
-/** Glossa a margine: corsivo vero, in grigio stampa. */
-@utility glossa {
-  font-family: var(--font-lettura);
-  font-style: italic;
-  font-size: 0.9375rem;
-  line-height: 1.6;
-  color: var(--color-stampa);
-}
-
-/** Transizione sobria condivisa. */
+/** Transizione condivisa: una sola curva in tutto il prodotto. */
 @utility garbo {
-  transition:
-    color 0.18s ease,
-    background-color 0.18s ease,
-    border-color 0.18s ease,
-    transform 0.18s ease;
+  transition-property: color, background-color, border-color, box-shadow, transform, opacity;
+  transition-duration: 180ms;
+  transition-timing-function: var(--ease-garbo);
+}
+
+/** Testo con gradiente viola→lime. Solo per un accento per pagina. */
+@utility testo-identita {
+  /*
+   * L'interpolazione va forzata in oklab: in sRGB il punto medio fra viola e
+   * lime cade su un grigio-verde spento e il gradiente sembra sbiadito
+   * proprio al centro della parola, mentre in oklch la rotazione di tinta
+   * passa dal ciano e introduce un colore che non è in palette. I browser che
+   * non capiscono `in oklab` ignorano la regola e ricevono il colore pieno
+   * dichiarato nella riga precedente.
+   */
+  color: var(--color-lime);
+  background-image: linear-gradient(96deg in oklab, var(--color-viola-chiaro), var(--color-lime));
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/** Bagliore ambientale dietro l'hero. Puramente decorativo. */
+@utility alone {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(90px);
+  pointer-events: none;
+  opacity: 0.5;
 }

@@ -29,3 +29,10 @@ yarn-error.log*
 
 # typescript
 *.tsbuildinfo
+.schermate/
+.storage/
+.docx-verifica/
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/

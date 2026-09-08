@@ -23,7 +23,10 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: "*",
       allow: "/",
-      disallow: ["/admin", "/api/"],
+      // Ogni area riservata: sono già `noindex` nei metadata e protette lato
+      // server, ma un crawler che le prova genera 401 nei log e spreca il
+      // budget di scansione su pagine che non vedrà mai.
+      disallow: ["/admin", "/area", "/redazione", "/accedi", "/api/"],
     },
     sitemap: assoluto("/sitemap.xml"),
     host: assoluto("/"),
