@@ -15,7 +15,10 @@ const schema = z.object({
   ruolo: z.enum(["operations_admin", "editorial_manager", "editor_reviewer", "finance"]),
 });
 
-export async function invitaStaff(formData: FormData): Promise<EsitoInvito> {
+export async function invitaStaff(
+  _precedente: EsitoInvito | null,
+  formData: FormData,
+): Promise<EsitoInvito> {
   const analisi = schema.safeParse({
     email: formData.get("email"),
     ruolo: formData.get("ruolo"),
