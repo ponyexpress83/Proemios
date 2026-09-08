@@ -41,7 +41,7 @@ export default async function PaginaStaff() {
             Invita una persona
           </h2>
           <p className="max-w-2xl text-sm text-testo-tenue">
-            Riceverà un link monouso per creare l'account. Il link scade dopo sette giorni.
+            Riceverà un link monouso per creare l&rsquo;account. Il link scade dopo sette giorni.
           </p>
           <ModuloInvitoStaff />
         </section>
