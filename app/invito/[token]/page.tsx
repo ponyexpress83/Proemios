@@ -28,7 +28,7 @@ export default async function PaginaInvito({ params }: { params: Promise<{ token
         <Occhiello>Invito personale</Occhiello>
         <h1 className="mt-3 text-3xl font-semibold text-testo">Attiva il tuo account</h1>
         <p className="mt-3 text-sm leading-relaxed text-testo-attenuato">
-          Inserisci il nome che vuoi mostrare ai colleghi. Dopo l'attivazione riceverai i link di accesso sulla tua email: non ci sono password condivise.
+          Inserisci il nome che vuoi mostrare ai colleghi. Dopo l&rsquo;attivazione riceverai i link di accesso sulla tua email: non ci sono password condivise.
         </p>
         <form action={accetta} className="mt-7 grid gap-4">
           <label className="grid gap-2 text-sm text-testo-attenuato">
