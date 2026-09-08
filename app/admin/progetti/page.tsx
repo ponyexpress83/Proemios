@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Titolo } from "@/components/ui/primitivi";
 import { Tabella, Riga, Cella } from "@/components/ui/tabella";
 import { BadgeStato, Badge } from "@/components/ui/badge";
+import { BottoneLink } from "@/components/ui/bottone";
 import { StatoVuoto } from "@/components/ui/stati";
 import { Progresso } from "@/components/ui/progresso";
 import { staffPerPagina } from "@/lib/auth/sessione";
@@ -13,16 +14,6 @@ import { numero, dataEstesa } from "@/lib/format";
 import { STATO_PROGETTO } from "@/config/back-office";
 import type { ProgettoDTO } from "@/lib/dto/progetto";
 
-/**
- * Vista di riga costruita dal DTO **senza cast**.
- *
- * I DTO di progetto hanno forme diverse a seconda del ruolo: quello del
- * redattore non ha `avanzamento`, quello del cliente non ha
- * `conteggioParole`. Forzare tutto a `ProgettoPerStaff` faceva compilare il
- * codice e produceva "NaN%" a schermo, che è il modo peggiore di scoprire che
- * un campo non c'era. Qui i campi opzionali si leggono con un controllo
- * esplicito, e la colonna resta vuota quando il dato non è previsto.
- */
 type RigaProgetto = {
   id: string;
   codice: string;
@@ -62,13 +53,11 @@ export default async function PaginaProgetti({
 }: {
   searchParams: Promise<{ stato?: string; ritardo?: string }>;
 }) {
-  // Il permesso richiesto è quello minimo: `elencaProgetti` restringe da sé
-  // l'elenco a ciò che l'attore può vedere — tutti i progetti del tenant per
-  // operations, solo quelli di cui è membro per un redattore.
   const attore = await staffPerPagina("/admin/progetti", "progetto.vedi_assegnati");
   const { stato, ritardo } = await searchParams;
 
   const vedeTutti = haPermesso(attore, "progetto.vedi_tutti");
+  const puoCreare = haPermesso(attore, "progetto.crea");
   const pagina = await elencaProgetti(attore, {
     stato: stato ? [stato] : undefined,
     soloInRitardo: ritardo === "1",
@@ -78,17 +67,24 @@ export default async function PaginaProgetti({
 
   return (
     <div className="flex flex-col gap-8">
-      <Titolo
-        livello={1}
-        occhiello={`${numero(pagina.totale)} progetti`}
-        sotto={
-          vedeTutti
-            ? undefined
-            : "Vedi i progetti di cui fai parte. Per essere aggiunto a un progetto, chiedi a chi lo coordina."
-        }
-      >
-        Progetti
-      </Titolo>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <Titolo
+          livello={1}
+          occhiello={`${numero(pagina.totale)} progetti`}
+          sotto={
+            vedeTutti
+              ? undefined
+              : "Vedi i progetti di cui fai parte. Per essere aggiunto a un progetto, chiedi a chi lo coordina."
+          }
+        >
+          Progetti
+        </Titolo>
+        {puoCreare ? (
+          <BottoneLink href="/admin/progetti/nuovo" variante="identita">
+            Nuovo progetto
+          </BottoneLink>
+        ) : null}
+      </div>
 
       <nav aria-label="Filtri" className="flex flex-wrap gap-2">
         <FiltroLink href="/admin/progetti" attivo={!stato && ritardo !== "1"}>
