@@ -14,12 +14,19 @@ export default async function PaginaInvito({ params }: { params: Promise<{ token
     "use server";
     const nomeRaw = formData.get("nome");
     const nome = typeof nomeRaw === "string" && nomeRaw.trim() ? nomeRaw.trim().slice(0, 200) : null;
+    // `redirect` funziona lanciando un errore: chiamarlo dentro il `try`
+    // farebbe intercettare al `catch` il proprio NEXT_REDIRECT, e un invito
+    // accettato **con successo** finirebbe sulla pagina d'errore — con il token
+    // ormai consumato, quindi senza possibilità di riprovare. La destinazione
+    // si decide qui, il salto avviene fuori.
+    let destinazione: string;
     try {
       const account = await accettaInvito(token, nome);
-      redirect(`/accedi?da=${encodeURIComponent(account.ruolo === "client" ? "/area" : "/admin")}`);
+      destinazione = account.ruolo === "client" ? "/area" : "/admin";
     } catch {
       redirect("/accedi?errore=invito");
     }
+    redirect(`/accedi?da=${encodeURIComponent(destinazione)}`);
   }
 
   return (
