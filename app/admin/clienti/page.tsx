@@ -3,7 +3,9 @@ import { Titolo } from "@/components/ui/primitivi";
 import { Tabella, Riga, Cella } from "@/components/ui/tabella";
 import { StatoVuoto } from "@/components/ui/stati";
 import { Badge } from "@/components/ui/badge";
+import { BottoneLink } from "@/components/ui/bottone";
 import { staffPerPagina } from "@/lib/auth/sessione";
+import { haPermesso } from "@/lib/auth/attore";
 import { elencaClienti } from "@/lib/dati/clienti";
 import { haDatiFatturazione, haIdentita } from "@/lib/dto/cliente";
 import { numero, dataEstesa } from "@/lib/format";
@@ -27,17 +29,25 @@ export default async function PaginaClienti({
   const attore = await staffPerPagina("/admin/clienti", "cliente.vedi_identita");
   const { cerca } = await searchParams;
   const pagina = await elencaClienti(attore, { cerca, perPagina: 50 });
+  const puoCreare = haPermesso(attore, "cliente.modifica");
 
   return (
     <div className="flex flex-col gap-8">
-      <Titolo livello={1} occhiello={`${numero(pagina.totale)} clienti`}>
-        Clienti
-      </Titolo>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <Titolo livello={1} occhiello={`${numero(pagina.totale)} clienti`}>
+          Clienti
+        </Titolo>
+        {puoCreare ? (
+          <BottoneLink href="/admin/clienti/nuovo" variante="identita">
+            Inserisci cliente attuale
+          </BottoneLink>
+        ) : null}
+      </div>
 
       {pagina.voci.length === 0 ? (
         <StatoVuoto
           titolo="Nessun cliente"
-          descrizione="I clienti nascono dalla conversione di un lead: i dati vengono presi da lì, senza reinserirli."
+          descrizione="Converti un lead dal CRM oppure inserisci direttamente un cliente già acquisito."
         />
       ) : (
         <Tabella intestazioni={INTESTAZIONI} didascalia="Elenco dei clienti">
