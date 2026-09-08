@@ -59,11 +59,12 @@ export function RisultatoPreventivo({ esito, quoteId }: { esito: QuoteResult; qu
             davvero e, se il lavoro è più semplice della stima, adeguiamo il prezzo.
           </p>
         </div>
-        <div
-          className="mt-5 shrink-0 sm:mt-0"
-          onClick={() => trackEvent("consultation_clicked", { quoteId })}
-        >
-          <BottoneLink href={`/contatti?quote=${encodeURIComponent(quoteId)}`} variante="identita">
+        <div className="mt-5 shrink-0 sm:mt-0">
+          <BottoneLink
+            href={`/contatti?quote=${encodeURIComponent(quoteId)}`}
+            variante="identita"
+            onClick={() => trackEvent("consultation_clicked", { quoteId })}
+          >
             Prenota una call
           </BottoneLink>
         </div>
