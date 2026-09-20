@@ -33,10 +33,14 @@ export type EsitoStore = {
  * e i permessi restano al loro posto.
  */
 export async function conta(chiave: string, regola: Regola): Promise<EsitoStore> {
-  const db = getDb();
   const durata = `${regola.finestraSecondi} seconds`;
 
   try {
+    // `getDb()` sta dentro il try di proposito: senza `DATABASE_URL` lancia, ed
+    // è l'errore più probabile di tutti — un deploy a cui manca una variabile.
+    // Tenerlo fuori faceva sfuggire proprio quel caso al catch scritto per
+    // gestirlo, e ogni form pubblico rispondeva 500 invece di ammettere.
+    const db = getDb();
     const righe = await db.execute<{
       conteggio: number;
       finestra_inizio: Date;

@@ -111,3 +111,25 @@ describe("chiave di conteggio", () => {
     expect(contatto).not.toBe(analisi);
   });
 });
+
+describe("il contatore non deve mai far cadere un form pubblico", () => {
+  /**
+   * Il limitatore è dichiaratamente fail-open: se il contatore non è
+   * raggiungibile, la richiesta passa. Il caso più probabile di tutti è il
+   * più banale — un deploy a cui manca `DATABASE_URL` — e per un periodo
+   * `getDb()` veniva chiamato fuori dal `try`, così proprio quell'errore
+   * sfuggiva al catch e ogni form pubblico rispondeva 500.
+   */
+  it("ammette la richiesta quando il database non è configurato", async () => {
+    const precedente = process.env.DATABASE_URL;
+    delete process.env.DATABASE_URL;
+    try {
+      const { conta } = await import("@/lib/sicurezza/store-limite");
+      const esito = await conta("test:senza-database", REGOLA);
+      expect(esito.ammessa).toBe(true);
+    } finally {
+      if (precedente === undefined) delete process.env.DATABASE_URL;
+      else process.env.DATABASE_URL = precedente;
+    }
+  });
+});
