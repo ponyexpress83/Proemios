@@ -16,6 +16,12 @@ export async function GET(
   richiesta: NextRequest,
   { params }: { params: Promise<{ chiave: string[] }> },
 ) {
+  // Questa rotta esiste solo per sviluppo/test. In produzione i file
+  // riservati devono passare esclusivamente da URL firmati S3.
+  if (process.env.NODE_ENV === "production") {
+    return new NextResponse("Non disponibile.", { status: 404 });
+  }
+
   const driver = process.env.STORAGE_DRIVER ?? (process.env.S3_BUCKET ? "s3" : "filesystem");
   if (driver !== "filesystem") {
     return new NextResponse("Non disponibile.", { status: 404 });

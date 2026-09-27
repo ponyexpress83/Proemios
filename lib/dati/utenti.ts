@@ -6,7 +6,7 @@
  * assegnare qualunque ruolo (vedi `esigiRuoloAssegnabile`).
  */
 import { randomBytes, createHash, timingSafeEqual } from "node:crypto";
-import { and, desc, eq, gt, isNull, lt, or } from "drizzle-orm";
+import { and, desc, eq, gt, isNull, ne, or } from "drizzle-orm";
 import { getDb } from "@/db";
 import { inviti, sessions, users, type Utente } from "@/db/schema/utenti";
 import { organizations } from "@/db/schema/organizzazioni";
@@ -315,7 +315,7 @@ export async function revocaSessioniProprie(attore: Attore, tranneCorrente?: str
     .delete(sessions)
     .where(
       tranneCorrente
-        ? and(eq(sessions.userId, attore.userId), lt(sessions.sessionToken, tranneCorrente))
+        ? and(eq(sessions.userId, attore.userId), ne(sessions.sessionToken, tranneCorrente))
         : eq(sessions.userId, attore.userId),
     );
   await registra(attore, { azione: "sessione.revocata", entita: "utente", entitaId: attore.userId });
