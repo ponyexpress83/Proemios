@@ -96,7 +96,7 @@ export async function POST(req: Request) {
     testo = await estraiTesto(contenuto, ext);
   } catch (err) {
     const motivo = err instanceof EstrazioneError ? err.motivo : "illeggibile";
-    console.error(JSON.stringify({ evt: "analisi.estrazione", motivo, file: file.name }));
+    console.error(JSON.stringify({ evt: "analisi.estrazione", motivo }));
     return NextResponse.json({ errore: ANALISI.erroreEstrazione }, { status: 422 });
   }
 
