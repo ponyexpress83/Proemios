@@ -15,6 +15,15 @@ let istanza: StorageProvider | null = null;
 function daAmbiente(): StorageProvider {
   const driver = process.env.STORAGE_DRIVER ?? (process.env.S3_BUCKET ? "s3" : "filesystem");
 
+  // In produzione il filesystem locale di Vercel è effimero e non è un luogo
+  // sicuro per manoscritti. Se S3 non è configurato, falliamo in modo esplicito
+  // invece di degradare silenziosamente su disco locale.
+  if (process.env.NODE_ENV === "production" && driver !== "s3") {
+    throw new Error(
+      "Storage di produzione non configurato: imposta STORAGE_DRIVER=s3 e le variabili S3_*.",
+    );
+  }
+
   if (driver === "s3") {
     const configurazione: ConfigurazioneS3 = {
       bucket: obbligatoria("S3_BUCKET"),
