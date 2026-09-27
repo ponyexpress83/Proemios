@@ -226,6 +226,19 @@ async function progettiDimostrativi(studioId: string) {
 async function seed() {
   const studio = await fondazione();
 
+  // Il seed di produzione deve creare SOLO fondazione + primo amministratore.
+  // I dati dimostrativi si inseriscono esclusivamente con opt-in esplicito:
+  // evita che un semplice `npm run db:seed` su un database reale cancelli
+  // preventivi/lead o crei clienti e redattori fittizi.
+  const demoRichiesta = process.env.SEED_DEMO_DATA === "on";
+  if (!demoRichiesta) {
+    console.log(
+      "Seed: fondazione completata. Dati demo NON inseriti. " +
+        "Per inserirli in sviluppo usa SEED_DEMO_DATA=on npm run db:seed.",
+    );
+    return;
+  }
+
   console.log("Seed: pulizia dei dati dimostrativi…");
   await db.delete(quotes);
   await db.delete(manuscriptAnalyses);
