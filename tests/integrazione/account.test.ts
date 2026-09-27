@@ -10,6 +10,7 @@ import {
   esigiRuoloAssegnabile,
   revocaInvito,
   riattivaUtente,
+  revocaSessioniProprie,
   sessioniProprie,
 } from "@/lib/dati/utenti";
 import { NonAutorizzato, NonTrovato } from "@/lib/auth/errori";
@@ -143,6 +144,33 @@ describe("gestione degli account", () => {
 
   it("il redattore non può elencare lo staff", async () => {
     await expect(elencaStaff(scenario.attori.redattore!)).rejects.toThrow(NonAutorizzato);
+  });
+
+  it("può revocare tutte le altre sessioni lasciando quella corrente", async () => {
+    const db = await preparaDatabase();
+    const attore = scenario.attori.redattore!;
+
+    await db.insert(schema.sessions).values([
+      {
+        sessionToken: "corrente-token",
+        userId: attore.userId,
+        expires: new Date(Date.now() + 86_400_000),
+      },
+      {
+        sessionToken: "altra-token",
+        userId: attore.userId,
+        expires: new Date(Date.now() + 86_400_000),
+      },
+    ]);
+
+    await revocaSessioniProprie(attore, "corrente-token");
+
+    const rimaste = await db
+      .select({ token: schema.sessions.sessionToken })
+      .from(schema.sessions)
+      .where(eq(schema.sessions.userId, attore.userId));
+
+    expect(rimaste).toEqual([{ token: "corrente-token" }]);
   });
 
   it("cambiare ruolo chiude le sessioni aperte", async () => {
