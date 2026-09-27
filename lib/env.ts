@@ -129,3 +129,55 @@ export const publicEnv = clientSchema.parse({
   NEXT_PUBLIC_ANALYTICS_DOMAIN: process.env.NEXT_PUBLIC_ANALYTICS_DOMAIN,
   NEXT_PUBLIC_WHATSAPP_NUMERO: process.env.NEXT_PUBLIC_WHATSAPP_NUMERO,
 });
+
+/**
+ * Cancello fail-closed per la produzione reale.
+ *
+ * Vercel esegue anche preview con NODE_ENV=production: per questo il controllo
+ * scatta solo quando DEMO_MODE è esplicitamente "off", cioè quando stiamo
+ * dichiarando che l'ambiente tratta dati e pagamenti reali.
+ */
+function verificaConfigurazioneProduzione(): void {
+  if (process.env.NODE_ENV !== "production" || env.DEMO_MODE !== "off") return;
+
+  const obbligatorie = [
+    "DATABASE_URL",
+    "AUTH_SECRET",
+    "AUTH_URL",
+    "RESEND_API_KEY",
+    "AUTH_EMAIL_FROM",
+    "EMAIL_FROM",
+    "EMAIL_INTERNAL",
+    "S3_BUCKET",
+    "S3_REGION",
+    "S3_ACCESS_KEY_ID",
+    "S3_SECRET_ACCESS_KEY",
+    "STRIPE_SECRET_KEY",
+    "STRIPE_WEBHOOK_SECRET",
+    "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY",
+    "INNGEST_EVENT_KEY",
+    "INNGEST_SIGNING_KEY",
+    "NEXT_PUBLIC_SITE_URL",
+  ] as const;
+
+  const mancanti: string[] = obbligatorie.filter((nome) => !process.env[nome]?.trim());
+  if (process.env.STORAGE_DRIVER !== "s3") mancanti.push("STORAGE_DRIVER=s3");
+  if (!process.env.OPENAI_API_KEY?.trim() && !process.env.ANTHROPIC_API_KEY?.trim()) {
+    mancanti.push("OPENAI_API_KEY oppure ANTHROPIC_API_KEY");
+  }
+
+  if (mancanti.length > 0) {
+    throw new Error(
+      `Configurazione produzione incompleta: ${mancanti.join(", ")}. ` +
+        "Non si avvia Proemios con DEMO_MODE=off finché il cancello pre-live non è completo.",
+    );
+  }
+
+  if (publicEnv.NEXT_PUBLIC_SITE_URL !== "https://proemios.it") {
+    throw new Error(
+      "NEXT_PUBLIC_SITE_URL deve essere https://proemios.it nell'ambiente di produzione reale.",
+    );
+  }
+}
+
+verificaConfigurazioneProduzione();
