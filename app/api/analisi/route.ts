@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { leads, manuscriptAnalyses } from "@/db/schema";
 import { gateAnalisiSchema, primoErrore } from "@/lib/validation";
 import { estraiTesto, estensioneDi, MAX_BYTES, EstrazioneError } from "@/lib/extract";
+import { validaFile } from "@/lib/file/validazione";
 import { calcolaMetriche } from "@/lib/metrics";
 import { analizza, aiConfigurata, AiError, type ReportCompleto } from "@/lib/ai";
 import { costBandForAnalysis } from "@/lib/pricing";
@@ -72,10 +73,27 @@ export async function POST(req: Request) {
     );
   }
 
+  const contenuto = Buffer.from(await file.arrayBuffer());
+  const mimeAtteso =
+    ext === ".docx"
+      ? "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+      : ext === ".pdf"
+        ? "application/pdf"
+        : "text/plain";
+  const validazione = validaFile({
+    nomeFile: file.name,
+    mimeDichiarato: mimeAtteso,
+    dimensioneByte: contenuto.byteLength,
+    primiByte: contenuto.subarray(0, 16),
+  });
+  if (!validazione.ok) {
+    return NextResponse.json({ errore: validazione.motivo }, { status: 415 });
+  }
+
   // ── Estrazione ────────────────────────────────────────────────────────
   let testo: string;
   try {
-    testo = await estraiTesto(Buffer.from(await file.arrayBuffer()), ext);
+    testo = await estraiTesto(contenuto, ext);
   } catch (err) {
     const motivo = err instanceof EstrazioneError ? err.motivo : "illeggibile";
     console.error(JSON.stringify({ evt: "analisi.estrazione", motivo, file: file.name }));
