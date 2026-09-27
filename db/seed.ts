@@ -231,6 +231,11 @@ async function seed() {
   // evita che un semplice `npm run db:seed` su un database reale cancelli
   // preventivi/lead o crei clienti e redattori fittizi.
   const demoRichiesta = process.env.SEED_DEMO_DATA === "on";
+  if (demoRichiesta && process.env.NODE_ENV === "production") {
+    throw new Error(
+      "SEED_DEMO_DATA=on non è consentito in produzione: il seed demo modifica dati applicativi.",
+    );
+  }
   if (!demoRichiesta) {
     console.log(
       "Seed: fondazione completata. Dati demo NON inseriti. " +
