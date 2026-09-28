@@ -45,3 +45,36 @@ export function codaConfigurata(): boolean {
   // In sviluppo il server locale di Inngest non richiede chiave.
   return Boolean(process.env.INNGEST_EVENT_KEY) || process.env.NODE_ENV !== "production";
 }
+
+/**
+ * Mette un Job in coda per l'elaborazione.
+ *
+ * Era l'anello che mancava: `lib/lavori/funzioni.ts` ascolta `job/elabora` e
+ * `creaJob` scrive il Job in stato `queued`, ma nessuno emetteva l'evento fra
+ * i due. Un Job creato restava quindi fermo per sempre, e la pipeline AI non
+ * poteva partire da nessun punto del prodotto.
+ *
+ * Se la coda non è configurata non si finge di aver avviato niente: si torna
+ * `false` e chi chiama lo dice in interfaccia. Elaborare dentro la richiesta
+ * HTTP non è un ripiego accettabile — un manoscritto lungo supererebbe il
+ * limite di durata della funzione e lascerebbe il Job a metà.
+ */
+export async function accodaElaborazione(dati: {
+  jobId: string;
+  organizationId: string;
+  tentativoManuale?: number;
+}): Promise<boolean> {
+  if (!codaConfigurata()) return false;
+  await inngest.send({ name: "job/elabora", data: dati });
+  return true;
+}
+
+/** Chiede l'annullamento di un Job già in coda. */
+export async function accodaAnnullamento(dati: {
+  jobId: string;
+  organizationId: string;
+}): Promise<boolean> {
+  if (!codaConfigurata()) return false;
+  await inngest.send({ name: "job/annulla", data: dati });
+  return true;
+}

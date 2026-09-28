@@ -4,7 +4,15 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { esigiAttore } from "@/lib/auth/sessione";
 import { scriviMessaggio, decidiApprovazione, rispondiChiarimento } from "@/lib/dati/comunicazioni";
-import { completaTappa, creaProgetto } from "@/lib/dati/progetti";
+import {
+  aggiungiMembro,
+  completaTappa,
+  creaProgetto,
+  rimuoviMembro,
+} from "@/lib/dati/progetti";
+import { assegnaJob, creaJob } from "@/lib/dati/job";
+import { accodaElaborazione } from "@/lib/lavori/client";
+import { LIVELLI } from "@/lib/ai/livelli";
 import { isErroreAutorizzazione } from "@/lib/auth/errori";
 
 export type EsitoAzione = { ok: true } | { ok: false; messaggio: string };
@@ -153,5 +161,122 @@ export async function rispondi(dati: z.input<typeof schemaRisposta>): Promise<Es
   return esegui(percorso, async () => {
     const attore = await esigiAttore();
     await rispondiChiarimento(attore, analisi.data.chiarimentoId, analisi.data.risposta);
+  });
+}
+
+/*
+ * Squadra del progetto e assegnazione dei lavori.
+ *
+ * Esistevano nel livello dati ma nessuna pagina le chiamava, e il risultato
+ * era un vicolo cieco: `assegnaJob` rifiuta chi non è membro del progetto —
+ * giustamente, perché assegnare un lavoro significa dare accesso al
+ * manoscritto — e non c'era modo di rendere qualcuno membro. Un progetto
+ * appena creato non poteva quindi essere affidato a nessuno.
+ */
+
+const schemaMembro = z.object({
+  progettoId: z.string().uuid(),
+  userId: z.string().uuid(),
+  ruolo: z.enum([
+    "super_admin",
+    "operations_admin",
+    "editorial_manager",
+    "editor_reviewer",
+    "finance",
+  ]),
+});
+
+export async function aggiungiAllaSquadra(
+  dati: z.input<typeof schemaMembro>,
+): Promise<EsitoAzione> {
+  const analisi = schemaMembro.safeParse(dati);
+  if (!analisi.success) return { ok: false, messaggio: "Scegli una persona e un ruolo." };
+
+  return esegui(`/admin/progetti/${analisi.data.progettoId}`, async () => {
+    const attore = await esigiAttore();
+    await aggiungiMembro(
+      attore,
+      analisi.data.progettoId,
+      analisi.data.userId,
+      analisi.data.ruolo,
+    );
+  });
+}
+
+const schemaRimozione = z.object({
+  progettoId: z.string().uuid(),
+  userId: z.string().uuid(),
+});
+
+export async function togliDallaSquadra(
+  dati: z.input<typeof schemaRimozione>,
+): Promise<EsitoAzione> {
+  const analisi = schemaRimozione.safeParse(dati);
+  if (!analisi.success) return { ok: false, messaggio: "Dati non validi." };
+
+  return esegui(`/admin/progetti/${analisi.data.progettoId}`, async () => {
+    const attore = await esigiAttore();
+    await rimuoviMembro(attore, analisi.data.progettoId, analisi.data.userId);
+  });
+}
+
+const schemaAssegnazione = z.object({
+  progettoId: z.string().uuid(),
+  jobId: z.string().uuid(),
+  /** Stringa vuota: togli l'assegnazione invece di darla a qualcuno. */
+  userId: z.string().uuid().or(z.literal("")),
+});
+
+export async function assegnaLavoro(
+  dati: z.input<typeof schemaAssegnazione>,
+): Promise<EsitoAzione> {
+  const analisi = schemaAssegnazione.safeParse(dati);
+  if (!analisi.success) return { ok: false, messaggio: "Dati non validi." };
+
+  return esegui(`/admin/progetti/${analisi.data.progettoId}`, async () => {
+    const attore = await esigiAttore();
+    await assegnaJob(attore, analisi.data.jobId, analisi.data.userId || null);
+  });
+}
+
+const schemaAvvio = z.object({
+  progettoId: z.string().uuid(),
+  fileVersionOrigineId: z.string().uuid(),
+  livelloServizio: z.enum(LIVELLI),
+  modalitaRevisione: z.enum(["controllato", "premium"]).default("controllato"),
+});
+
+/**
+ * Crea il Job e lo mette in coda.
+ *
+ * Le due cose stanno insieme di proposito: un Job creato e mai accodato resta
+ * `queued` per sempre, e dall'interfaccia sembra avviato. Se la coda non è
+ * configurata lo si dice, invece di lasciare una riga ferma che nessuno
+ * saprebbe interpretare.
+ */
+export async function avviaLavorazione(
+  dati: z.input<typeof schemaAvvio>,
+): Promise<EsitoAzione> {
+  const analisi = schemaAvvio.safeParse(dati);
+  if (!analisi.success) return { ok: false, messaggio: "Scegli il file e il livello di intervento." };
+
+  return esegui(`/admin/progetti/${analisi.data.progettoId}`, async () => {
+    const attore = await esigiAttore();
+    const job = await creaJob(attore, {
+      progettoId: analisi.data.progettoId,
+      fileVersionOrigineId: analisi.data.fileVersionOrigineId,
+      livelloServizio: analisi.data.livelloServizio,
+      modalitaRevisione: analisi.data.modalitaRevisione,
+    });
+    const accodato = await accodaElaborazione({
+      jobId: job.id,
+      organizationId: attore.organizationId,
+    });
+    if (!accodato) {
+      throw new Error(
+        "Lavorazione creata ma non avviata: la coda non è configurata " +
+          "(INNGEST_EVENT_KEY). Il lavoro resta in attesa e partirà appena la coda è attiva.",
+      );
+    }
   });
 }

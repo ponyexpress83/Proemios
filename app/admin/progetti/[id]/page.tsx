@@ -8,9 +8,13 @@ import { Progresso } from "@/components/ui/progresso";
 import { StatoVuoto } from "@/components/ui/stati";
 import { Schede } from "@/components/ui/tab";
 import { PannelloMessaggi } from "@/components/progetti/messaggi";
+import { PannelloProduzione } from "@/components/progetti/produzione";
 import { staffPerPagina } from "@/lib/auth/sessione";
 import { leggiProgetto } from "@/lib/dati/progetti";
 import { elencaMessaggi, elencaChiarimenti } from "@/lib/dati/comunicazioni";
+import { elencaFile } from "@/lib/dati/file";
+import { elencaJob } from "@/lib/dati/job";
+import { riferimentiStaff } from "@/lib/dati/utenti";
 import { haPermesso } from "@/lib/auth/attore";
 import { haIdentita } from "@/lib/dto/cliente";
 import { NonTrovato } from "@/lib/auth/errori";
@@ -43,6 +47,34 @@ export default async function DettaglioProgetto({
     elencaMessaggi(attore, id),
     elencaChiarimenti(attore, id),
   ]);
+
+  /*
+   * Squadra e lavorazioni: si caricano solo per chi può farci qualcosa. Un
+   * redattore apre questa pagina per leggere le istruzioni, non per assegnare
+   * lavoro a sé stesso, e ogni query in più su una pagina già pesante è tempo
+   * regalato.
+   */
+  const puoGestireSquadra = haPermesso(attore, "progetto.assegna_membri");
+  // Creare una lavorazione richiede lo stesso permesso di assegnarla: entrambe
+  // danno accesso al manoscritto (vedi `creaJob` in lib/dati/job.ts).
+  const puoAvviare = haPermesso(attore, "job.assegna");
+  const puoAssegnare = haPermesso(attore, "job.assegna");
+  const gestisceProduzione = puoGestireSquadra || puoAvviare || puoAssegnare;
+
+  const [file, lavorazioni, staff] = gestisceProduzione
+    ? await Promise.all([
+        elencaFile(attore, id),
+        elencaJob(attore, { progettoId: id, perPagina: 50 }),
+        puoGestireSquadra ? riferimentiStaff(attore) : Promise.resolve([]),
+      ])
+    : [[], { voci: [], totale: 0 }, []];
+
+  // Per avviare una lavorazione serve la versione caricata dal cliente o
+  // dallo studio, non un deliverable già prodotto.
+  const versioniOrigine = file
+    .flatMap((f) => f.versioni)
+    .filter((v) => v.ruolo === "originale" || v.ruolo === "lavorazione")
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 
   /*
    * Niente cast: `leggiProgetto` restituisce un DTO di forma diversa a seconda
@@ -218,7 +250,31 @@ export default async function DettaglioProgetto({
             </SchedaCorpo>
           </Scheda>
 
-          {dettaglio.membri.length > 0 ? (
+          {gestisceProduzione ? (
+            <PannelloProduzione
+              progettoId={id}
+              membri={dettaglio.membri}
+              staff={staff.map((s) => ({ id: s.id, nome: s.nome, ruolo: s.ruolo }))}
+              versioni={versioniOrigine.map((v) => ({
+                id: v.id,
+                nomeFile: v.nomeFile,
+                createdAt: v.createdAt,
+              }))}
+              lavorazioni={lavorazioni.voci.map((j) => ({
+                id: j.id,
+                codice: j.codice,
+                stato: j.stato,
+                livelloServizio: j.livelloServizio,
+                assegnatoAId: j.assegnatoAId,
+                conteggioInterventi: j.conteggioInterventi,
+                conteggioDaVerificare: j.conteggioDaVerificare,
+                scadenzaAt: j.scadenzaAt,
+              }))}
+              puoGestireSquadra={puoGestireSquadra}
+              puoAvviare={puoAvviare}
+              puoAssegnare={puoAssegnare}
+            />
+          ) : dettaglio.membri.length > 0 ? (
             <Scheda>
               <SchedaTestata titolo="Chi ci lavora" />
               <SchedaCorpo>
