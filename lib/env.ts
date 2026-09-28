@@ -129,3 +129,80 @@ export const publicEnv = clientSchema.parse({
   NEXT_PUBLIC_ANALYTICS_DOMAIN: process.env.NEXT_PUBLIC_ANALYTICS_DOMAIN,
   NEXT_PUBLIC_WHATSAPP_NUMERO: process.env.NEXT_PUBLIC_WHATSAPP_NUMERO,
 });
+
+/**
+ * L'ambiente è il sito vero, quello che tratta dati e pagamenti reali?
+ *
+ * `NODE_ENV=production` non basta: lo usano anche le preview di Vercel, la CI
+ * e ogni `next start` locale. Nemmeno `DEMO_MODE=off` basta, ed è un errore
+ * facile da fare: i test end-to-end girano **apposta** con la demo spenta,
+ * perché devono esercitare i percorsi reali — CSP, redirect delle aree
+ * riservate, limite di frequenza — e non quelli simulati. Confondere le due
+ * cose rende `DEMO_MODE=off` inutilizzabile fuori dalla produzione.
+ *
+ * Serve quindi una dichiarazione esplicita:
+ *
+ *  - su Vercel la dà la piattaforma con `VERCEL_ENV`, che vale "production"
+ *    solo per il deploy di produzione e "preview" per tutti gli altri;
+ *  - fuori da Vercel la deve dare chi avvia il processo, con `PROEMIOS_LIVE=on`.
+ *
+ * Il verso è deliberato: chi non dichiara nulla non è il sito vero. Un
+ * ambiente di prova mal etichettato resta fuori dal cancello e al massimo
+ * funziona a metà; dimenticare la dichiarazione in produzione, invece, si
+ * nota subito perché non parte niente.
+ */
+export function ambienteLive(): boolean {
+  if (process.env.NODE_ENV !== "production") return false;
+  if (env.DEMO_MODE !== "off") return false;
+  if (process.env.VERCEL_ENV) return process.env.VERCEL_ENV === "production";
+  return process.env.PROEMIOS_LIVE === "on";
+}
+
+/**
+ * Cancello fail-closed per la produzione reale: senza tutto ciò che serve a
+ * lavorare davvero, Proemios non parte invece di partire a metà.
+ */
+function verificaConfigurazioneProduzione(): void {
+  if (!ambienteLive()) return;
+
+  const obbligatorie = [
+    "DATABASE_URL",
+    "AUTH_SECRET",
+    "AUTH_URL",
+    "RESEND_API_KEY",
+    "AUTH_EMAIL_FROM",
+    "EMAIL_FROM",
+    "EMAIL_INTERNAL",
+    "S3_BUCKET",
+    "S3_REGION",
+    "S3_ACCESS_KEY_ID",
+    "S3_SECRET_ACCESS_KEY",
+    "STRIPE_SECRET_KEY",
+    "STRIPE_WEBHOOK_SECRET",
+    "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY",
+    "INNGEST_EVENT_KEY",
+    "INNGEST_SIGNING_KEY",
+    "NEXT_PUBLIC_SITE_URL",
+  ] as const;
+
+  const mancanti: string[] = obbligatorie.filter((nome) => !process.env[nome]?.trim());
+  if (process.env.STORAGE_DRIVER !== "s3") mancanti.push("STORAGE_DRIVER=s3");
+  if (!process.env.OPENAI_API_KEY?.trim() && !process.env.ANTHROPIC_API_KEY?.trim()) {
+    mancanti.push("OPENAI_API_KEY oppure ANTHROPIC_API_KEY");
+  }
+
+  if (mancanti.length > 0) {
+    throw new Error(
+      `Configurazione produzione incompleta: ${mancanti.join(", ")}. ` +
+        "Non si avvia Proemios con DEMO_MODE=off finché il cancello pre-live non è completo.",
+    );
+  }
+
+  if (publicEnv.NEXT_PUBLIC_SITE_URL !== "https://proemios.it") {
+    throw new Error(
+      "NEXT_PUBLIC_SITE_URL deve essere https://proemios.it nell'ambiente di produzione reale.",
+    );
+  }
+}
+
+verificaConfigurazioneProduzione();

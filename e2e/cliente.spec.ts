@@ -78,4 +78,35 @@ test.describe("accesso", () => {
     await page.goto("/area/pagamenti");
     expect(page.url()).toContain("da=%2Farea%2Fpagamenti");
   });
+
+  /*
+   * Queste due prove esistono per un motivo preciso: la pagina `/accedi` era
+   * già stata scritta e funzionante, ma nessuna pagina pubblica la
+   * collegava — il prodotto aveva un'area riservata a cui nessuno poteva
+   * arrivare cliccando. Una rotta che risponde non è una funzione
+   * utilizzabile finché non c'è un modo visibile di raggiungerla.
+   */
+  test("dalla home un visitatore trova l'accesso senza conoscere l'indirizzo", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto("/");
+    const accedi = page.locator('a[href="/accedi"]:visible');
+    await expect(accedi.first()).toBeVisible();
+    await accedi.first().click();
+    await page.waitForURL("**/accedi");
+  });
+
+  test("anche da telefono l'accesso è raggiungibile dal menu", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/");
+    // A menu chiuso non deve occupare spazio, ma il menu deve poterlo dare.
+    const bottoneMenu = page.locator("header button:visible").first();
+    await expect(bottoneMenu).toBeVisible();
+    // Il bottone deve avere un nome accessibile: uno screen reader non vede l'icona.
+    await expect(bottoneMenu).toHaveAttribute("aria-label", /.+/);
+    await bottoneMenu.click();
+    const accedi = page.locator('a[href="/accedi"]:visible');
+    await expect(accedi.first()).toBeVisible();
+    await accedi.first().click();
+    await page.waitForURL("**/accedi");
+  });
 });

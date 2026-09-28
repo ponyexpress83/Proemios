@@ -148,6 +148,95 @@ def ricco(percorso: Path) -> None:
     immagine.unlink(missing_ok=True)
 
 
+W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+R = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+CT = "http://schemas.openxmlformats.org/package/2006/content-types"
+
+
+def _nota_xml(tag: str, testo: str) -> bytes:
+    """Parte footnotes.xml/endnotes.xml con le due voci di servizio + la nostra.
+
+    Gli id -1 e 0 sono il separatore e il separatore di continuazione: Word li
+    pretende, e un file che ne è privo si apre con l'avviso di riparazione.
+    """
+    plurale = f"{tag}s"
+    return (
+        f'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+        f'<w:{plurale} xmlns:w="{W}">'
+        f'<w:{tag} w:type="separator" w:id="-1"><w:p><w:r><w:separator/></w:r></w:p></w:{tag}>'
+        f'<w:{tag} w:type="continuationSeparator" w:id="0">'
+        f'<w:p><w:r><w:continuationSeparator/></w:r></w:p></w:{tag}>'
+        f'<w:{tag} w:id="1"><w:p><w:pPr><w:pStyle w:val="{tag.capitalize()}Text"/></w:pPr>'
+        f'<w:r><w:rPr><w:rStyle w:val="{tag.capitalize()}Reference"/></w:rPr><w:{tag}Ref/></w:r>'
+        f'<w:r><w:t xml:space="preserve"> {testo}</w:t></w:r></w:p></w:{tag}>'
+        f'</w:{plurale}>'
+    ).encode("utf-8")
+
+
+def aggiungi_note(percorso: Path) -> None:
+    """Inietta una nota a piè di pagina e una nota finale nel .docx.
+
+    python-docx non le espone, e il capitolato le elenca fra le strutture da
+    preservare: senza, il corpus non dimostrerebbe nulla su quel fronte.
+    Si lavora sul pacchetto già scritto — aggiungere le parti, dichiararle nei
+    content types, collegarle al documento e piazzare i riferimenti nel corpo.
+    """
+    import re
+    import shutil
+    import zipfile
+
+    originale = percorso.with_suffix(".docx.tmp")
+    shutil.move(percorso, originale)
+
+    with zipfile.ZipFile(originale) as z:
+        voci = {n: z.read(n) for n in z.namelist()}
+
+    voci["word/footnotes.xml"] = _nota_xml("footnote", "Nota a piè di pagina di prova.")
+    voci["word/endnotes.xml"] = _nota_xml("endnote", "Nota finale di prova.")
+
+    # Content types
+    tipi = voci["[Content_Types].xml"].decode("utf-8")
+    for nome in ("footnotes", "endnotes"):
+        if f"/word/{nome}.xml" not in tipi:
+            tipi = tipi.replace(
+                "</Types>",
+                f'<Override PartName="/word/{nome}.xml" ContentType="application/vnd.'
+                f'openxmlformats-officedocument.wordprocessingml.{nome}+xml"/></Types>',
+            )
+    voci["[Content_Types].xml"] = tipi.encode("utf-8")
+
+    # Relazioni del documento, con id che non collidono con quelli esistenti
+    rels = voci["word/_rels/document.xml.rels"].decode("utf-8")
+    usati = {int(m) for m in re.findall(r'Id="rId(\d+)"', rels)}
+    prossimo = max(usati, default=0) + 1
+    for nome in ("footnotes", "endnotes"):
+        rels = rels.replace(
+            "</Relationships>",
+            f'<Relationship Id="rId{prossimo}" Type="{R}/{nome}" Target="{nome}.xml"/>'
+            "</Relationships>",
+        )
+        prossimo += 1
+    voci["word/_rels/document.xml.rels"] = rels.encode("utf-8")
+
+    # Riferimenti nel corpo: senza questi le parti esisterebbero inutilizzate
+    corpo = voci["word/document.xml"].decode("utf-8")
+    riferimenti = (
+        f'<w:p><w:r><w:t xml:space="preserve">Frase con una nota a piè di pagina</w:t></w:r>'
+        f'<w:r><w:rPr><w:rStyle w:val="FootnoteReference"/></w:rPr><w:footnoteReference w:id="1"/></w:r>'
+        f'<w:r><w:t xml:space="preserve"> e una nota finale</w:t></w:r>'
+        f'<w:r><w:rPr><w:rStyle w:val="EndnoteReference"/></w:rPr><w:endnoteReference w:id="1"/></w:r>'
+        f'<w:r><w:t>.</w:t></w:r></w:p>'
+    )
+    corpo = corpo.replace("<w:sectPr", riferimenti + "<w:sectPr", 1)
+    voci["word/document.xml"] = corpo.encode("utf-8")
+
+    with zipfile.ZipFile(percorso, "w", zipfile.ZIP_DEFLATED) as z:
+        for nome, dati in voci.items():
+            z.writestr(nome, dati)
+
+    originale.unlink()
+
+
 def lungo(percorso: Path, parole_obiettivo: int = 82_000) -> None:
     """Un manoscritto della lunghezza di un romanzo vero."""
     d = Document()
@@ -178,6 +267,7 @@ semplice(DESTINAZIONE / "semplice.docx")
 print("semplice.docx")
 
 ricco(DESTINAZIONE / "ricco.docx")
+aggiungi_note(DESTINAZIONE / "ricco.docx")
 print("ricco.docx")
 
 parole = lungo(DESTINAZIONE / "lungo.docx")

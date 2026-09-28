@@ -99,7 +99,10 @@ describe("redirect() non va chiamato dentro un try", () => {
         if (nodo.catchClause) ts.forEachChild(nodo.catchClause, (f) => cerca(f, dentroTry));
         return;
       }
-      if (eRedirect(nodo)) (dentroTry ? dentro++ : fuori++);
+      if (eRedirect(nodo)) {
+        if (dentroTry) dentro += 1;
+        else fuori += 1;
+      }
       ts.forEachChild(nodo, (f) => cerca(f, dentroTry));
     })(finto, false);
 

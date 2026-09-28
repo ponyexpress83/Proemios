@@ -17,7 +17,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
       - run: npm ci
       - run: npm run typecheck
@@ -52,7 +52,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
       - run: npm ci
       - run: npm run test:integrazione
@@ -85,7 +85,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
       - run: npm ci
       - run: npx playwright install --with-deps chromium
@@ -110,7 +110,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
       - run: npm ci
       - run: npx playwright install --with-deps chromium
@@ -138,3 +138,19 @@ jobs:
           BASE="http://localhost:$PORTA" node scripts/accessibilita.mjs
         env:
           DEMO_MODE: on
+
+  # Soglia sulle dipendenze: nessuna vulnerabilità critical o high può entrare.
+  # Le moderate accettate, con la motivazione tecnica di ciascuna, stanno in
+  # docs/DIPENDENZE.md — se ne compare una nuova va analizzata e aggiunta lì,
+  # non silenziata alzando la soglia.
+  sicurezza:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm audit --audit-level=high

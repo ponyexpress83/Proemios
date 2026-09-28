@@ -151,6 +151,32 @@ describe("revisioni tracciate — struttura", () => {
     }
   });
 
+  /*
+   * Le note erano il buco del corpus: il capitolato le elenca fra le strutture
+   * da preservare, ma i documenti di prova non ne contenevano nessuna, quindi
+   * su quel fronte i test non dimostravano niente. Ora `ricco.docx` ha una
+   * nota a piè di pagina e una nota finale, e questo le difende.
+   */
+  it("conserva note a piè di pagina e note finali, contenuto compreso", async () => {
+    const intervento = await interventoSu(ricco, "acuqa", "acqua");
+    const esito = await generaDocumentoRevisionato(ricco, [intervento], { autore: "R" });
+
+    const originale = await PacchettoDocx.apri(ricco);
+    const revisionato = await PacchettoDocx.apri(esito.contenuto);
+
+    for (const parte of ["word/footnotes.xml", "word/endnotes.xml"]) {
+      expect(originale.ha(parte), `il corpus deve contenere ${parte}`).toBe(true);
+      expect(revisionato.ha(parte), parte).toBe(true);
+      expect(await revisionato.leggiTesto(parte), parte).toBe(await originale.leggiTesto(parte));
+    }
+
+    // Le parti non bastano: servono i riferimenti nel corpo, altrimenti le note
+    // resterebbero nel pacchetto senza comparire nel documento.
+    const corpo = await revisionato.leggiTesto(PARTE_DOCUMENTO);
+    expect(corpo).toContain("w:footnoteReference");
+    expect(corpo).toContain("w:endnoteReference");
+  });
+
   it("non tocca gli stili, la numerazione e le impostazioni", async () => {
     const intervento = await interventoSu(ricco, "acuqa", "acqua");
     const esito = await generaDocumentoRevisionato(ricco, [intervento], { autore: "R" });

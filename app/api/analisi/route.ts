@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { leads, manuscriptAnalyses } from "@/db/schema";
+import { eq } from "drizzle-orm";
+import { leads, manuscriptAnalyses, providerPolicies } from "@/db/schema";
 import { gateAnalisiSchema, primoErrore } from "@/lib/validation";
 import { estraiTesto, estensioneDi, MAX_BYTES, EstrazioneError } from "@/lib/extract";
+import { validaFile } from "@/lib/file/validazione";
 import { calcolaMetriche } from "@/lib/metrics";
 import { analizza, aiConfigurata, AiError, type ReportCompleto } from "@/lib/ai";
 import { costBandForAnalysis } from "@/lib/pricing";
@@ -35,6 +37,36 @@ export async function POST(req: Request) {
       { errore: "L'analisi non è attiva in questo momento. Scrivici e la facciamo a mano." },
       { status: 503 },
     );
+  }
+
+  // Anche il lead magnet pubblico deve rispettare lo stesso cancello privacy
+  // del motore editoriale. Un'API key configurata non equivale a un provider
+  // approvato per manoscritti inediti/sensibili.
+  if (!demo) {
+    const [policy] = await db
+      .select({
+        addestramentoConsentito: providerPolicies.addestramentoConsentito,
+        dpaDisponibile: providerPolicies.dpaDisponibile,
+        approvatoManoscrittiInediti: providerPolicies.approvatoManoscrittiInediti,
+        approvatoProgettiSensibili: providerPolicies.approvatoProgettiSensibili,
+      })
+      .from(providerPolicies)
+      .where(eq(providerPolicies.provider, "anthropic"))
+      .limit(1);
+
+    const approvata =
+      policy &&
+      !policy.addestramentoConsentito &&
+      policy.dpaDisponibile &&
+      policy.approvatoManoscrittiInediti &&
+      policy.approvatoProgettiSensibili;
+
+    if (!approvata) {
+      return NextResponse.json(
+        { errore: "L'analisi non è attiva in questo momento. Scrivici e la facciamo a mano." },
+        { status: 503 },
+      );
+    }
   }
 
   let form: FormData;
@@ -72,13 +104,30 @@ export async function POST(req: Request) {
     );
   }
 
+  const contenuto = Buffer.from(await file.arrayBuffer());
+  const mimeAtteso =
+    ext === ".docx"
+      ? "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+      : ext === ".pdf"
+        ? "application/pdf"
+        : "text/plain";
+  const validazione = validaFile({
+    nomeFile: file.name,
+    mimeDichiarato: mimeAtteso,
+    dimensioneByte: contenuto.byteLength,
+    primiByte: contenuto.subarray(0, 16),
+  });
+  if (!validazione.ok) {
+    return NextResponse.json({ errore: validazione.motivo }, { status: 415 });
+  }
+
   // ── Estrazione ────────────────────────────────────────────────────────
   let testo: string;
   try {
-    testo = await estraiTesto(Buffer.from(await file.arrayBuffer()), ext);
+    testo = await estraiTesto(contenuto, ext);
   } catch (err) {
     const motivo = err instanceof EstrazioneError ? err.motivo : "illeggibile";
-    console.error(JSON.stringify({ evt: "analisi.estrazione", motivo, file: file.name }));
+    console.error(JSON.stringify({ evt: "analisi.estrazione", motivo }));
     return NextResponse.json({ errore: ANALISI.erroreEstrazione }, { status: 422 });
   }
 

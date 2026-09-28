@@ -101,9 +101,9 @@ export function Testata() {
         </nav>
 
         <div className="hidden items-center gap-2 lg:flex">
-          {/* L'accesso all'area riservata compare quando l'autenticazione è
-              attiva (Fase 2): un link a una pagina che non esiste vale meno
-              di nessun link. */}
+          <BottoneLink href="/accedi" variante="secondario" misura="piccola">
+            Accedi
+          </BottoneLink>
           <BottoneLink href="/preventivo" variante="identita" misura="piccola">
             Preventivo
           </BottoneLink>
@@ -268,6 +268,9 @@ function MenuMobile() {
         </div>
 
         <div className="flex flex-col gap-3">
+          <BottoneLink href="/accedi" variante="secondario" misura="grande">
+            Accedi all&rsquo;area riservata
+          </BottoneLink>
           <BottoneLink href="/preventivo" variante="identita" misura="grande">
             Fai un preventivo
           </BottoneLink>

@@ -16,6 +16,37 @@ si fa davvero.
 | `AUTH_SECRET`   | I cookie di sessione non sono verificabili; in sviluppo Auth.js ne genera una effimera che invalida tutto a ogni riavvio |
 | `DEMO_MODE=off` | Rischio di servire dati d'esempio in produzione                                                                          |
 
+### Come Proemios capisce di essere il sito vero
+
+Il cancello fail-closed in `lib/env.ts` rifiuta di avviare l'applicazione se
+manca qualcosa di essenziale. Per farlo deve sapere se sta guardando la
+produzione reale, e `NODE_ENV=production` **non lo dice**: lo usano anche le
+preview di Vercel, la CI e ogni `next start` locale.
+
+Nemmeno `DEMO_MODE=off` lo dice, ed è la confusione che costa di più: i test
+end-to-end girano apposta con la demo spenta, perché devono esercitare i
+percorsi reali — CSP, redirect delle aree riservate, limite di frequenza — e
+non quelli simulati. Se il cancello scattasse su `DEMO_MODE=off`, quella
+modalità diventerebbe inutilizzabile fuori dalla produzione e la suite E2E non
+partirebbe più.
+
+Serve quindi una dichiarazione esplicita:
+
+| Ambiente | Come si dichiara | Cancello |
+| --- | --- | --- |
+| Produzione su Vercel | `VERCEL_ENV=production` (dato dalla piattaforma) | attivo |
+| Preview su Vercel | `VERCEL_ENV=preview` (dato dalla piattaforma) | spento |
+| Produzione fuori da Vercel | `PROEMIOS_LIVE=on` | attivo |
+| CI, E2E, prove locali | nessuna dichiarazione | spento |
+
+Su Vercel la piattaforma ha l'ultima parola: `PROEMIOS_LIVE` non può spegnere
+il cancello su un deploy di produzione.
+
+Il verso è deliberato. Chi non dichiara nulla non è il sito vero: un ambiente
+di prova mal etichettato resta fuori dal cancello e al massimo funziona a
+metà, mentre dimenticare la dichiarazione in produzione si nota subito, perché
+non parte niente.
+
 ## Degradano in modo dichiarato
 
 Queste possono mancare: il prodotto continua a funzionare e **dice** che quella
