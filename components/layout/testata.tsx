@@ -268,6 +268,9 @@ function MenuMobile() {
         </div>
 
         <div className="flex flex-col gap-3">
+          <BottoneLink href="/accedi" variante="secondario" misura="grande">
+            Accedi all'area riservata
+          </BottoneLink>
           <BottoneLink href="/preventivo" variante="identita" misura="grande">
             Fai un preventivo
           </BottoneLink>
