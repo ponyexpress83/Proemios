@@ -31,6 +31,10 @@ export const REGOLE: Record<string, Regola> = {
   "accesso": { massimo: 8, finestraSecondi: 900 },
   // Il checkout apre una sessione di pagamento: poche, e mai a raffica.
   "checkout": { massimo: 10, finestraSecondi: 600 },
+  // Il caricamento è di chi ha già un accesso, quindi la soglia è larga: serve
+  // a contenere uno script impazzito o un ciclo di ritentativi, non le persone.
+  // Ogni file occupa storage e passa dalla validazione binaria.
+  "caricamento": { massimo: 60, finestraSecondi: 600 },
 };
 
 export type StatoFinestra = {

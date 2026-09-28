@@ -20,7 +20,7 @@ export const dynamic = "force-dynamic";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-export async function GET(_richiesta: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(richiesta: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   if (!UUID.test(id)) return new NextResponse("Non trovato.", { status: 404 });
 
@@ -29,9 +29,25 @@ export async function GET(_richiesta: Request, { params }: { params: Promise<{ i
 
   try {
     const { url } = await urlDownload(attore, id);
+    /*
+     * Lo storage su filesystem firma un indirizzo **relativo**
+     * (`/api/file/<chiave>?firma=…`), servito da `app/api/file/[...chiave]`;
+     * S3 ne restituisce uno assoluto. `NextResponse.redirect` accetta solo
+     * URL assoluti, quindi con il driver filesystem ogni scarico rispondeva
+     * 500 — e non si vedeva, perché i test del livello dati chiamano
+     * `urlDownload` senza passare di qui.
+     *
+     * Si risolve sull'origine della richiesta invece di pretendere che il
+     * provider conosca il dominio: la chiave è la stessa, cambia solo chi la
+     * serve.
+     */
+    const assoluto = new URL(url, richiesta.url).toString();
     // 302 e non 307: il link è a uso singolo e scade in cinque minuti, non va
     // ripetuto né messo in cache da nessuno.
-    return NextResponse.redirect(url, { status: 302, headers: { "cache-control": "no-store" } });
+    return NextResponse.redirect(assoluto, {
+      status: 302,
+      headers: { "cache-control": "no-store" },
+    });
   } catch (errore) {
     if (isErroreAutorizzazione(errore)) return new NextResponse("Non trovato.", { status: 404 });
     throw errore;

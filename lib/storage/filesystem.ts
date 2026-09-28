@@ -21,6 +21,7 @@ import {
   type StorageProvider,
 } from "./tipi";
 import { chiaveValida } from "./chiavi";
+import { ambienteLive } from "@/lib/env";
 
 export class StorageFilesystem implements StorageProvider {
   readonly nome = "filesystem";
@@ -28,7 +29,9 @@ export class StorageFilesystem implements StorageProvider {
   private readonly segreto: string;
 
   constructor(opzioni: { radice: string; segreto: string }) {
-    if (process.env.NODE_ENV === "production" && process.env.STORAGE_DRIVER !== "filesystem") {
+    // Stessa regola di lib/storage/index.ts: il divieto vale sul sito vero,
+    // non su ogni processo che gira con NODE_ENV=production.
+    if (ambienteLive() && process.env.STORAGE_DRIVER !== "filesystem") {
       throw new Error(
         "Lo storage su filesystem non è utilizzabile in produzione: configura STORAGE_DRIVER=s3.",
       );

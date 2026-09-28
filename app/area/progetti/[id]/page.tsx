@@ -9,9 +9,12 @@ import { StatoVuoto } from "@/components/ui/stati";
 import { Schede } from "@/components/ui/tab";
 import { PannelloMessaggi } from "@/components/progetti/messaggi";
 import { RispostaChiarimento } from "@/components/progetti/chiarimento";
+import { ElencoFile } from "@/components/progetti/elenco-file";
+import { CaricaFile } from "@/components/progetti/carica-file";
 import { attorePerPagina } from "@/lib/auth/sessione";
 import { leggiProgetto } from "@/lib/dati/progetti";
 import { elencaChiarimenti, elencaMessaggi } from "@/lib/dati/comunicazioni";
+import { elencaFile } from "@/lib/dati/file";
 import { NonTrovato } from "@/lib/auth/errori";
 import { dataEstesa } from "@/lib/format";
 import { STATO_PROGETTO, STATO_TAPPA } from "@/config/back-office";
@@ -32,9 +35,10 @@ export default async function ProgettoCliente({ params }: { params: Promise<{ id
     throw errore;
   }
 
-  const [messaggi, chiarimenti] = await Promise.all([
+  const [messaggi, chiarimenti, file] = await Promise.all([
     elencaMessaggi(attore, id),
     elencaChiarimenti(attore, id),
+    elencaFile(attore, id),
   ]);
 
   const progetto = dettaglio.progetto;
@@ -158,6 +162,24 @@ export default async function ProgettoCliente({ params }: { params: Promise<{ id
               <Dato etichetta="Aperto il">{apertoIl ? dataEstesa(apertoIl) : "—"}</Dato>
             </SchedaCorpo>
           </Scheda>
+
+          {/*
+            Il cliente vede il proprio originale e ciò che gli è stato
+            consegnato: le versioni di lavorazione interne non arrivano
+            nemmeno qui, perché `elencaFile` non gliele restituisce.
+          */}
+          <ElencoFile
+            file={file}
+            titolo="I tuoi file"
+            sotto="Il manoscritto che hai caricato e le consegne."
+            azione={
+              <CaricaFile
+                progettoId={id}
+                etichetta="Carica il manoscritto"
+                descrizione="DOCX, PDF o TXT."
+              />
+            }
+          />
         </aside>
       </div>
     </Gabbia>

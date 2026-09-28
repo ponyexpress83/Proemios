@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -127,5 +127,99 @@ describe("storage — URL firmati", () => {
     const scaduto = Math.floor(Date.now() / 1000) - 10;
     const firma = deposito.firma(CHIAVE, scaduto);
     expect(deposito.verificaFirma(CHIAVE, scaduto, firma)).toBe(false);
+  });
+});
+
+describe("il divieto del filesystem vale sul sito vero, non su ogni processo", () => {
+  /**
+   * Il filesystem di Vercel è effimero e non è un posto dove tenere
+   * manoscritti: in produzione serve S3. Ma `next start`, le preview e la CI
+   * girano tutti con NODE_ENV=production, e legare il divieto a quella
+   * variabile rendeva impossibile caricare un file ovunque tranne che in
+   * `next dev` — cioè impossibile provare il prodotto prima di avere un
+   * bucket. La discriminante è `ambienteLive()`.
+   */
+  const ambiente = { ...process.env };
+
+  /** Configurazione completa: senza, il cancello di lib/env.ts scatta prima. */
+  const LIVE: Record<string, string> = {
+    NODE_ENV: "production",
+    DEMO_MODE: "off",
+    PROEMIOS_LIVE: "on",
+    DATABASE_URL: "postgres://u:p@host/db",
+    AUTH_SECRET: "chiave-di-test-lunga-almeno-trentadue-caratteri",
+    AUTH_URL: "https://proemios.it",
+    RESEND_API_KEY: "re_test",
+    AUTH_EMAIL_FROM: "Proemios <noreply@proemios.it>",
+    EMAIL_FROM: "Proemios <noreply@proemios.it>",
+    EMAIL_INTERNAL: "preventivi@proemios.it",
+    S3_BUCKET: "proemios",
+    S3_REGION: "eu-central-1",
+    S3_ACCESS_KEY_ID: "chiave",
+    S3_SECRET_ACCESS_KEY: "segreto",
+    STORAGE_DRIVER: "s3",
+    STRIPE_SECRET_KEY: "sk_test",
+    STRIPE_WEBHOOK_SECRET: "whsec_test",
+    NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: "pk_test",
+    INNGEST_EVENT_KEY: "evento",
+    INNGEST_SIGNING_KEY: "firma",
+    NEXT_PUBLIC_SITE_URL: "https://proemios.it",
+    ANTHROPIC_API_KEY: "sk-ant-test",
+  };
+
+  afterEach(() => {
+    for (const k of Object.keys(process.env)) delete process.env[k];
+    Object.assign(process.env, ambiente);
+  });
+
+  /**
+   * `ambienteLive()` legge `DEMO_MODE` dall'env analizzato all'import di
+   * `lib/env.ts`: cambiare `process.env` dopo non basta, il modulo va
+   * ricaricato con l'ambiente già pronto.
+   */
+  async function ricarica(valori: Record<string, string | undefined>) {
+    for (const k of Object.keys(process.env)) {
+      if (k in LIVE || k === "VERCEL_ENV") delete process.env[k];
+    }
+    for (const [k, v] of Object.entries(valori)) {
+      if (v === undefined) delete process.env[k];
+      else process.env[k] = v;
+    }
+    vi.resetModules();
+    return import("@/lib/storage/filesystem");
+  }
+
+  it("una preview può usare il filesystem, pur avendo NODE_ENV=production", async () => {
+    const { StorageFilesystem: FS } = await ricarica({
+      NODE_ENV: "production",
+      DEMO_MODE: "off",
+      VERCEL_ENV: "preview",
+    });
+    expect(() => new FS({ radice: "/tmp/x", segreto: "s" })).not.toThrow();
+  });
+
+  it("anche un `next start` locale può, se non si dichiara live", async () => {
+    const { StorageFilesystem: FS } = await ricarica({
+      NODE_ENV: "production",
+      DEMO_MODE: "off",
+    });
+    expect(() => new FS({ radice: "/tmp/x", segreto: "s" })).not.toThrow();
+  });
+
+  it("il sito vero rifiuta il filesystem", async () => {
+    const { StorageFilesystem: FS } = await ricarica({ ...LIVE });
+    expect(() => new FS({ radice: "/tmp/x", segreto: "s" })).toThrow(
+      /non è utilizzabile in produzione/,
+    );
+  });
+
+  it("sul sito vero non si può scegliere il filesystem nemmeno dichiarandolo", async () => {
+    // Difesa in profondità: `StorageFilesystem` ha una via d'uscita per
+    // STORAGE_DRIVER=filesystem, ma in produzione non è raggiungibile — il
+    // cancello di lib/env.ts pretende s3 e non fa nemmeno partire il
+    // processo. Le due barriere sono indipendenti apposta.
+    await expect(ricarica({ ...LIVE, STORAGE_DRIVER: "filesystem" })).rejects.toThrow(
+      /STORAGE_DRIVER=s3/,
+    );
   });
 });

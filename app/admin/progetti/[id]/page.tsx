@@ -9,6 +9,8 @@ import { StatoVuoto } from "@/components/ui/stati";
 import { Schede } from "@/components/ui/tab";
 import { PannelloMessaggi } from "@/components/progetti/messaggi";
 import { PannelloProduzione } from "@/components/progetti/produzione";
+import { ElencoFile } from "@/components/progetti/elenco-file";
+import { CaricaFile } from "@/components/progetti/carica-file";
 import { staffPerPagina } from "@/lib/auth/sessione";
 import { leggiProgetto } from "@/lib/dati/progetti";
 import { elencaMessaggi, elencaChiarimenti } from "@/lib/dati/comunicazioni";
@@ -59,6 +61,7 @@ export default async function DettaglioProgetto({
   // danno accesso al manoscritto (vedi `creaJob` in lib/dati/job.ts).
   const puoAvviare = haPermesso(attore, "job.assegna");
   const puoAssegnare = haPermesso(attore, "job.assegna");
+  const puoCaricare = haPermesso(attore, "file.carica");
   const gestisceProduzione = puoGestireSquadra || puoAvviare || puoAssegnare;
 
   const [file, lavorazioni, staff] = gestisceProduzione
@@ -249,6 +252,23 @@ export default async function DettaglioProgetto({
               </Dato>
             </SchedaCorpo>
           </Scheda>
+
+          {gestisceProduzione ? (
+            <ElencoFile
+              file={file}
+              titolo="File del progetto"
+              sotto="L'originale non viene mai sovrascritto: ogni lavorazione crea una versione nuova."
+              azione={
+                puoCaricare ? (
+                  <CaricaFile
+                    progettoId={id}
+                    etichetta="Carica il manoscritto"
+                    descrizione="DOCX, PDF, TXT e allegati."
+                  />
+                ) : null
+              }
+            />
+          ) : null}
 
           {gestisceProduzione ? (
             <PannelloProduzione

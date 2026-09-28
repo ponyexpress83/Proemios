@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { StorageFilesystem } from "@/lib/storage/filesystem";
 import { nomeSicuro } from "@/lib/file/validazione";
+import { ambienteLive } from "@/lib/env";
 
 /**
  * Serve i file dello storage su filesystem, verificando la firma HMAC.
@@ -16,9 +17,19 @@ export async function GET(
   richiesta: NextRequest,
   { params }: { params: Promise<{ chiave: string[] }> },
 ) {
-  // Questa rotta esiste solo per sviluppo/test. In produzione i file
-  // riservati devono passare esclusivamente da URL firmati S3.
-  if (process.env.NODE_ENV === "production") {
+  /*
+   * Sul sito vero i file riservati passano solo da URL firmati S3, mai da
+   * qui. Il controllo è `ambienteLive()` e non `NODE_ENV`, per la terza volta
+   * e per lo stesso motivo: `next start`, le preview e la CI girano tutti con
+   * NODE_ENV=production, e legare il divieto a quella variabile rendeva ogni
+   * scarico impossibile fuori da `next dev` — cioè impossibile provare il
+   * prodotto prima di avere un bucket.
+   *
+   * Resta comunque il secondo controllo sul driver: in produzione il cancello
+   * di lib/env.ts impone s3, quindi anche volendo questa rotta non servirebbe
+   * nulla. Le due barriere sono indipendenti apposta.
+   */
+  if (ambienteLive()) {
     return new NextResponse("Non disponibile.", { status: 404 });
   }
 
