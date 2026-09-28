@@ -5,10 +5,16 @@ import { contattoSchema, primoErrore } from "@/lib/validation";
 import { inviaEmail, impaginaEmail, esc, destinatarioInterno } from "@/lib/email";
 import { BRAND } from "@/config/brand";
 import { demoAttiva, registraLead } from "@/lib/demo";
+import { proteggi } from "@/lib/sicurezza";
 
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
+  // Limite di frequenza: un form pubblico senza limite è un modo per
+  // riempire il database e la casella di posta di chiunque.
+  const limite = await proteggi("contatto", req);
+  if (limite) return limite;
+
   let corpo: unknown;
   try {
     corpo = await req.json();
@@ -74,7 +80,7 @@ export async function POST(req: Request) {
       `<p><strong>${esc(d.nome)}</strong><br/>
        ${esc(d.email)} · ${esc(d.telefono || "nessun telefono")}</p>
        <p>${esc(d.messaggio).replace(/\n/g, "<br/>")}</p>
-       <p style="font-size:13px;color:#6c6f67;">Marketing: ${d.consensoMarketing ? "sì" : "no"}</p>`,
+       <p style="font-size:13px;color:#5f5b72;">Marketing: ${d.consensoMarketing ? "sì" : "no"}</p>`,
     ),
   }).catch((e) => console.error(JSON.stringify({ evt: "contatto.email-interna", err: String(e) })));
 

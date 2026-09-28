@@ -29,7 +29,7 @@ export const CASE_STUDIES: CaseStudy[] = [
     sottotitolo:
       "Quaderni scritti a mano nell'arco di trent'anni, diventati un romanzo impaginato e in vendita.",
     cliente: "Progetto privato · memoir familiare",
-    servizio: "dal-diario-al-libro",
+    servizio: "da-materiali-a-libro",
     autorizzato: true,
     puntoDiPartenza:
       "Il cliente aveva i diari di una persona cara: decine di quaderni, scritti a mano, senza ordine cronologico affidabile e con molte pagine ripetute. Nessun testo digitale, nessuna struttura narrativa. L'idea era chiara, il libro no.",
@@ -54,7 +54,7 @@ export const CASE_STUDIES: CaseStudy[] = [
     sottotitolo:
       "Revisione, editing, impaginazione e pubblicazione su Amazon KDP con ISBN di proprietà dell'autore.",
     cliente: "Autore indipendente",
-    servizio: "revisione-e-pubblicazione",
+    servizio: "amazon-kdp",
     autorizzato: true,
     puntoDiPartenza:
       "Il testo era finito ma non era mai stato letto da un professionista. L'autore voleva pubblicare con un ISBN proprio, non quello gratuito di Amazon, e non sapeva come muoversi fra file, formati e requisiti della piattaforma.",
@@ -74,7 +74,7 @@ export const CASE_STUDIES: CaseStudy[] = [
     sottotitolo:
       "Materiali di corsi e appunti sparsi, riorganizzati in un libro di posizionamento.",
     cliente: "Consulente · esempio dimostrativo",
-    servizio: "libro-per-professionisti",
+    servizio: "ghostwriting",
     // Esempio illustrativo, non un lavoro concluso: da sostituire con un caso reale.
     autorizzato: false,
     puntoDiPartenza:

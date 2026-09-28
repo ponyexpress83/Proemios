@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Bottone } from "@/components/ui/bottone";
 import { Campo, Input, AreaTesto, Consenso } from "@/components/ui/campi";
-import { Filetto, cx } from "@/components/ui/primitivi";
+import { Filetto, cn } from "@/components/ui/primitivi";
 import { RisultatoPreventivo } from "./risultato";
 import {
   TIPI_PROGETTO,
@@ -158,11 +158,11 @@ export function Configuratore({
     return (
       <div>
         <div className="mb-10">
-          <p className="apparato text-ottone">Preventivo</p>
-          <h2 className="font-display text-carta mt-3 text-3xl font-medium">
+          <p className="etichetta text-lime">Preventivo</p>
+          <h2 className="text-testo mt-3 text-3xl font-medium">
             Tre modi di fare questo libro
           </h2>
-          <p className="prosa text-carta/70 mt-3 max-w-2xl">
+          <p className="prosa text-testo-attenuato mt-3 max-w-2xl">
             Te li abbiamo mandati anche via email. Se vuoi partire, l&rsquo;acconto blocca la data;
             se prima vuoi parlarne, rispondi a quella email.
           </p>
@@ -179,14 +179,14 @@ export function Configuratore({
         {/* Avanzamento */}
         <div className="mb-8">
           <div className="flex items-baseline justify-between">
-            <span className="apparato text-ottone">
+            <span className="etichetta text-lime">
               {UI.passo} {passo + 1} {UI.di} {TOTALE_PASSI}
             </span>
-            <span className="apparato text-carta/45">{PREVENTIVO.passi[passo]}</span>
+            <span className="etichetta text-testo-tenue">{PREVENTIVO.passi[passo]}</span>
           </div>
           <div className="bg-filetto-notte mt-3 h-px w-full">
             <div
-              className="bg-ottone h-px transition-all duration-300"
+              className="bg-lime h-px transition-all duration-300"
               style={{ width: `${((passo + 1) / TOTALE_PASSI) * 100}%` }}
             />
           </div>
@@ -230,12 +230,12 @@ export function Configuratore({
           {/* 3 — Dimensione */}
           {passo === 2 && (
             <div>
-              <p className="font-display text-carta text-xl">
+              <p className="text-testo text-xl">
                 {soloMateriali
                   ? "Quanto lungo pensi debba essere il libro finito?"
                   : "Quante parole ha il testo?"}
               </p>
-              <p className="glossa text-carta/50 mt-2">
+              <p className="editoriale text-testo-tenue mt-2">
                 {soloMateriali
                   ? "Una stima basta: la definiamo insieme guardando il materiale."
                   : "Il conteggio esatto lo trovi in fondo al documento Word."}
@@ -247,11 +247,11 @@ export function Configuratore({
                     key={p}
                     type="button"
                     onClick={() => agg("parole", p)}
-                    className={cx(
-                      "garbo cifre rounded-campo border px-4 py-2 text-sm",
+                    className={cn(
+                      "garbo cifre rounded-md border px-4 py-2 text-sm",
                       s.parole === p
-                        ? "border-ottone bg-ottone/15 text-carta"
-                        : "border-filetto-notte text-carta/70 hover:border-ottone",
+                        ? "border-lime bg-lime/15 text-testo"
+                        : "border-bordo text-testo-attenuato hover:border-lime",
                     )}
                   >
                     {numero(p)}
@@ -264,7 +264,6 @@ export function Configuratore({
                   {(p) => (
                     <Input
                       {...p}
-                      tono="notte"
                       type="number"
                       inputMode="numeric"
                       min={1}
@@ -278,7 +277,7 @@ export function Configuratore({
 
               {soloMateriali && (
                 <div className="mt-8">
-                  <p className="font-display text-carta text-lg">Quanto materiale hai già?</p>
+                  <p className="text-testo text-lg">Quanto materiale hai già?</p>
                   <div className="mt-4 grid gap-3 sm:grid-cols-3">
                     {QUANTITA_MATERIALE.map((o) => (
                       <Opzione
@@ -298,7 +297,7 @@ export function Configuratore({
           {/* 4 — Servizi */}
           {passo === 3 && (
             <div>
-              <p className="glossa text-carta/50 mb-5">
+              <p className="editoriale text-testo-tenue mb-5">
                 {soloGrafica
                   ? "Per la sola grafica contano copertina, impaginazione ed EPUB."
                   : "Seleziona quello che ti serve. Se non sei sicuro, lascia stare: i tre pacchetti propongono comunque una composizione sensata."}
@@ -348,7 +347,6 @@ export function Configuratore({
                   {(p) => (
                     <Input
                       {...p}
-                      tono="notte"
                       value={s.nome}
                       onChange={(e) => agg("nome", e.target.value)}
                       autoComplete="name"
@@ -359,7 +357,6 @@ export function Configuratore({
                   {(p) => (
                     <Input
                       {...p}
-                      tono="notte"
                       type="email"
                       value={s.email}
                       onChange={(e) => agg("email", e.target.value)}
@@ -373,7 +370,6 @@ export function Configuratore({
                 {(p) => (
                   <Input
                     {...p}
-                    tono="notte"
                     value={s.telefono}
                     onChange={(e) => agg("telefono", e.target.value)}
                     autoComplete="tel"
@@ -385,7 +381,6 @@ export function Configuratore({
                 {(p) => (
                   <AreaTesto
                     {...p}
-                    tono="notte"
                     rows={3}
                     value={s.note}
                     onChange={(e) => agg("note", e.target.value)}
@@ -393,17 +388,16 @@ export function Configuratore({
                 )}
               </Campo>
 
-              <Filetto tono="notte" />
+              <Filetto />
 
               <Consenso
                 id="pv-privacy"
                 name="consensoPrivacy"
                 checked={s.consensoPrivacy}
                 onChange={(v) => agg("consensoPrivacy", v)}
-                tono="notte"
               >
                 Ho letto la{" "}
-                <Link href={"/privacy" as Route} className="hover:text-ottone underline">
+                <Link href={"/privacy" as Route} className="hover:text-lime underline">
                   privacy policy
                 </Link>{" "}
                 e acconsento al trattamento dei dati per ricevere il preventivo. *
@@ -414,14 +408,13 @@ export function Configuratore({
                 name="consensoMarketing"
                 checked={s.consensoMarketing}
                 onChange={(v) => agg("consensoMarketing", v)}
-                tono="notte"
               >
                 Voglio ricevere anche le guide sull&rsquo;autopubblicazione. Facoltativo, niente
                 spam.
               </Consenso>
 
               {errore && (
-                <p className="text-ottone text-sm" role="alert">
+                <p className="text-lime text-sm" role="alert">
                   {errore}
                 </p>
               )}
@@ -430,9 +423,9 @@ export function Configuratore({
         </div>
 
         {/* Navigazione */}
-        <div className="border-filetto-notte mt-10 flex items-center justify-between border-t pt-6">
+        <div className="border-bordo mt-10 flex items-center justify-between border-t pt-6">
           <Bottone
-            variante="secondarioNotte"
+            variante="secondario"
             onClick={() => setPasso((p) => Math.max(0, p - 1))}
             disabled={passo === 0 || invio}
           >
@@ -441,7 +434,7 @@ export function Configuratore({
 
           {passo < TOTALE_PASSI - 1 ? (
             <Bottone
-              variante="chiaro"
+              variante="identita"
               onClick={() => setPasso((p) => p + 1)}
               disabled={!puoAvanzare}
             >
@@ -449,7 +442,7 @@ export function Configuratore({
             </Bottone>
           ) : (
             <Bottone
-              variante="chiaro"
+              variante="identita"
               misura="grande"
               onClick={calcola}
               disabled={!puoAvanzare || invio}
@@ -462,42 +455,42 @@ export function Configuratore({
 
       {/* Anteprima live */}
       <aside className="lg:sticky lg:top-24 lg:self-start">
-        <div className="rounded-scheda border-filetto-notte bg-notte-alta border p-6">
-          <p className="apparato text-ottone">Anteprima</p>
+        <div className="rounded-lg border-bordo bg-superficie border p-6">
+          <p className="etichetta text-lime">Anteprima</p>
           {anteprima ? (
             <>
               <div className="mt-4 space-y-2">
                 {anteprima.packages.map((p) => (
                   <div
                     key={p.tier}
-                    className={cx(
+                    className={cn(
                       "flex items-baseline justify-between gap-3 rounded-[2px] px-3 py-2.5",
-                      p.recommended ? "bg-ottone/15" : "bg-notte",
+                      p.recommended ? "bg-lime/15" : "bg-fondo-alto",
                     )}
                   >
                     <span
-                      className={cx(
-                        "font-ui text-sm",
-                        p.recommended ? "text-carta" : "text-carta/65",
+                      className={cn(
+                        "text-sm",
+                        p.recommended ? "text-testo" : "text-testo/65",
                       )}
                     >
                       {p.name}
                     </span>
-                    <span className="cifre text-carta text-sm">{euro(p.total)}</span>
+                    <span className="cifre text-testo text-sm">{euro(p.total)}</span>
                   </div>
                 ))}
               </div>
-              <Filetto className="my-4" tono="notte" />
+              <Filetto className="my-4" />
               <dl className="flex justify-between text-xs">
-                <dt className="apparato text-carta/40">Pagine stimate</dt>
-                <dd className="cifre text-carta/70">{numero(anteprima.estimatedPages)}</dd>
+                <dt className="etichetta text-testo-tenue">Pagine stimate</dt>
+                <dd className="cifre text-testo-attenuato">{numero(anteprima.estimatedPages)}</dd>
               </dl>
-              <p className="glossa text-carta/45 mt-4">
+              <p className="editoriale text-testo-tenue mt-4">
                 Si aggiorna mentre rispondi. Il preventivo definitivo arriva anche via email.
               </p>
             </>
           ) : (
-            <p className="prosa text-carta/50 mt-4 text-sm">
+            <p className="prosa text-testo-tenue mt-4 text-sm">
               Rispondi alle prime domande e qui compaiono i tre percorsi con il prezzo.
             </p>
           )}
@@ -531,18 +524,18 @@ function Opzione({
       type="button"
       onClick={onClick}
       aria-pressed={scelta}
-      className={cx(
-        "garbo rounded-scheda flex items-start gap-3 border p-4 text-left",
+      className={cn(
+        "garbo rounded-lg flex items-start gap-3 border p-4 text-left",
         scelta
-          ? "border-ottone bg-ottone/10"
-          : "border-filetto-notte bg-notte-alta hover:border-ottone/50",
+          ? "border-lime bg-lime/10"
+          : "border-bordo bg-superficie hover:border-lime/50",
       )}
     >
       <span
-        className={cx(
-          "text-notte mt-0.5 grid size-4 shrink-0 place-items-center border",
+        className={cn(
+          "text-fondo mt-0.5 grid size-4 shrink-0 place-items-center border",
           casella ? "rounded-[2px]" : "rounded-full",
-          scelta ? "border-ottone bg-ottone" : "border-carta/30",
+          scelta ? "border-lime bg-lime" : "border-bordo-forte",
         )}
         aria-hidden
       >
@@ -559,8 +552,8 @@ function Opzione({
         )}
       </span>
       <span>
-        <span className="font-ui text-carta block text-[0.95rem] font-medium">{label}</span>
-        {nota && <span className="font-lettura text-carta/55 mt-0.5 block text-sm">{nota}</span>}
+        <span className="text-testo block text-[0.95rem] font-medium">{label}</span>
+        {nota && <span className="text-testo-tenue mt-0.5 block text-sm">{nota}</span>}
       </span>
     </button>
   );

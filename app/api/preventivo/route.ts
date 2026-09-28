@@ -9,10 +9,16 @@ import { BRAND } from "@/config/brand";
 import { assoluto } from "@/lib/seo";
 import { demoAttiva, registraLead, registraPreventivo } from "@/lib/demo";
 import { attributionFromRequest, scoreLead } from "@/lib/attribution";
+import { proteggi } from "@/lib/sicurezza";
 
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
+  // Limite di frequenza: un form pubblico senza limite è un modo per
+  // riempire il database e la casella di posta di chiunque.
+  const limite = await proteggi("preventivo", req);
+  if (limite) return limite;
+
   let corpo: unknown;
   try {
     corpo = await req.json();
@@ -114,7 +120,7 @@ export async function POST(req: Request) {
        <table style="width:100%;border-collapse:collapse;margin:16px 0;">${righe}</table>
        <p>Sono stime costruite sui dati che hai inserito. Il prezzo lo confermiamo dopo
        una call in cui guardiamo il testo: se serve meno lavoro di quanto previsto, scende.</p>
-       <p><a href="${assoluto("/contatti")}" style="color:#22483b;">Prenota una call</a>
+       <p><a href="${assoluto("/contatti")}" style="color:#5b3df5;">Prenota una call</a>
        oppure rispondi a questa email e ci sentiamo.</p>
        <p>A presto,<br/>${BRAND.name}</p>`,
     ),
@@ -136,7 +142,7 @@ export async function POST(req: Request) {
        <p><strong>Lead score:</strong> ${leadScore}/100 · <strong>Campagna:</strong> ${esc(campaign)}</p>
        <table style="width:100%;border-collapse:collapse;margin:16px 0;">${righe}</table>
        ${contatto.note ? `<p><strong>Note:</strong><br/>${esc(contatto.note)}</p>` : ""}
-       <p style="font-size:13px;color:#6c6f67;">Preventivo ${quoteId} ·
+       <p style="font-size:13px;color:#5f5b72;">Preventivo ${quoteId} ·
        Marketing: ${contatto.consensoMarketing ? "sì" : "no"}</p>`,
     ),
   }).catch((e) =>

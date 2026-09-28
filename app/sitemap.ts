@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
-import { SERVICE_SLUGS } from "@/config/services";
+import { SLUG_SERVIZI } from "@/config/catalogo";
+import { SLUG_PERCORSI } from "@/config/percorsi";
 import { CASE_STUDIES } from "@/config/case-studies";
 import { tuttiGliArticoli } from "@/lib/blog";
 import { assoluto } from "@/lib/seo";
@@ -20,10 +21,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
   }[] = [
     { path: "", priorita: 1, frequenza: "weekly" },
     { path: "/servizi", priorita: 0.9, frequenza: "monthly" },
+    { path: "/percorsi", priorita: 0.9, frequenza: "monthly" },
     { path: "/preventivo", priorita: 0.9, frequenza: "monthly" },
     { path: "/analisi-manoscritto", priorita: 0.9, frequenza: "monthly" },
-    { path: "/dal-diario-al-libro", priorita: 0.8, frequenza: "monthly" },
-    { path: "/libro-per-professionisti", priorita: 0.8, frequenza: "monthly" },
     { path: "/per-agenzie", priorita: 0.8, frequenza: "monthly" },
     { path: "/strumenti-ai", priorita: 0.8, frequenza: "monthly" },
     { path: "/come-funziona", priorita: 0.7, frequenza: "monthly" },
@@ -43,7 +43,16 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: s.priorita,
   }));
 
-  for (const slug of SERVICE_SLUGS) {
+  for (const slug of SLUG_PERCORSI) {
+    voci.push({
+      url: assoluto(`/percorsi/${slug}`),
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.85,
+    });
+  }
+
+  for (const slug of SLUG_SERVIZI) {
     voci.push({
       url: assoluto(`/servizi/${slug}`),
       lastModified: now,

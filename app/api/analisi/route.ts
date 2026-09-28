@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { leads, manuscriptAnalyses } from "@/db/schema";
+import { eq } from "drizzle-orm";
+import { leads, manuscriptAnalyses, providerPolicies } from "@/db/schema";
 import { gateAnalisiSchema, primoErrore } from "@/lib/validation";
 import { estraiTesto, estensioneDi, MAX_BYTES, EstrazioneError } from "@/lib/extract";
+import { validaFile } from "@/lib/file/validazione";
 import { calcolaMetriche } from "@/lib/metrics";
 import { analizza, aiConfigurata, AiError, type ReportCompleto } from "@/lib/ai";
 import { costBandForAnalysis } from "@/lib/pricing";
-import { verificaLimite, ipClient } from "@/lib/rate-limit";
 import { inviaEmail, impaginaEmail, esc, destinatarioInterno } from "@/lib/email";
 import { env } from "@/lib/env";
 import { euro, numero } from "@/lib/format";
@@ -14,19 +15,19 @@ import { ANALISI } from "@/config/copy";
 import { BRAND } from "@/config/brand";
 import { assoluto } from "@/lib/seo";
 import { demoAttiva, reportDemo, registraAnalisi, registraLead } from "@/lib/demo";
+import { proteggi } from "@/lib/sicurezza";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-const MAX_AL_GIORNO = 3;
 const PAROLE_MINIME = 100;
 
 export async function POST(req: Request) {
-  // Rate limit per IP: contiene il costo delle chiamate al modello.
-  const limite = verificaLimite(`analisi:${ipClient(req)}`, MAX_AL_GIORNO);
-  if (!limite.consentito) {
-    return NextResponse.json({ errore: ANALISI.erroreLimite }, { status: 429 });
-  }
+  // Limite di frequenza. Contiene il costo delle chiamate al modello: ogni
+  // analisi fa lavorare davvero un modello, e senza limite basta uno script per
+  // trasformarla in una bolletta.
+  const limite = await proteggi("analisi", req);
+  if (limite) return NextResponse.json({ errore: ANALISI.erroreLimite }, { status: 429 });
 
   // In demo il modello non viene interpellato: il report lo costruisce
   // `lib/demo.ts` sulle metriche reali del file caricato.
@@ -36,6 +37,36 @@ export async function POST(req: Request) {
       { errore: "L'analisi non è attiva in questo momento. Scrivici e la facciamo a mano." },
       { status: 503 },
     );
+  }
+
+  // Anche il lead magnet pubblico deve rispettare lo stesso cancello privacy
+  // del motore editoriale. Un'API key configurata non equivale a un provider
+  // approvato per manoscritti inediti/sensibili.
+  if (!demo) {
+    const [policy] = await db
+      .select({
+        addestramentoConsentito: providerPolicies.addestramentoConsentito,
+        dpaDisponibile: providerPolicies.dpaDisponibile,
+        approvatoManoscrittiInediti: providerPolicies.approvatoManoscrittiInediti,
+        approvatoProgettiSensibili: providerPolicies.approvatoProgettiSensibili,
+      })
+      .from(providerPolicies)
+      .where(eq(providerPolicies.provider, "anthropic"))
+      .limit(1);
+
+    const approvata =
+      policy &&
+      !policy.addestramentoConsentito &&
+      policy.dpaDisponibile &&
+      policy.approvatoManoscrittiInediti &&
+      policy.approvatoProgettiSensibili;
+
+    if (!approvata) {
+      return NextResponse.json(
+        { errore: "L'analisi non è attiva in questo momento. Scrivici e la facciamo a mano." },
+        { status: 503 },
+      );
+    }
   }
 
   let form: FormData;
@@ -73,13 +104,30 @@ export async function POST(req: Request) {
     );
   }
 
+  const contenuto = Buffer.from(await file.arrayBuffer());
+  const mimeAtteso =
+    ext === ".docx"
+      ? "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+      : ext === ".pdf"
+        ? "application/pdf"
+        : "text/plain";
+  const validazione = validaFile({
+    nomeFile: file.name,
+    mimeDichiarato: mimeAtteso,
+    dimensioneByte: contenuto.byteLength,
+    primiByte: contenuto.subarray(0, 16),
+  });
+  if (!validazione.ok) {
+    return NextResponse.json({ errore: validazione.motivo }, { status: 415 });
+  }
+
   // ── Estrazione ────────────────────────────────────────────────────────
   let testo: string;
   try {
-    testo = await estraiTesto(Buffer.from(await file.arrayBuffer()), ext);
+    testo = await estraiTesto(contenuto, ext);
   } catch (err) {
     const motivo = err instanceof EstrazioneError ? err.motivo : "illeggibile";
-    console.error(JSON.stringify({ evt: "analisi.estrazione", motivo, file: file.name }));
+    console.error(JSON.stringify({ evt: "analisi.estrazione", motivo }));
     return NextResponse.json({ errore: ANALISI.erroreEstrazione }, { status: 422 });
   }
 
@@ -165,12 +213,12 @@ export async function POST(req: Request) {
       `<p>Ciao ${esc(gate.data.nome)},</p>
        <p>ecco la sintesi della prima diagnosi su <em>${esc(file.name)}</em>
        (${numero(metriche.parole)} parole, circa ${numero(metriche.pagineStimate)} pagine):</p>
-       <p style="background:#eae9e2;padding:14px;border-left:2px solid #22483b;">${esc(report.sintesi)}</p>
+       <p style="background:#f0eef7;padding:14px;border-left:2px solid #5b3df5;">${esc(report.sintesi)}</p>
        <p><strong>Intervento consigliato:</strong> ${esc(report.livelloIntervento)}<br/>
        <strong>Fascia di costo indicativa:</strong> ${euro(report.fasciaCosto.min)} – ${euro(report.fasciaCosto.max)}<br/>
        <strong>Leggibilità (Gulpease):</strong> ${metriche.gulpease}/100</p>
-       <p><a href="${assoluto("/preventivo")}?parole=${metriche.parole}" style="color:#22483b;">Calcola il preventivo esatto</a></p>
-       <p style="font-size:13px;color:#6c6f67;">${BRAND.aiAnalysisNotice}</p>
+       <p><a href="${assoluto("/preventivo")}?parole=${metriche.parole}" style="color:#5b3df5;">Calcola il preventivo esatto</a></p>
+       <p style="font-size:13px;color:#5f5b72;">${BRAND.aiAnalysisNotice}</p>
        <p>A presto,<br/>${BRAND.name}</p>`,
     ),
   }).catch((e) => console.error(JSON.stringify({ evt: "analisi.email-cliente", err: String(e) })));
@@ -186,7 +234,7 @@ export async function POST(req: Request) {
        Gulpease ${metriche.gulpease}</p>
        <p>Livello: ${esc(report.livelloIntervento)} ·
        Fascia: ${euro(report.fasciaCosto.min)}–${euro(report.fasciaCosto.max)}</p>
-       <p style="font-size:13px;color:#6c6f67;">Marketing: ${gate.data.consensoMarketing ? "sì" : "no"}</p>`,
+       <p style="font-size:13px;color:#5f5b72;">Marketing: ${gate.data.consensoMarketing ? "sì" : "no"}</p>`,
     ),
   }).catch((e) => console.error(JSON.stringify({ evt: "analisi.email-interna", err: String(e) })));
 
