@@ -131,14 +131,39 @@ export const publicEnv = clientSchema.parse({
 });
 
 /**
- * Cancello fail-closed per la produzione reale.
+ * L'ambiente è il sito vero, quello che tratta dati e pagamenti reali?
  *
- * Vercel esegue anche preview con NODE_ENV=production: per questo il controllo
- * scatta solo quando DEMO_MODE è esplicitamente "off", cioè quando stiamo
- * dichiarando che l'ambiente tratta dati e pagamenti reali.
+ * `NODE_ENV=production` non basta: lo usano anche le preview di Vercel, la CI
+ * e ogni `next start` locale. Nemmeno `DEMO_MODE=off` basta, ed è un errore
+ * facile da fare: i test end-to-end girano **apposta** con la demo spenta,
+ * perché devono esercitare i percorsi reali — CSP, redirect delle aree
+ * riservate, limite di frequenza — e non quelli simulati. Confondere le due
+ * cose rende `DEMO_MODE=off` inutilizzabile fuori dalla produzione.
+ *
+ * Serve quindi una dichiarazione esplicita:
+ *
+ *  - su Vercel la dà la piattaforma con `VERCEL_ENV`, che vale "production"
+ *    solo per il deploy di produzione e "preview" per tutti gli altri;
+ *  - fuori da Vercel la deve dare chi avvia il processo, con `PROEMIOS_LIVE=on`.
+ *
+ * Il verso è deliberato: chi non dichiara nulla non è il sito vero. Un
+ * ambiente di prova mal etichettato resta fuori dal cancello e al massimo
+ * funziona a metà; dimenticare la dichiarazione in produzione, invece, si
+ * nota subito perché non parte niente.
+ */
+export function ambienteLive(): boolean {
+  if (process.env.NODE_ENV !== "production") return false;
+  if (env.DEMO_MODE !== "off") return false;
+  if (process.env.VERCEL_ENV) return process.env.VERCEL_ENV === "production";
+  return process.env.PROEMIOS_LIVE === "on";
+}
+
+/**
+ * Cancello fail-closed per la produzione reale: senza tutto ciò che serve a
+ * lavorare davvero, Proemios non parte invece di partire a metà.
  */
 function verificaConfigurazioneProduzione(): void {
-  if (process.env.NODE_ENV !== "production" || env.DEMO_MODE !== "off") return;
+  if (!ambienteLive()) return;
 
   const obbligatorie = [
     "DATABASE_URL",
