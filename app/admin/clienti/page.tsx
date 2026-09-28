@@ -9,6 +9,7 @@ import { haPermesso } from "@/lib/auth/attore";
 import { elencaClienti } from "@/lib/dati/clienti";
 import { haDatiFatturazione, haIdentita } from "@/lib/dto/cliente";
 import { numero, dataEstesa } from "@/lib/format";
+import { AccessoCliente } from "@/components/crm/accesso-cliente";
 
 export const metadata: Metadata = { title: "Clienti", robots: { index: false, follow: false } };
 export const dynamic = "force-dynamic";
@@ -17,6 +18,7 @@ const INTESTAZIONI = [
   { chiave: "nome", testo: "Cliente" },
   { chiave: "tipo", testo: "Tipo" },
   { chiave: "contatti", testo: "Contatti" },
+  { chiave: "accesso", testo: "Area cliente" },
   { chiave: "fiscali", testo: "Dati fiscali" },
   { chiave: "dal", testo: "Cliente dal" },
 ] as const;
@@ -74,6 +76,13 @@ export default async function PaginaClienti({
                       <span className="cifre text-xs text-testo-tenue">{c.telefono}</span>
                     ) : null}
                   </span>
+                ) : (
+                  "—"
+                )}
+              </Cella>
+              <Cella>
+                {haIdentita(c) ? (
+                  <AccessoCliente clienteId={c.id} haAccesso={c.haAccesso} />
                 ) : (
                   "—"
                 )}

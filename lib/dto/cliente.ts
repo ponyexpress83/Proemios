@@ -26,6 +26,12 @@ export type ClienteIdentita = ClienteAnonimo & {
   email: string;
   telefono: string | null;
   createdAt: string | null;
+  /**
+   * Il cliente ha già un account con cui entrare nella propria area.
+   * Un booleano e non lo `userId`: al back-office serve sapere se invitarlo,
+   * non l'identificativo dell'account.
+   */
+  haAccesso: boolean;
 };
 
 /** Identità più anagrafica fiscale. Solo finance, operations, super_admin. */
@@ -63,6 +69,7 @@ export function clienteIdentita(cliente: Cliente): ClienteIdentita {
     email: cliente.email,
     telefono: cliente.telefono,
     createdAt: iso(cliente.createdAt),
+    haAccesso: cliente.userId !== null,
   });
 }
 

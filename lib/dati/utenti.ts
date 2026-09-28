@@ -10,6 +10,7 @@ import { and, desc, eq, gt, isNull, ne, or } from "drizzle-orm";
 import { getDb } from "@/db";
 import { inviti, sessions, users, type Utente } from "@/db/schema/utenti";
 import { organizations } from "@/db/schema/organizzazioni";
+import { clients } from "@/db/schema/crm";
 import type { Attore } from "@/lib/auth/attore";
 import { esigiPermesso, esigiStessoTenant } from "@/lib/auth/guardie";
 import { NonAutorizzato, NonTrovato } from "@/lib/auth/errori";
@@ -156,6 +157,37 @@ export async function accettaInvito(
       .returning();
 
     await tx.update(inviti).set({ accettatoAt: new Date() }).where(eq(inviti.id, invito.id));
+
+    /*
+     * Un cliente senza anagrafica collegata entra e non vede niente: l'area
+     * riservata trova i progetti per `clients.userId`, e quella colonna resta
+     * vuota se nessuno la riempie. Il collegamento si fa qui perché è l'unico
+     * momento in cui l'account esiste davvero.
+     *
+     * Si collega solo se c'è **una** anagrafica con quell'indirizzo e ancora
+     * senza account. Con due omonimie non si indovina: l'invito vale
+     * comunque, e l'amministratore collega a mano dalla scheda del cliente.
+     */
+    if (invito.ruolo === "client") {
+      const candidati = await tx
+        .select({ id: clients.id })
+        .from(clients)
+        .where(
+          and(
+            eq(clients.organizationId, invito.organizationId),
+            eq(clients.email, invito.email),
+            isNull(clients.userId),
+          ),
+        )
+        .limit(2);
+
+      if (candidati.length === 1) {
+        await tx
+          .update(clients)
+          .set({ userId: utente!.id, updatedAt: new Date() })
+          .where(eq(clients.id, candidati[0]!.id));
+      }
+    }
 
     await registra(
       null,

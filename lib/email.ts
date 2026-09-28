@@ -23,13 +23,27 @@ export interface Messaggio {
   replyTo?: string;
 }
 
-export async function inviaEmail({ to, subject, html, replyTo }: Messaggio): Promise<void> {
+/**
+ * Invia, e **dice se ha inviato**.
+ *
+ * Il valore di ritorno esiste perché senza chiave Resend l'invio viene
+ * saltato in silenzio: per una notifica è accettabile, ma chi manda qualcosa
+ * di irripetibile — un invito, il cui token esiste solo in quell'email —
+ * deve poterlo sapere e dirlo, invece di mostrare "inviato" a un messaggio
+ * che non è mai partito.
+ */
+export async function inviaEmail({
+  to,
+  subject,
+  html,
+  replyTo,
+}: Messaggio): Promise<{ inviata: boolean }> {
   const api = resend();
   if (!api) {
     console.warn(
       JSON.stringify({ evt: "email.saltata", motivo: "RESEND_API_KEY assente", to, subject }),
     );
-    return;
+    return { inviata: false };
   }
   const { error } = await api.emails.send({
     from: env.EMAIL_FROM ?? `${BRAND.name} <noreply@${BRAND.domain}>`,
@@ -42,6 +56,7 @@ export async function inviaEmail({ to, subject, html, replyTo }: Messaggio): Pro
     console.error(JSON.stringify({ evt: "email.errore", to, subject, error: error.message }));
     throw new Error(`Invio email fallito: ${error.message}`);
   }
+  return { inviata: true };
 }
 
 /** Destinatario delle notifiche interne. */

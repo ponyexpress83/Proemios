@@ -218,8 +218,8 @@ describe("DTO cliente", () => {
     expect(chiavi).toEqual(
       [
         "id", "riferimento", "tipo", "nome", "cognome", "ragioneSociale", "email",
-        "telefono", "createdAt", "indirizzo", "partitaIva", "codiceFiscale",
-        "codiceDestinatario", "pec",
+        "telefono", "createdAt", "haAccesso", "indirizzo", "partitaIva",
+        "codiceFiscale", "codiceDestinatario", "pec",
       ].sort(),
     );
   });

@@ -19,6 +19,7 @@ import { getDb } from "@/db";
 import { accounts, sessions, users, verificationTokens } from "@/db/schema/utenti";
 import type { Ruolo } from "./ruoli";
 import { costruisciSessionePubblica } from "./sessione-pubblica";
+import { ambienteLive } from "@/lib/env";
 
 declare module "next-auth" {
   interface Session {
@@ -49,6 +50,48 @@ export const { handlers, auth, signIn, signOut } = NextAuth(() => {
       Resend({
         apiKey: process.env.RESEND_API_KEY,
         from: process.env.AUTH_EMAIL_FROM ?? "Proemios <accessi@proemios.it>",
+        /**
+         * Fuori dalla produzione, senza una chiave Resend, il link di accesso
+         * finisce sulla console del server invece di non partire.
+         *
+         * Serve perché altrimenti il prodotto non è provabile: l'accesso è
+         * solo per magic link, e senza posta in uscita non entra nessuno —
+         * nemmeno per guardare. Prima di questo, uno sviluppo locale o una
+         * preview erano schermate vuote dietro un login impossibile.
+         *
+         * Il controllo è `ambienteLive()`, non `NODE_ENV`: le preview di
+         * Vercel girano con `NODE_ENV=production` e devono restare provabili,
+         * mentre il sito vero non deve mai stampare un link di accesso nei
+         * log — chi legge i log entrerebbe come chiunque. In produzione, se
+         * la chiave manca, si lascia fallire l'invio: un accesso che sembra
+         * riuscito e non arriva è peggio di un errore.
+         */
+        async sendVerificationRequest(parametri) {
+          const chiaveAssente = !process.env.RESEND_API_KEY?.trim();
+
+          if (chiaveAssente && !ambienteLive()) {
+            console.warn(
+              [
+                "",
+                "  ┌─ Accesso Proemios ────────────────────────────────────",
+                `  │  ${parametri.identifier}`,
+                "  │",
+                `  │  ${parametri.url}`,
+                "  │",
+                "  │  RESEND_API_KEY non è impostata: il link è qui invece",
+                "  │  che nella posta. Non accade in produzione.",
+                "  └───────────────────────────────────────────────────────",
+                "",
+              ].join("\n"),
+            );
+            return;
+          }
+
+          const { sendVerificationRequest } = await import(
+            "next-auth/providers/resend"
+          ).then((m) => ({ sendVerificationRequest: m.default({}).sendVerificationRequest! }));
+          await sendVerificationRequest(parametri);
+        },
       }),
     ],
     callbacks: {
