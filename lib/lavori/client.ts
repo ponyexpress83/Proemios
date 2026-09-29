@@ -22,8 +22,15 @@ export type EventiProemios = {
     data: {
       jobId: string;
       organizationId: string;
-      /** Contatore dei ritentativi manuali, per distinguerli da quelli automatici. */
-      tentativoManuale?: number;
+      /**
+       * Marcatore della ripresa manuale, parte della chiave di idempotenza.
+       *
+       * 0 per l'avvio normale, così due eventi accidentali per lo stesso Job
+       * restano un'elaborazione sola. L'istante della richiesta quando
+       * qualcuno riprende un Job fermo: senza un valore diverso, Inngest
+       * scarterebbe l'evento come doppione e la ripresa non farebbe nulla.
+       */
+      ripresa: number;
     };
   };
   "job/annulla": {
@@ -62,10 +69,14 @@ export function codaConfigurata(): boolean {
 export async function accodaElaborazione(dati: {
   jobId: string;
   organizationId: string;
-  tentativoManuale?: number;
+  /** Omesso per l'avvio normale; valorizzato da una ripresa manuale. */
+  ripresa?: number;
 }): Promise<boolean> {
   if (!codaConfigurata()) return false;
-  await inngest.send({ name: "job/elabora", data: dati });
+  await inngest.send({
+    name: "job/elabora",
+    data: { jobId: dati.jobId, organizationId: dati.organizationId, ripresa: dati.ripresa ?? 0 },
+  });
   return true;
 }
 

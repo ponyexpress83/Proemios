@@ -10,7 +10,7 @@ import {
   creaProgetto,
   rimuoviMembro,
 } from "@/lib/dati/progetti";
-import { assegnaJob, creaJob } from "@/lib/dati/job";
+import { assegnaJob, cambiaStatoJob, creaJob, leggiJob } from "@/lib/dati/job";
 import { accodaElaborazione } from "@/lib/lavori/client";
 import { LIVELLI } from "@/lib/ai/livelli";
 import { isErroreAutorizzazione } from "@/lib/auth/errori";
@@ -276,6 +276,59 @@ export async function avviaLavorazione(
       throw new Error(
         "Lavorazione creata ma non avviata: la coda non è configurata " +
           "(INNGEST_EVENT_KEY). Il lavoro resta in attesa e partirà appena la coda è attiva.",
+      );
+    }
+  });
+}
+
+const schemaRipresa = z.object({
+  progettoId: z.string().uuid(),
+  jobId: z.string().uuid(),
+});
+
+/**
+ * Rimette in coda una lavorazione ferma.
+ *
+ * Serve in due casi che in esercizio capitano entrambi:
+ *  - `failed`, dopo che i ritentativi automatici si sono esauriti e
+ *    `onFailure` ha tolto il Job da `running`;
+ *  - `queued`, quando l'evento si è perso — la coda era irraggiungibile al
+ *    momento dell'avvio, oppure il Job è nato prima che fosse configurata.
+ *
+ * Senza questo, un lavoro fermo restava fermo per sempre: il cruscotto ne
+ * mostrava il numero e non c'era modo di farci niente. Un Job già in
+ * lavorazione o già oltre non si tocca — rimetterlo in coda vorrebbe dire
+ * elaborarlo due volte.
+ */
+export async function riprendiLavorazione(
+  dati: z.input<typeof schemaRipresa>,
+): Promise<EsitoAzione> {
+  const analisi = schemaRipresa.safeParse(dati);
+  if (!analisi.success) return { ok: false, messaggio: "Dati non validi." };
+
+  return esegui(`/admin/progetti/${analisi.data.progettoId}`, async () => {
+    const attore = await esigiAttore();
+    const { job } = await leggiJob(attore, analisi.data.jobId);
+
+    if (job.stato === "failed") {
+      await cambiaStatoJob(attore, analisi.data.jobId, "queued");
+    } else if (job.stato !== "queued") {
+      throw new Error(
+        `Una lavorazione in stato "${job.stato}" non si rimette in coda: ` +
+          "si riprende solo ciò che è fallito o mai partito.",
+      );
+    }
+
+    const accodato = await accodaElaborazione({
+      jobId: analisi.data.jobId,
+      organizationId: attore.organizationId,
+      // Un valore diverso a ogni ripresa: con la sola chiave del Job,
+      // Inngest scarterebbe l'evento come doppione e non succederebbe nulla.
+      ripresa: Date.now(),
+    });
+    if (!accodato) {
+      throw new Error(
+        "La coda non è configurata (INNGEST_EVENT_KEY): la lavorazione resta in attesa.",
       );
     }
   });

@@ -23,11 +23,20 @@ function attoreSistema(organizationId: string): AttoreSistema {
 /**
  * Elaborazione di un Job editoriale.
  *
- * `idempotency` sul jobId: se lo stesso evento arriva due volte — un doppio
- * clic, un ritentativo del chiamante, una consegna duplicata del webhook — il
- * Job viene elaborato una volta sola. Senza, un manoscritto verrebbe mandato
- * due volte al provider, con il doppio del costo e due serie di interventi
- * sovrapposti.
+ * `idempotency` collassa i doppioni accidentali — un doppio clic, un
+ * ritentativo del chiamante, una consegna duplicata — così un manoscritto non
+ * viene mandato due volte al provider, con il doppio del costo e due serie di
+ * interventi sovrapposti.
+ *
+ * La chiave però non è il solo `jobId`, e il motivo si vede solo con una coda
+ * vera: con quella chiave, **una ripresa manuale di un Job fallito veniva
+ * scartata in silenzio**. Il Job tornava `queued` e restava lì per sempre,
+ * perché per Inngest quell'evento era già stato visto. Il pulsante «Riprova»
+ * sembrava funzionare e non faceva niente.
+ *
+ * `ripresa` distingue i due casi: vale 0 per l'avvio normale — quindi i
+ * doppioni accidentali restano collassati — e porta l'istante della ripresa
+ * quando qualcuno la chiede apposta.
  */
 export const elaborazioneJob = inngest.createFunction(
   {
@@ -39,7 +48,7 @@ export const elaborazioneJob = inngest.createFunction(
       { key: "event.data.organizationId", limit: 3 },
       { limit: 10 },
     ],
-    idempotency: "event.data.jobId",
+    idempotency: 'event.data.jobId + "/" + string(event.data.ripresa)',
     cancelOn: [{ event: "job/annulla", match: "data.jobId" }],
     onFailure: async ({ event, error }) => {
       // Dopo l'ultimo ritentativo il Job non resta "running" per sempre.

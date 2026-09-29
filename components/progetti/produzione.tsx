@@ -15,6 +15,7 @@ import {
   aggiungiAllaSquadra,
   assegnaLavoro,
   avviaLavorazione,
+  riprendiLavorazione,
   togliDallaSquadra,
 } from "@/app/admin/progetti/azioni";
 
@@ -198,6 +199,26 @@ export function PannelloProduzione({
                   </div>
                   {l.scadenzaAt && (
                     <p className="text-xs text-testo-tenue">Scade il {dataEstesa(l.scadenzaAt)}</p>
+                  )}
+
+                  {/*
+                    Una lavorazione ferma va ripresa a mano: `failed` quando i
+                    ritentativi automatici si sono esauriti, `queued` quando
+                    l'evento si è perso perché la coda non era raggiungibile.
+                    Senza, il cruscotto ne conta il numero e nessuno può farci
+                    niente.
+                  */}
+                  {puoAvviare && (l.stato === "failed" || l.stato === "queued") && (
+                    <Bottone
+                      variante="secondario"
+                      misura="piccola"
+                      disabled={inCorso}
+                      onClick={() =>
+                        esegui(() => riprendiLavorazione({ progettoId, jobId: l.id }))
+                      }
+                    >
+                      {l.stato === "failed" ? "Riprova" : "Rimetti in coda"}
+                    </Bottone>
                   )}
 
                   {puoAssegnare && (
