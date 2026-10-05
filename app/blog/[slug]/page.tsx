@@ -1,3 +1,5 @@
+import { InternalPage } from '@/components/editorial/internal-pages';
+import { articles as editorialArticles } from '@/lib/editorial-content';
 import Link from "next/link";
 import type { Route } from "next";
 import type { Metadata } from "next";
@@ -20,7 +22,7 @@ import { AZIONI } from "@/config/copy";
 import { metadatiPagina, JsonLd, articleJsonLd, breadcrumbJsonLd } from "@/lib/seo";
 
 export function generateStaticParams() {
-  return slugArticoli().map((slug) => ({ slug }));
+  return Array.from(new Set([...slugArticoli(),...editorialArticles.map(a=>a.slug)])).map((slug) => ({ slug }));
 }
 
 export async function generateMetadata({
@@ -29,6 +31,8 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
+  const premium=editorialArticles.find(a=>a.slug===slug);
+  if(premium)return metadatiPagina({titolo:premium.title,descrizione:premium.summary,path:`/blog/${slug}`,tipo:'article'});
   const a = getArticolo(slug);
   if (!a) return {};
   return metadatiPagina({
@@ -64,6 +68,7 @@ const componenti = {
 
 export default async function ArticoloPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
+  if(editorialArticles.some(a=>a.slug===slug))return <InternalPage route={'blog/'+slug}/>;
   const articolo = getArticolo(slug);
   if (!articolo) notFound();
 

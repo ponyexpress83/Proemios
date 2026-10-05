@@ -3,13 +3,14 @@ import Script from "next/script";
 import { BRAND } from "@/config/brand";
 import { UI } from "@/config/copy";
 import { fontVariables } from "./fonts";
-import { Testata } from "@/components/layout/testata";
-import { Colophon } from "@/components/layout/colophon";
+import { SiteChrome } from "@/components/editorial/site-chrome";
+
 import { FasciaDemo } from "@/components/layout/fascia-demo";
 import { AttributionCapture } from "@/components/marketing/attribution-capture";
 import { demoAttiva } from "@/lib/demo";
 import { JsonLd, organizationJsonLd } from "@/lib/seo";
 import "./globals.css";
+import "./editorial.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL(BRAND.url),
@@ -34,6 +35,7 @@ export const metadata: Metadata = {
   },
   alternates: { canonical: BRAND.url },
   robots: demoAttiva() ? { index: false, follow: false } : { index: true, follow: true },
+  icons: {icon: "/favicon.svg", shortcut: "/favicon.svg"},
   formatDetection: { telephone: false },
 };
 
@@ -68,11 +70,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {UI.saltaAlContenuto}
         </a>
         <FasciaDemo />
-        <Testata />
-        <main id="contenuto" className="flex-1">
-          {children}
-        </main>
-        <Colophon />
+        <SiteChrome>{children}</SiteChrome>
       </body>
     </html>
   );

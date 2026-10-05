@@ -1,17 +1,11 @@
-import { AgencyForm } from "@/components/editorial/operational-pages";
 import { InternalPage } from "@/components/editorial/internal-pages";
 import { metadatiPagina } from "@/lib/seo";
 export const metadata = metadatiPagina({
-  titolo: "Per agenzie",
+  titolo: "Percorsi editoriali",
   descrizione:
     "Un unico percorso editoriale, dall’idea al libro. Professionisti, cura e strumenti per seguire ogni fase.",
-  path: "/per-agenzie",
+  path: "/percorsi",
 });
 export default function Page() {
-  return (
-    <>
-      <InternalPage route="per-agenzie" />
-      <AgencyForm />
-    </>
-  );
+  return <InternalPage route="percorsi" />;
 }
