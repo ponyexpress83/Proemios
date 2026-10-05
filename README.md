@@ -10,6 +10,10 @@ preventivo, analisi manoscritto, pagine servizio). Le Fasi 2-3 (account, dashboa
 progetto, abbonamenti AI, portale white label) sono documentate in `db/schema.ts` e in
 `config/plans.ts` per garantire estendibilità senza refactor, **ma non sono implementate**.
 
+## Sito pubblico
+
+Il design editoriale avorio/corallo e le pagine multipagina sono in `components/editorial`, `lib/editorial-content.ts` e `app/editorial.css`. I moduli sono collegati alle API del progetto; il preventivo usa le tariffe esistenti. `/accedi` apre il backoffice riservato al team, non un portale clienti. Per riferimenti visivi e limiti dei contenuti dimostrativi, vedere `DESIGN_PLAN.md`.
+
 ## Stack
 
 - **Next.js 15** (App Router), **TypeScript strict**, React 19

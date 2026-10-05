@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { services as editorialServices, paths as editorialPaths, articles as editorialArticles } from '@/lib/editorial-content';
 import { SERVICE_SLUGS } from "@/config/services";
 import { CASE_STUDIES } from "@/config/case-studies";
 import { tuttiGliArticoli } from "@/lib/blog";
@@ -43,7 +44,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: s.priorita,
   }));
 
-  for (const slug of SERVICE_SLUGS) {
+  for (const slug of new Set([...SERVICE_SLUGS,...editorialServices.map(s=>s.slug)])) {
     voci.push({
       url: assoluto(`/servizi/${slug}`),
       lastModified: now,
@@ -71,5 +72,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
     });
   }
 
+  for(const path of ['/percorsi',...editorialPaths.map(p=>'/percorsi/'+p.slug),...editorialArticles.map(a=>'/blog/'+a.slug)]) voci.push({url:assoluto(path),lastModified:now,changeFrequency:'monthly',priority:.7});
   return voci;
 }

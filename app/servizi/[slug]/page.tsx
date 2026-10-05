@@ -1,3 +1,5 @@
+import { InternalPage } from '@/components/editorial/internal-pages';
+import { services as editorialServices } from '@/lib/editorial-content';
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import {
@@ -20,7 +22,7 @@ import { fascia } from "@/lib/format";
 import { metadatiPagina, JsonLd, serviceJsonLd, faqJsonLd, breadcrumbJsonLd } from "@/lib/seo";
 
 export function generateStaticParams() {
-  return SERVICES.map((s) => ({ slug: s.slug }));
+  return Array.from(new Set([...SERVICES.map(s=>s.slug),...editorialServices.map(s=>s.slug)])).map(slug=>({slug}));
 }
 
 export async function generateMetadata({
@@ -29,6 +31,8 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
+  const premium=editorialServices.find(s=>s.slug===slug);
+  if(premium)return metadatiPagina({titolo:premium.title,descrizione:premium.description,path:`/servizi/${slug}`});
   const servizio = getService(slug);
   if (!servizio) return {};
   return metadatiPagina({
@@ -40,6 +44,7 @@ export async function generateMetadata({
 
 export default async function ServizioPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
+  if(editorialServices.some(s=>s.slug===slug)) return <InternalPage route={'servizi/'+slug}/>;
   const servizio = getService(slug);
   if (!servizio) notFound();
 
