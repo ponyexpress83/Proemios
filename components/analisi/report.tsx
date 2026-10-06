@@ -29,9 +29,9 @@ function Metrica({
   barra?: number;
 }) {
   return (
-    <div className="rounded-scheda border-filetto-notte bg-notte-alta border p-5">
-      <p className="apparato text-carta/45">{etichetta}</p>
-      <p className="cifre text-carta mt-2 text-3xl font-medium">{valore}</p>
+    <div className="rounded-scheda border-filetto bg-carta-alta border p-5">
+      <p className="apparato text-stampa">{etichetta}</p>
+      <p className="cifre text-inchiostro mt-2 text-3xl font-medium">{valore}</p>
       {barra !== undefined && (
         <div className="bg-filetto-notte mt-3 h-px w-full">
           <div
@@ -43,7 +43,7 @@ function Metrica({
           />
         </div>
       )}
-      {nota && <p className="font-lettura text-carta/60 mt-3 text-sm leading-relaxed">{nota}</p>}
+      {nota && <p className="font-lettura text-stampa mt-3 text-sm leading-relaxed">{nota}</p>}
     </div>
   );
 }
@@ -62,17 +62,17 @@ function Elenco({
   const segno =
     tono === "forza" ? "bg-esito-positivo" : tono === "intervento" ? "bg-ottone" : "bg-carta/30";
   return (
-    <div className="rounded-scheda border-filetto-notte bg-notte-alta border p-6">
-      <h3 className="font-display text-carta text-lg font-medium">{titolo}</h3>
-      <Filetto className="my-4" tono="notte" />
+    <div className="rounded-scheda border-filetto bg-carta-alta border p-6">
+      <h3 className="font-display text-inchiostro text-lg font-medium">{titolo}</h3>
+      <Filetto className="my-4" tono="carta" />
       {voci.length === 0 ? (
-        <p className="font-lettura text-carta/45 text-sm">{vuoto}</p>
+        <p className="font-lettura text-stampa text-sm">{vuoto}</p>
       ) : (
         <ul className="space-y-3">
           {voci.map((v, i) => (
             <li key={i} className="flex gap-3">
               <span className={cx("mt-2.5 h-px w-3 shrink-0", segno)} aria-hidden />
-              <span className="font-lettura text-carta/85 text-sm leading-relaxed">{v}</span>
+              <span className="font-lettura text-stampa text-sm leading-relaxed">{v}</span>
             </li>
           ))}
         </ul>
@@ -90,9 +90,9 @@ export function Report({ report, demo = false }: { report: ReportCompleto; demo?
   return (
     <div className="space-y-6">
       {demo && (
-        <div className="rounded-scheda border-ottone/50 bg-notte-alta border border-dashed p-5">
+        <div className="rounded-scheda border-ottone/50 bg-carta-alta border border-dashed p-5">
           <p className="apparato text-ottone">Report dimostrativo</p>
-          <p className="font-lettura text-carta/75 mt-2 text-sm leading-relaxed">
+          <p className="font-lettura text-stampa mt-2 text-sm leading-relaxed">
             Le misure qui sotto — parole, pagine, leggibilità, periodare — sono calcolate davvero
             sul file che hai caricato. Le osservazioni editoriali, invece, sono di esempio: in
             questa versione il giudizio non viene prodotto, si vede solo come si presenta.
@@ -101,27 +101,27 @@ export function Report({ report, demo = false }: { report: ReportCompleto; demo?
       )}
 
       {/* Sintesi */}
-      <div className="rounded-scheda border-ottone/50 bg-notte-alta border p-6 sm:p-8">
+      <div className="rounded-scheda border-ottone/50 bg-carta-alta border p-6 sm:p-8">
         <div className="flex flex-wrap items-center gap-3">
           <Etichetta tono="ottone">Prima diagnosi</Etichetta>
-          <span className="apparato text-carta/40">
+          <span className="apparato text-stampa">
             {numero(m.parole)} parole · {numero(m.pagineStimate)} pagine stimate
           </span>
         </div>
-        <p className="prosa-grande text-carta/85 mt-5">{report.sintesi}</p>
+        <p className="prosa-grande text-stampa mt-5">{report.sintesi}</p>
 
-        <Filetto className="my-6" tono="notte" />
+        <Filetto className="my-6" tono="carta" />
 
         <div className="grid gap-5 sm:grid-cols-2">
           <div>
-            <p className="apparato text-carta/45">Intervento consigliato</p>
-            <p className="font-display text-carta mt-2 text-xl font-medium">
+            <p className="apparato text-stampa">Intervento consigliato</p>
+            <p className="font-display text-inchiostro mt-2 text-xl font-medium">
               {LIVELLO[report.livelloIntervento]}
             </p>
           </div>
           <div>
-            <p className="apparato text-carta/45">Fascia di costo indicativa</p>
-            <p className="cifre text-carta mt-2 text-xl font-medium">
+            <p className="apparato text-stampa">Fascia di costo indicativa</p>
+            <p className="cifre text-inchiostro mt-2 text-xl font-medium">
               {euro(report.fasciaCosto.min)} – {euro(report.fasciaCosto.max)}
             </p>
           </div>
@@ -158,7 +158,7 @@ export function Report({ report, demo = false }: { report: ReportCompleto; demo?
             }
           />
         </div>
-        <p className="glossa text-carta/40 mt-3">
+        <p className="glossa text-stampa mt-3">
           Queste metriche sono calcolate direttamente sul testo, non stimate.
         </p>
       </div>
@@ -194,36 +194,36 @@ export function Report({ report, demo = false }: { report: ReportCompleto; demo?
 
       {/* Inquadramento */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-scheda border-filetto-notte bg-notte-alta border p-5">
-          <p className="apparato text-carta/45">Ritmo</p>
-          <p className="font-lettura text-carta/80 mt-2 text-sm leading-relaxed">
+        <div className="rounded-scheda border-filetto bg-carta-alta border p-5">
+          <p className="apparato text-stampa">Ritmo</p>
+          <p className="font-lettura text-stampa mt-2 text-sm leading-relaxed">
             {report.ritmo.giudizio}
           </p>
         </div>
-        <div className="rounded-scheda border-filetto-notte bg-notte-alta border p-5">
-          <p className="apparato text-carta/45">Tempi verbali</p>
-          <p className="font-lettura text-carta/80 mt-2 text-sm leading-relaxed">
+        <div className="rounded-scheda border-filetto bg-carta-alta border p-5">
+          <p className="apparato text-stampa">Tempi verbali</p>
+          <p className="font-lettura text-stampa mt-2 text-sm leading-relaxed">
             {report.coerenza.tempiVerbali}
           </p>
         </div>
-        <div className="rounded-scheda border-filetto-notte bg-notte-alta border p-5">
-          <p className="apparato text-carta/45">Punto di vista</p>
-          <p className="font-lettura text-carta/80 mt-2 text-sm leading-relaxed">
+        <div className="rounded-scheda border-filetto bg-carta-alta border p-5">
+          <p className="apparato text-stampa">Punto di vista</p>
+          <p className="font-lettura text-stampa mt-2 text-sm leading-relaxed">
             {report.coerenza.puntoDiVista}
           </p>
         </div>
-        <div className="rounded-scheda border-filetto-notte bg-notte-alta border p-5">
-          <p className="apparato text-carta/45">Genere e lettore</p>
-          <p className="font-display text-carta mt-2 text-base">{report.genere}</p>
-          <p className="font-lettura text-carta/70 mt-1 text-sm leading-relaxed">
+        <div className="rounded-scheda border-filetto bg-carta-alta border p-5">
+          <p className="apparato text-stampa">Genere e lettore</p>
+          <p className="font-display text-inchiostro mt-2 text-base">{report.genere}</p>
+          <p className="font-lettura text-stampa mt-1 text-sm leading-relaxed">
             {report.lettoreTipo}
           </p>
         </div>
       </div>
 
       {/* Nota legale */}
-      <div className="rounded-scheda border-filetto-notte border border-dashed p-5">
-        <p className="font-lettura text-carta/60 text-sm leading-relaxed">
+      <div className="rounded-scheda border-filetto border border-dashed p-5">
+        <p className="font-lettura text-stampa text-sm leading-relaxed">
           {BRAND.aiAnalysisNotice} {BRAND.aiDisclaimer}
         </p>
       </div>
@@ -240,7 +240,7 @@ export function Report({ report, demo = false }: { report: ReportCompleto; demo?
       </div>
 
       <p className="text-center">
-        <Link href={"/contatti" as Route} className="apparato text-carta/45 hover:text-ottone">
+        <Link href={"/contatti" as Route} className="apparato text-stampa hover:text-ottone">
           Preferisci parlarne con una persona? →
         </Link>
       </p>

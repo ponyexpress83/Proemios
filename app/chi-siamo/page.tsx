@@ -3,7 +3,7 @@ import { metadatiPagina } from "@/lib/seo";
 export const metadata = metadatiPagina({
   titolo: "Chi siamo",
   descrizione:
-    "Un unico percorso editoriale, dall’idea al libro. Professionisti, cura e strumenti per seguire ogni fase.",
+    "Conosci l’approccio di Proemios: confronto con l’autore, cura editoriale e responsabilità in ogni fase del libro.",
   path: "/chi-siamo",
 });
 export default function Page() {

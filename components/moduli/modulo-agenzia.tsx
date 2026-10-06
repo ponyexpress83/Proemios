@@ -13,6 +13,7 @@ type Stato = "compilazione" | "invio" | "inviato" | "errore";
 export function ModuloAgenzia() {
   const [stato, setStato] = useState<Stato>("compilazione");
   const [errore, setErrore] = useState("");
+  const [demo, setDemo] = useState(false);
   const [consenso, setConsenso] = useState(false);
 
   async function invia(e: React.FormEvent<HTMLFormElement>) {
@@ -43,8 +44,9 @@ export function ModuloAgenzia() {
           website: String(fd.get("website") ?? ""),
         }),
       });
-      const dati = (await res.json()) as { errore?: string };
+      const dati = (await res.json()) as { errore?: string; demo?: boolean };
       if (!res.ok) throw new Error(dati.errore ?? UI.erroreGenerico);
+      setDemo(dati.demo === true);
       setStato("inviato");
       form.reset();
     } catch (err) {
@@ -56,13 +58,16 @@ export function ModuloAgenzia() {
   if (stato === "inviato") {
     return (
       <div className="rounded-scheda border-esito-positivo/40 bg-carta-alta border p-8">
-        <p className="apparato text-esito-positivo">Richiesta ricevuta</p>
+        <p className="apparato text-esito-positivo">
+          {demo ? "Richiesta simulata" : "Richiesta ricevuta"}
+        </p>
         <h3 className="font-display mt-3 text-xl font-medium">
-          Vi risponde una persona, non un bot
+          {demo ? "Hai provato il percorso per le agenzie." : "Parliamo del vostro progetto."}
         </h3>
         <p className="prosa mt-3">
-          Entro un giorno lavorativo vi arriva l&rsquo;NDA e il listino riservato, con le condizioni
-          per il volume che avete indicato.
+          {demo
+            ? "Nessuna email è stata inviata e nessuna persona riceverà questa richiesta di prova."
+            : "Il team può ora esaminare la richiesta e definire con voi condizioni e servizi."}
         </p>
       </div>
     );
@@ -86,7 +91,7 @@ export function ModuloAgenzia() {
           {(p) => <Input {...p} name="email" type="email" required autoComplete="email" />}
         </Campo>
         <Campo id="ag-tel" label="Telefono" hint="Facoltativo">
-          {(p) => <Input {...p} name="telefono" autoComplete="tel" />}
+          {(p) => <Input {...p} name="telefono" type="tel" autoComplete="tel" />}
         </Campo>
       </div>
 

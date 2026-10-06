@@ -43,7 +43,7 @@ export type PricingInput = {
   wordCount: number;
   /** Rilevante solo per ghostwriting ("solo-materiali"). Default: "parziale". */
   materialAmount?: MaterialAmount;
-  /** Servizi esplicitamente richiesti dal cliente (aggiunti al pacchetto Essenziale). */
+  /** Servizi esplicitamente richiesti dal cliente (inclusi in tutti i pacchetti). */
   requestedServices?: ServiceKey[];
   urgency?: Urgency;
 };
@@ -366,11 +366,11 @@ export function computeQuote(input: PricingInput): QuoteResult {
 
   const tiers = composeTiers(withWords);
 
-  // Aggiungi i servizi esplicitamente richiesti al solo pacchetto Essenziale.
+  // Ogni proposta deve rispettare i servizi richiesti, senza duplicarne il costo.
   if (input.requestedServices?.length) {
     for (const key of input.requestedServices) {
-      if (!tiers.essenziale.serviceKeys.includes(key)) {
-        tiers.essenziale.serviceKeys.push(key);
+      for (const tier of Object.values(tiers)) {
+        if (!tier.serviceKeys.includes(key)) tier.serviceKeys.push(key);
       }
     }
   }

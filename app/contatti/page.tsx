@@ -9,6 +9,14 @@ export const metadata: Metadata = metadatiPagina({
   path: "/contatti",
 });
 
-export default function ContattiPage() {
-  return <ContactPage />;
+export default async function ContattiPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ motivo?: string; quote?: string }>;
+}) {
+  const sp = await searchParams;
+  const motivo = sp.motivo === "editor" ? "editor" : undefined;
+  const quote =
+    sp.quote && /^(demo-[a-z]+-\d+|[0-9a-f-]{36})$/.test(sp.quote) ? sp.quote : undefined;
+  return <ContactPage motivo={motivo} quote={quote} />;
 }

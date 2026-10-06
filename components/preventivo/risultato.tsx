@@ -31,23 +31,23 @@ export function RisultatoPreventivo({ esito, quoteId }: { esito: QuoteResult; qu
 
   return (
     <div>
-      <div className="mb-8 rounded-scheda border border-ottone/50 bg-notte-alta p-6 sm:flex sm:items-center sm:justify-between sm:gap-8">
+      <div className="rounded-scheda border-ottone/50 bg-carta-alta mb-8 border p-6 sm:flex sm:items-center sm:justify-between sm:gap-8">
         <div>
           <p className="apparato text-ottone">Prima di scegliere</p>
-          <h3 className="font-display text-carta mt-2 text-2xl font-medium">
+          <h3 className="font-display text-inchiostro mt-2 text-2xl font-medium">
             Vuoi verificare insieme il preventivo?
           </h3>
-          <p className="prosa text-carta/65 mt-2 max-w-2xl text-sm">
+          <p className="prosa text-stampa mt-2 max-w-2xl text-sm">
             Per i progetti editoriali la call resta gratuita: guardiamo il testo, capiamo cosa serve
             davvero e, se il lavoro è più semplice della stima, adeguiamo il prezzo.
           </p>
         </div>
         <BottoneLink
           href={`/contatti?quote=${encodeURIComponent(quoteId)}`}
-          variante="chiaro"
+          variante="primario"
           className="mt-5 shrink-0 sm:mt-0"
         >
-          Prenota una call
+          Richiedi una call
         </BottoneLink>
       </div>
 
@@ -58,41 +58,41 @@ export function RisultatoPreventivo({ esito, quoteId }: { esito: QuoteResult; qu
             className={cx(
               "rounded-scheda flex flex-col border p-6",
               p.recommended
-                ? "border-ottone bg-notte-alta ring-ottone/25 ring-1"
-                : "border-filetto-notte bg-notte-alta",
+                ? "border-ottone bg-carta-alta ring-ottone/25 ring-1"
+                : "border-filetto bg-carta-alta",
             )}
           >
             <div className="flex items-baseline justify-between gap-3">
-              <h3 className="font-display text-carta text-2xl font-medium">{p.name}</h3>
+              <h3 className="font-display text-inchiostro text-2xl font-medium">{p.name}</h3>
               {p.recommended && <Etichetta tono="ottone">Consigliato</Etichetta>}
             </div>
-            <p className="prosa text-carta/70 mt-2 text-[0.95rem]">{p.headline}</p>
+            <p className="prosa text-stampa mt-2 text-[0.95rem]">{p.headline}</p>
 
-            <Filetto className="my-5" tono="notte" />
+            <Filetto className="my-5" tono="carta" />
 
-            <p className="cifre text-carta text-3xl font-medium">{euro(p.total)}</p>
-            <p className="apparato text-carta/45 mt-2">
+            <p className="cifre text-inchiostro text-3xl font-medium">{euro(p.total)}</p>
+            <p className="apparato text-stampa mt-2">
               Acconto {euro(p.deposit)} · saldo a consegna
             </p>
 
-            <Filetto className="my-5" tono="notte" />
+            <Filetto className="my-5" tono="carta" />
 
             <p className="apparato text-ottone">{PREVENTIVO.incluso}</p>
             <ul className="mt-3 space-y-2">
               {p.lineItems.map((v) => (
                 <li key={v.key} className="flex items-baseline justify-between gap-3 text-sm">
-                  <span className="font-lettura text-carta/85">{v.label}</span>
-                  <span className="cifre text-carta/45 shrink-0">{euro(v.amount)}</span>
+                  <span className="font-lettura text-stampa">{v.label}</span>
+                  <span className="cifre text-stampa shrink-0">{euro(v.amount)}</span>
                 </li>
               ))}
             </ul>
 
             {p.excludes.length > 0 && (
               <>
-                <p className="apparato text-carta/45 mt-5">{PREVENTIVO.escluso}</p>
+                <p className="apparato text-stampa mt-5">{PREVENTIVO.escluso}</p>
                 <ul className="mt-3 flex-1 space-y-1.5">
                   {p.excludes.map((v, i) => (
-                    <li key={i} className="font-lettura text-carta/45 text-sm">
+                    <li key={i} className="font-lettura text-stampa text-sm">
                       {v}
                     </li>
                   ))}
@@ -119,19 +119,19 @@ export function RisultatoPreventivo({ esito, quoteId }: { esito: QuoteResult; qu
         </p>
       )}
 
-      <Filetto className="mt-10" tono="notte" />
+      <Filetto className="mt-10" tono="carta" />
       <div className="mt-6 grid gap-6 sm:grid-cols-[auto_1fr] sm:gap-10">
         <dl className="flex gap-8">
           <div>
-            <dt className="apparato text-carta/45">Parole</dt>
-            <dd className="cifre text-carta mt-1">{numero(esito.wordCount)}</dd>
+            <dt className="apparato text-stampa">Parole</dt>
+            <dd className="cifre text-inchiostro mt-1">{numero(esito.wordCount)}</dd>
           </div>
           <div>
-            <dt className="apparato text-carta/45">Pagine stimate</dt>
-            <dd className="cifre text-carta mt-1">{numero(esito.estimatedPages)}</dd>
+            <dt className="apparato text-stampa">Pagine stimate</dt>
+            <dd className="cifre text-inchiostro mt-1">{numero(esito.estimatedPages)}</dd>
           </div>
         </dl>
-        <p className="font-lettura text-carta/60 text-sm leading-relaxed">
+        <p className="font-lettura text-stampa text-sm leading-relaxed">
           {PREVENTIVO.disclaimerStima}
         </p>
       </div>

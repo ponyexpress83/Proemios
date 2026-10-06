@@ -7,7 +7,7 @@ type Variante = "primario" | "secondario" | "secondarioNotte" | "quieto" | "quie
 type Misura = "media" | "grande";
 
 const base =
-  "garbo inline-flex select-none items-center justify-center gap-2 font-ui font-medium " +
+  "editorial-button garbo inline-flex select-none items-center justify-center gap-2 font-ui font-medium " +
   "rounded-campo disabled:cursor-not-allowed disabled:opacity-40";
 
 /**

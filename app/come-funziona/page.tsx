@@ -3,7 +3,7 @@ import { metadatiPagina } from "@/lib/seo";
 export const metadata = metadatiPagina({
   titolo: "Come funziona",
   descrizione:
-    "Un unico percorso editoriale, dall’idea al libro. Professionisti, cura e strumenti per seguire ogni fase.",
+    "Dal primo confronto alle consegne approvate: scopri le cinque fasi del percorso Proemios e come seguire il tuo progetto.",
   path: "/come-funziona",
 });
 export default function Page() {

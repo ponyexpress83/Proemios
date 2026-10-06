@@ -2,11 +2,12 @@
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { services, articles } from "@/lib/editorial-content";
-import { Header, Footer } from "./proemios";
+import { Header, Footer } from "./chrome";
 import { Testata } from "@/components/layout/testata";
 import { Colophon } from "@/components/layout/colophon";
 export function SiteChrome({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  if (pathname.startsWith("/area-autore")) return <div className="proemios-public">{children}</div>;
   if (pathname.startsWith("/admin"))
     return (
       <>

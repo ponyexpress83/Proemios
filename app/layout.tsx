@@ -2,18 +2,18 @@ import type { Metadata } from "next";
 import Script from "next/script";
 import { BRAND } from "@/config/brand";
 import { UI } from "@/config/copy";
-import { fontVariables } from "./fonts";
 import { SiteChrome } from "@/components/editorial/site-chrome";
 
 import { FasciaDemo } from "@/components/layout/fascia-demo";
 import { AttributionCapture } from "@/components/marketing/attribution-capture";
 import { demoAttiva } from "@/lib/demo";
-import { JsonLd, organizationJsonLd } from "@/lib/seo";
+import { JsonLd, organizationJsonLd, assoluto, indicizzazioneBloccata } from "@/lib/seo";
 import "./globals.css";
 import "./editorial.css";
+import "./experience.css";
 
 export const metadata: Metadata = {
-  metadataBase: new URL(BRAND.url),
+  metadataBase: new URL(assoluto()),
   title: {
     default: `${BRAND.name} — ${BRAND.payoff}`,
     template: `%s · ${BRAND.name}`,
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "it_IT",
-    url: BRAND.url,
+    url: assoluto(),
     siteName: BRAND.name,
     title: `${BRAND.name} — ${BRAND.payoff}`,
     description: BRAND.description,
@@ -33,9 +33,11 @@ export const metadata: Metadata = {
     title: `${BRAND.name} — ${BRAND.payoff}`,
     description: BRAND.description,
   },
-  alternates: { canonical: BRAND.url },
-  robots: demoAttiva() ? { index: false, follow: false } : { index: true, follow: true },
-  icons: {icon: "/favicon.svg", shortcut: "/favicon.svg"},
+  alternates: { canonical: assoluto() },
+  robots: indicizzazioneBloccata()
+    ? { index: false, follow: false }
+    : { index: true, follow: true },
+  icons: { icon: "/favicon.svg", shortcut: "/favicon.svg" },
   formatDetection: { telephone: false },
 };
 
@@ -43,7 +45,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const gtmId = process.env.NEXT_PUBLIC_GTM_ID?.trim();
 
   return (
-    <html lang="it" className={fontVariables}>
+    <html lang="it">
+      <head>
+        <link
+          rel="preload"
+          href="/fonts/editorial.woff2"
+          as="font"
+          type="font/woff2"
+          crossOrigin="anonymous"
+        />
+      </head>
       <body className="flex min-h-dvh flex-col">
         {gtmId && !demoAttiva() && (
           <>
@@ -62,7 +73,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </>
         )}
         <JsonLd data={organizationJsonLd()} />
-        <AttributionCapture />
+        <AttributionCapture enabled={!demoAttiva()} />
         <a
           href="#contenuto"
           className="focus:rounded-campo focus:bg-alloro focus:text-carta sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[100] focus:px-4 focus:py-2"

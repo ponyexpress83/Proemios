@@ -1,7 +1,7 @@
 "use client";
 import { useState, type ReactNode } from "react";
 import Link from "@/components/editorial/link";
-import { ArrowUpRight, BookOpen, Check, Layers, PenLine } from "lucide-react";
+import { ArrowRight, BookOpen, Check, Layers, PenLine } from "lucide-react";
 import {
   Shell,
   Eyebrow,
@@ -11,7 +11,6 @@ import {
   ServicesGrid,
   Platform,
   Team,
-  Testimonials,
   Agency,
   BeforeAfter,
 } from "./proemios";
@@ -42,6 +41,7 @@ function Intro({
   aside,
   crumb,
   cta = true,
+  ctaHref = "/preventivo",
 }: {
   eyebrow: string;
   title: ReactNode;
@@ -49,6 +49,7 @@ function Intro({
   aside?: ReactNode;
   crumb: string;
   cta?: boolean;
+  ctaHref?: string;
 }) {
   return (
     <section className="inner-hero">
@@ -70,8 +71,8 @@ function Intro({
             <h1>{title}</h1>
             <p className="intro">{description}</p>
             {cta && (
-              <Link className="button" href="/preventivo">
-                Parliamo del tuo progetto <ArrowUpRight size={18} />
+              <Link className="button" href={ctaHref}>
+                Parliamo del tuo progetto <ArrowRight size={18} />
               </Link>
             )}
           </div>
@@ -96,7 +97,7 @@ function FAQ({ items }: { items: [string, string][] }) {
 const sharedFAQ: [string, string][] = [
   [
     "Quanto costa il servizio?",
-    "Il preventivo dipende da lunghezza, stato del testo, tipo di intervento e consegne. Il configuratore usa le tariffe del progetto e propone percorsi secondo i servizi selezionati. Possiamo verificarli insieme.",
+    "Il preventivo dipende da lunghezza, stato del testo, tipo di intervento e consegne. Il configuratore usa i nostri listini reali e propone percorsi secondo i servizi selezionati. Possiamo verificarli insieme.",
   ],
   [
     "Posso richiedere solo una fase?",
@@ -121,6 +122,7 @@ function ServicePage({ slug }: { slug: string }) {
         }
         description={s.description}
         crumb={"servizi/" + slug}
+        ctaHref={"/preventivo?servizio=" + slug}
         aside={
           <>
             <div className="big-icon">
@@ -164,7 +166,7 @@ function ServicePage({ slug }: { slug: string }) {
               <p>{s.result}</p>
             </div>
             <Link href={"/preventivo?servizio=" + s.slug} className="button">
-              Richiedi una proposta <ArrowUpRight size={18} />
+              Richiedi una proposta <ArrowRight size={18} />
             </Link>
           </div>
         </div>
@@ -219,7 +221,7 @@ function PathPage({ slug }: { slug: string }) {
               className="text-link"
               style={{ marginTop: 20 }}
             >
-              Scegli questo percorso <ArrowUpRight size={17} />
+              Scegli questo percorso <ArrowRight size={17} />
             </Link>
           </>
         }
@@ -259,7 +261,7 @@ function PathPage({ slug }: { slug: string }) {
               </p>
             </div>
             <Link href={"/preventivo?percorso=" + p.slug} className="button">
-              Inizia da qui <ArrowUpRight size={18} />
+              Inizia da qui <ArrowRight size={18} />
             </Link>
           </div>
         </div>
@@ -309,7 +311,7 @@ function BlogPage() {
                   <h3>{a.title}</h3>
                   <p>{a.summary}</p>
                   <span className="text-link">
-                    Leggi la guida <ArrowUpRight size={18} />
+                    Leggi la guida <ArrowRight size={18} />
                   </span>
                 </Link>
               ))}
@@ -345,7 +347,7 @@ export function InternalPage({ route }: { route: string }) {
               personalizzata.
             </div>
             <Link href="/blog" className="text-link" style={{ marginTop: 35 }}>
-              Torna alle guide <ArrowUpRight size={18} />
+              Torna alle guide <ArrowRight size={18} />
             </Link>
           </article>
         </section>
@@ -420,7 +422,7 @@ export function InternalPage({ route }: { route: string }) {
                 definiamo una sequenza coerente senza forzarti in un pacchetto.
               </p>
               <Link href="/contatti" className="text-link" style={{ marginTop: 20 }}>
-                Parla con un editor <ArrowUpRight size={18} />
+                Parla con un editor <ArrowRight size={18} />
               </Link>
             </div>
           </div>
@@ -568,7 +570,7 @@ export function InternalPage({ route }: { route: string }) {
                 con il cliente. Valutiamo un flusso adatto alla tua struttura.
               </p>
               <Link href="/contatti?motivo=agenzia" className="button" style={{ marginTop: 25 }}>
-                Parliamo di partnership <ArrowUpRight size={18} />
+                Parliamo di partnership <ArrowRight size={18} />
               </Link>
             </div>
           </div>
@@ -641,20 +643,20 @@ export function InternalPage({ route }: { route: string }) {
               <em>c’è un percorso.</em>
             </>
           }
-          description="Qui raccoglieremo progetti documentati: punto di partenza, lavoro editoriale, materiali e testimonianze autorizzate."
+          description="Esplora un esempio editoriale: il testo di partenza, una possibile revisione e le decisioni da condividere. È una dimostrazione, non un caso cliente."
           crumb={route}
           cta={false}
         />
-        <Testimonials />
+        <BeforeAfter />
         <section className="section" style={{ paddingTop: 0 }}>
           <div className="case-note container">
-            <h3>I casi studio sono in preparazione.</h3>
+            <h3>Come leggere questo esempio.</h3>
             <p>
-              Non presentiamo progetti dimostrativi come lavori reali. Copertine, nomi e risultati
-              saranno pubblicati dopo verifica e autorizzazione degli autori.
+              Osserva come cambiano ritmo e chiarezza, senza perdere il senso del testo. I casi
+              cliente saranno pubblicati solo con materiali verificati e autorizzati.
             </p>
             <Link href="/come-funziona" className="text-link" style={{ marginTop: 25 }}>
-              Intanto, scopri il metodo <ArrowUpRight size={18} />
+              Intanto, scopri il metodo <ArrowRight size={18} />
             </Link>
           </div>
         </section>
