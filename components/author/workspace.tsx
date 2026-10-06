@@ -1,6 +1,5 @@
 "use client";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { Dialog } from "radix-ui";
 import {
   LayoutDashboard,
@@ -54,7 +53,6 @@ const stages = [
   "Pubblicazione",
 ];
 export function AuthorWorkspace() {
-  const router = useRouter();
   const [ready, setReady] = useState(false);
   const [state, setState] = useState<DemoState>(initialDemoState);
   const [section, setSection] = useState<Section>("overview");
@@ -66,15 +64,15 @@ export function AuthorWorkspace() {
   useEffect(() => {
     try {
       if (!validDemoSession(sessionStorage.getItem(DEMO_SESSION_KEY))) {
-        router.replace("/accedi");
+        window.location.replace("/accedi");
         return;
       }
       setState(restoreDemoState(sessionStorage.getItem(DEMO_STATE_KEY)));
       setReady(true);
     } catch {
-      router.replace("/accedi");
+      window.location.replace("/accedi");
     }
-  }, [router]);
+  }, []);
   useEffect(() => {
     if (ready)
       try {
@@ -103,7 +101,7 @@ export function AuthorWorkspace() {
       sessionStorage.removeItem(DEMO_SESSION_KEY);
       sessionStorage.removeItem(DEMO_STATE_KEY);
     } finally {
-      router.replace("/accedi");
+      window.location.assign("/accedi");
     }
   }
   function download(revised = true) {

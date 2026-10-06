@@ -39,6 +39,10 @@
 .proemios-public .hero-scene {
   perspective: 1400px;
 }
+.proemios-public .hero-scene-inner {
+  /* Isola i piani UI dal volume del libro: le card non attraversano la copertina. */
+  transform-style: flat;
+}
 .proemios-public .hero-book-trigger {
   position: absolute;
   top: 110px;
