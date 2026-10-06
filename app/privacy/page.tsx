@@ -32,7 +32,7 @@ export default function PrivacyPage() {
               Stai usando una demo. Preventivi, contatti e analisi sono simulati: non vengono
               inviate email né eseguiti pagamenti. Non inserire dati o manoscritti personali. L’area
               autore conserva le azioni solo nella scheda del browser, fino all’uscita; l’assistente
-              preventivo conserva le risposte solo finché è aperto. La dettatura facoltativa è
+              preventivo conserva le risposte finché non lasci la pagina. La dettatura facoltativa è
               gestita dal browser e può usare il servizio vocale del suo fornitore. Il testo
               seguente descrive il trattamento previsto per il servizio operativo e va verificato
               prima dell’attivazione.

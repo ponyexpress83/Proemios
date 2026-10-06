@@ -1,0 +1,24 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> proemios@0.1.0 test
+> vitest run
+
+
+ RUN  v3.2.7 /workspace/proemios-github
+
+ ✓ tests/pricing.test.ts (18 tests) 29ms
+ ✓ tests/interactive-experience.test.ts (8 tests) 29ms
+ ✓ tests/demo.test.ts (12 tests) 34ms
+ ✓ tests/editorial-journey.test.ts (8 tests) 13ms
+ ✓ tests/ai.test.ts (18 tests) 18ms
+ ✓ tests/analysis-api.test.ts (3 tests) 73ms
+ ✓ tests/editorial-ui.test.ts (6 tests) 2167ms
+   ✓ interazioni della homepage > libro e CTA aprono lo stesso assistente, preservano le risposte e restituiscono il focus  1159ms
+   ✓ analisi integrata e brief > ritorna dal report mantenendo servizi, lunghezza e contesto  312ms
+   ✓ azioni della demo autore > messaggi, file, approvazione, fase successiva, pagamenti e ripristino restano nella demo  478ms
+
+ Test Files  7 passed (7)
+      Tests  73 passed (73)
+   Start at  23:16:12
+   Duration  4.72s (transform 1.31s, setup 0ms, collect 3.90s, tests 2.36s, environment 977ms, prepare 1.40s)
+
