@@ -1227,3 +1227,15 @@
 .proemios-public .demo-entry-details .button {
   width: 100%;
 }
+
+.path-starting-materials {
+  margin: 28px 0;
+  padding: 22px;
+  background: #eee8f3;
+  border-radius: 16px;
+}
+.path-starting-materials li {
+  margin: 12px 0;
+  list-style: disc inside;
+  line-height: 1.5;
+}

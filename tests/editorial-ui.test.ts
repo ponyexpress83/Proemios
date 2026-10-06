@@ -4,13 +4,15 @@ import { render, screen, fireEvent, cleanup, waitFor } from "@testing-library/re
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { HomePage } from "@/components/editorial/proemios";
 import { Configuratore } from "@/components/preventivo/configuratore";
+import { AuthorWorkspace } from "@/components/author/workspace";
+import { DEMO_SESSION_KEY } from "@/lib/author-demo";
 import { BookPath } from "@/components/editorial/book-path";
 import { reportDemo } from "@/lib/demo";
 import { calcolaMetriche } from "@/lib/metrics";
 
 vi.mock("next/dynamic", async () => {
-  const module = await import("@/components/editorial/quote-assistant");
-  return { default: () => module.default };
+  const assistantModule = await import("@/components/editorial/quote-assistant");
+  return { default: () => assistantModule.default };
 });
 vi.mock("next/image", () => ({
   default: (props: { src: string; alt: string }) => createElement("img", props),
@@ -126,14 +128,12 @@ describe("analisi integrata e brief", () => {
     );
     vi.stubGlobal(
       "fetch",
-      vi
-        .fn()
-        .mockResolvedValue({
-          ok: true,
-          status: 200,
-          headers: new Headers({ "content-type": "application/json" }),
-          json: async () => ({ report, demo: true }),
-        }),
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        headers: new Headers({ "content-type": "application/json" }),
+        json: async () => ({ report, demo: true }),
+      }),
     );
     render(createElement(Configuratore, { precompilato, demoMode: true }));
     next();
@@ -163,5 +163,45 @@ describe("analisi integrata e brief", () => {
     expect((screen.getByLabelText(/Descrivi il tuo progetto/) as HTMLTextAreaElement).value).toBe(
       "Storia di lavoro",
     );
+  });
+});
+
+describe("azioni della demo autore", () => {
+  it("messaggi, file, approvazione, fase successiva, pagamenti e ripristino restano nella demo", async () => {
+    sessionStorage.setItem(
+      DEMO_SESSION_KEY,
+      JSON.stringify({ user: "demo-author", createdAt: Date.now() }),
+    );
+    render(createElement(AuthorWorkspace));
+    expect(screen.getByRole("heading", { name: "La tua storia prende forma." })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Messaggi" }));
+    fireEvent.change(screen.getByLabelText("Prova a scrivere al team"), {
+      target: { value: "Messaggio sintetico di prova." },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Invia nella demo" }));
+    expect(screen.getByText("Messaggio sintetico di prova.")).toBeTruthy();
+    expect(screen.getByText(/Risposta simulata/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "File e revisioni" }));
+    const read = screen.getAllByRole("button", { name: "Leggi" })[0]!;
+    fireEvent.click(read);
+    expect(screen.getByRole("dialog").textContent).toContain("Documento dimostrativo");
+    fireEvent.click(screen.getByRole("button", { name: "Chiudi documento" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(document.activeElement).toBe(read);
+    fireEvent.click(screen.getByRole("button", { name: /Approvazioni/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Approva la revisione" }));
+    fireEvent.click(screen.getByRole("button", { name: "Conferma approvazione" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    fireEvent.click(screen.getByRole("button", { name: "Il mio libro" }));
+    expect(screen.getByText("Copertina da avviare")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Pagamenti" }));
+    expect(screen.getByText("Pagamento simulato: nessun addebito")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Prova il riepilogo pagamento →" }));
+    expect(screen.getByRole("status").textContent).toContain("non si apre alcun pagamento");
+    fireEvent.click(screen.getByRole("button", { name: "Consegne" }));
+    expect(screen.getByText("Consegna demo approvata")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Ripristina demo" }));
+    expect(screen.getByText("Disponibile per la tua revisione")).toBeTruthy();
+    sessionStorage.clear();
   });
 });

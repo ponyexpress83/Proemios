@@ -192,6 +192,11 @@ export const paths = [
       "Struttura e scrittura condivisa",
       "Revisione, design e pubblicazione",
     ],
+    materials: [
+      "Interviste a fondatore e persone chiave",
+      "Documenti, fotografie e cronologia dell’impresa",
+      "Appunti, episodi e testimonianze del tuo lavoro",
+    ],
     color: "sky",
     icon: "business",
   },

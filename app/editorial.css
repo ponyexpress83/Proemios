@@ -2388,21 +2388,6 @@ body:has(.proemios-public),
     margin-top: 22px;
     font-size: 0.9rem;
   }
-  .proemios-public .path-grid {
-    display: flex;
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    gap: 14px;
-    padding: 5px 2px 20px;
-    margin-right: -20px;
-    padding-right: 20px;
-  }
-  .proemios-public .path-card {
-    min-width: 245px;
-    max-width: 245px;
-    scroll-snap-align: start;
-    min-height: 310px;
-  }
   .proemios-public .path-card h3 {
     font-size: 1.5rem;
   }
