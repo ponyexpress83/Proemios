@@ -21,8 +21,6 @@ import {
   Package,
   ShieldCheck,
   Layers,
-  Circle,
-  Mic,
 } from "lucide-react";
 import {
   Accordion,
@@ -99,7 +97,7 @@ function HeroScene() {
   return (
     <div
       ref={ref}
-      className="hero-scene"
+      className="hero-scene hero-scene-focused"
       onPointerMove={move}
       onPointerLeave={() => {
         ref.current?.style.setProperty("--rx", "0deg");
@@ -120,12 +118,6 @@ function HeroScene() {
           onClick={() => setAssistantOpen(true)}
         >
           <Book />
-          <span className="book-chat-cue">
-            <Mic size={20} />
-            <span>
-              Raccontami il tuo libro<small>Apri il preventivo guidato →</small>
-            </span>
-          </span>
         </button>
         <div className="status-card status-edit">
           <span className="status-icon sage">
@@ -147,22 +139,15 @@ function HeroScene() {
           </div>
           <span className="state-dot" />
         </div>
-        <div className="status-card status-final">
-          <div>
-            <Circle size={13} /> Impaginazione
-          </div>
-          <small>Da iniziare</small>
-          <div>
-            <Circle size={13} /> Pubblicazione
-          </div>
-          <small>Da iniziare</small>
-        </div>
+      </div>
+      <div className="hero-quote-invite">
+        <h2>Quanto costa il tuo libro?</h2>
+        <p>Scopri una prima stima, senza lasciare i tuoi dati.</p>
+        <button className="button" onClick={() => setAssistantOpen(true)}>
+          Calcola il preventivo <ArrowRight size={21} />
+        </button>
       </div>
       {assistantOpen && <QuoteAssistant open={assistantOpen} onOpenChange={setAssistantOpen} />}
-      <div className="scene-caption">
-        <span>UNA STORIA. UN PERCORSO.</span>
-        <span>Il prossimo libro potrebbe essere il tuo.</span>
-      </div>
     </div>
   );
 }

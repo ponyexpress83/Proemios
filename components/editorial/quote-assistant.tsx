@@ -18,22 +18,7 @@ import {
   quoteWizardUrl,
 } from "@/lib/quote-assistant";
 import { euro } from "@/lib/format";
-type Recognition = {
-  lang: string;
-  continuous: boolean;
-  interimResults: boolean;
-  start(): void;
-  stop(): void;
-  onresult:
-    | ((event: { results: { isFinal: boolean; [key: number]: { transcript: string } }[] }) => void)
-    | null;
-  onerror: ((event: { error: string }) => void) | null;
-  onend: (() => void) | null;
-};
-type SpeechWindow = Window & {
-  SpeechRecognition?: new () => Recognition;
-  webkitSpeechRecognition?: new () => Recognition;
-};
+import { useDictation } from "@/components/voice/use-dictation";
 const questions = [
   "Che tipo di libro vuoi realizzare?",
   "A che punto è il testo?",
@@ -56,21 +41,25 @@ export default function QuoteAssistant({
   });
   const [draft, setDraft] = useState("");
   const [error, setError] = useState("");
-  const [listening, setListening] = useState(false);
-  const [voice, setVoice] = useState(false);
   const [history, setHistory] = useState<string[]>([]);
-  const recognition = useRef<Recognition | null>(null);
   const field = useRef<HTMLInputElement>(null);
+  const {
+    supported: voice,
+    listening,
+    error: voiceError,
+    toggle: dictation,
+    stop,
+    clearError,
+  } = useDictation((text) => {
+    setDraft(text.slice(0, 800));
+    field.current?.focus();
+  });
   useEffect(() => {
-    const w = window as SpeechWindow;
-    setVoice(Boolean(w.SpeechRecognition || w.webkitSpeechRecognition));
-    return () => recognition.current?.stop();
-  }, []);
-  useEffect(() => {
-    if (!open) recognition.current?.stop();
-  }, [open]);
+    if (!open) stop();
+  }, [open, stop]);
   function advance(value: Partial<PricingInput>, answer: string) {
-    recognition.current?.stop();
+    stop();
+    clearError();
     setInput((p) => ({ ...p, ...value }));
     setHistory((h) => [...h.slice(0, step), answer]);
     setStep((s) => s + 1);
@@ -103,49 +92,6 @@ export default function QuoteAssistant({
           : ". Puoi modificare le scelte tornando indietro."),
     );
   }
-  function dictation() {
-    if (listening) {
-      recognition.current?.stop();
-      return;
-    }
-    const w = window as SpeechWindow;
-    const API = w.SpeechRecognition || w.webkitSpeechRecognition;
-    if (!API) {
-      setError(
-        "La dettatura non è disponibile in questo browser. Puoi scrivere o scegliere una risposta.",
-      );
-      return;
-    }
-    const r = new API();
-    r.lang = "it-IT";
-    r.continuous = false;
-    r.interimResults = false;
-    r.onresult = (e) => {
-      setDraft(
-        Array.from(e.results)
-          .map((result) => result[0]?.transcript || "")
-          .join(" "),
-      );
-      field.current?.focus();
-    };
-    r.onerror = (e) => {
-      setError(
-        e.error === "not-allowed"
-          ? "Il microfono non è autorizzato. Puoi continuare scrivendo."
-          : "Non ho ricevuto una dettatura. Riprova o scrivi il testo.",
-      );
-      setListening(false);
-    };
-    r.onend = () => setListening(false);
-    recognition.current = r;
-    setError("");
-    try {
-      r.start();
-      setListening(true);
-    } catch {
-      setError("Il microfono non è disponibile. Continua con la tastiera.");
-    }
-  }
   const complete = step === 5 && input.projectType && input.textState && input.wordCount;
   const result = complete ? computeQuote(input as PricingInput) : null;
   return (
@@ -162,9 +108,9 @@ export default function QuoteAssistant({
           <div className="assistant-header">
             <BrandMark />
             <div>
-              <Dialog.Title>Parliamo del tuo libro.</Dialog.Title>
+              <Dialog.Title>Il preventivo del tuo libro.</Dialog.Title>
               <Dialog.Description>
-                Assistente guidato · nessun dato di contatto richiesto
+                Cinque domande, una prima stima. Senza lasciare i tuoi dati.
               </Dialog.Description>
             </div>
             <Dialog.Close className="icon-button" aria-label="Chiudi assistente">
@@ -172,15 +118,13 @@ export default function QuoteAssistant({
             </Dialog.Close>
           </div>
           <div className="assistant-body">
-            <div className="assistant-intro">
-              Tu racconti il punto di partenza. Io ti aiuto a trovare un percorso, con una stima
-              basata sui nostri listini reali.
-            </div>
             <div className="assistant-history" aria-label="Le tue risposte">
               {history.map((h, i) => (
                 <button
                   key={i}
                   onClick={() => {
+                    stop();
+                    clearError();
                     setStep(i);
                     setHistory((v) => v.slice(0, i));
                     setError("");
@@ -310,7 +254,11 @@ export default function QuoteAssistant({
                       id="assistant-input"
                       value={draft}
                       maxLength={800}
-                      onChange={(e) => setDraft(e.target.value)}
+                      onChange={(e) => {
+                        stop();
+                        clearError();
+                        setDraft(e.target.value);
+                      }}
                       placeholder={
                         step === 2
                           ? "Ad esempio: 50.000 parole"
@@ -323,7 +271,6 @@ export default function QuoteAssistant({
                       aria-label={listening ? "Ferma dettatura" : "Detta la risposta"}
                       aria-pressed={listening}
                       onClick={dictation}
-                      disabled={!voice}
                     >
                       {listening ? <MicOff /> : <Mic />}
                     </button>
@@ -381,15 +328,16 @@ export default function QuoteAssistant({
                 </Link>
               </div>
             )}
-            {error && (
+            {(error || voiceError) && (
               <p className="assistant-error" role="alert">
-                {error}
+                {error || voiceError}
               </p>
             )}
             <button
               className="text-link assistant-reset"
               onClick={() => {
-                recognition.current?.stop();
+                stop();
+                clearError();
                 setStep(0);
                 setInput({
                   materialAmount: "parziale",

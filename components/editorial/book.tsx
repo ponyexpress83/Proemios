@@ -8,7 +8,7 @@ export function Book({ small = false }: { small?: boolean }) {
           <span>PROEMIOS · LA FORMA DELLE STORIE</span>
         </div>
         <div className="book-cover">
-          <span className="book-imprint">PROEMIOS / UN NUOVO CAPITOLO</span>
+          <span className="book-imprint">PROEMIOS</span>
           <div className="book-cover-lines">
             <i />
             <i />
@@ -21,7 +21,6 @@ export function Book({ small = false }: { small?: boolean }) {
             <br />
             <em>storie.</em>
           </strong>
-          <span className="book-author">LA TUA VOCE, IN UN LIBRO.</span>
         </div>
       </div>
     </div>

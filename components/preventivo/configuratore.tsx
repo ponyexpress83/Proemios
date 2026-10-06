@@ -8,6 +8,7 @@ import { Bottone } from "@/components/ui/bottone";
 import { Campo, Input, AreaTesto, Consenso } from "@/components/ui/campi";
 import { Filetto, cx } from "@/components/ui/primitivi";
 import { RisultatoPreventivo } from "./risultato";
+import { VoiceBrief } from "./voice-brief";
 import {
   TIPI_PROGETTO,
   STATI_TESTO,
@@ -209,8 +210,22 @@ export function Configuratore({
 
   // ── Wizard ─────────────────────────────────────────────────────────────
   return (
-    <div className="grid gap-10 lg:grid-cols-[1.7fr_1fr]">
+    <div className="quote-wizard grid gap-10 lg:grid-cols-[1.7fr_1fr]">
       <div>
+        {passo === 0 && (
+          <VoiceBrief
+            onApply={(input, text) => {
+              setS((prev) => ({
+                ...prev,
+                tipo: input.projectType ?? prev.tipo,
+                statoTesto: input.textState ?? prev.statoTesto,
+                parole: input.wordCount ?? prev.parole,
+                servizi: [...new Set([...prev.servizi, ...(input.requestedServices || [])])],
+                note: text,
+              }));
+            }}
+          />
+        )}
         {/* Avanzamento */}
         <div className="mb-8">
           <div className="flex items-baseline justify-between">
@@ -228,6 +243,18 @@ export function Configuratore({
         </div>
 
         <div className="min-h-[22rem]">
+          <h2 className="wizard-question">
+            {
+              [
+                "Che tipo di libro vuoi realizzare?",
+                "A che punto è il testo?",
+                "Quanto sarà lungo il libro?",
+                "Di quali servizi hai bisogno?",
+                "Hai una scadenza?",
+                "Dove possiamo ricontattarti?",
+              ][passo]
+            }
+          </h2>
           {/* 1 — Tipo di progetto */}
           {passo === 0 && (
             <Griglia>
@@ -484,6 +511,7 @@ export function Configuratore({
         <div className="border-filetto mt-10 flex items-center justify-between border-t pt-6">
           <Bottone
             variante="secondario"
+            misura="grande"
             onClick={() => setPasso((p) => Math.max(0, p - 1))}
             disabled={passo === 0 || invio}
           >
@@ -493,6 +521,7 @@ export function Configuratore({
           {passo < TOTALE_PASSI - 1 ? (
             <Bottone
               variante="primario"
+              misura="grande"
               onClick={() => setPasso((p) => p + 1)}
               disabled={!puoAvanzare}
             >

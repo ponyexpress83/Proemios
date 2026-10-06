@@ -1,4 +1,4 @@
-import type { ProjectType, TextState, PricingInput } from "./pricing";
+import type { ProjectType, TextState, PricingInput, ServiceKey } from "./pricing";
 export function projectFromText(text: string): ProjectType | undefined {
   const t = text.toLowerCase();
   if (/memoir|autobiograf|storia (vera|di vita)|ricordi|diario/.test(t)) return "memoir";
@@ -41,4 +41,44 @@ export function quoteWizardUrl(input: PricingInput): string {
     servizi: (input.requestedServices || []).join(","),
   });
   return "/preventivo?" + params.toString();
+}
+
+/** Precompila soltanto i dettagli espliciti: la persona li conferma nel form. */
+export function briefFromText(text: string): Partial<PricingInput> {
+  const result: Partial<PricingInput> = {};
+  const project = projectFromText(text);
+  const state = /finit|scritto|incomplet|bozza|metà|idea|material|appunti|registraz/i.test(text)
+    ? stateFromText(text)
+    : undefined;
+  if (project) result.projectType = project;
+  if (state) result.textState = state;
+  // Non scambiare un anno, un'età o un numero di capitoli per il conteggio.
+  const wordPhrase = text.match(
+    /(?:-?\d[\d.,\s]*\s*(?:mila|k)?|(?:venti|cinquanta|ottanta|centoventi)\s*mila)\s+parole/i,
+  );
+  if (wordPhrase) {
+    const words = wordsFromText(
+      wordPhrase[0].replace(/(venti|cinquanta|ottanta|centoventi)\s+mila/i, "$1mila"),
+    );
+    if (words) result.wordCount = words;
+  }
+  const patterns: [ServiceKey, RegExp][] = [
+    ["editing", /\bediting\b|editare/i],
+    ["proofreading", /correzione (?:delle )?bozze|refusi/i],
+    ["layout", /impaginazione|impaginare/i],
+    ["epub", /\bepub\b|\bebook\b/i],
+    ["cover", /copertina/i],
+    ["kdp", /\bkdp\b|pubblicare su amazon|pubblicazione amazon/i],
+    ["isbn", /\bisbn\b/i],
+    ["amazonListing", /scheda amazon/i],
+  ];
+  // Evita di aggiungere servizi quando il frammento li nega.
+  const clauses = text.split(/[.!?;,]|\b(?:ma|però)\b/i);
+  const services = patterns
+    .filter(([, regex]) =>
+      clauses.some((clause) => !/\b(non|nessun|senza|no)\b/i.test(clause) && regex.test(clause)),
+    )
+    .map(([service]) => service);
+  if (services.length) result.requestedServices = services;
+  return result;
 }

@@ -21,7 +21,7 @@ export function QuotePage({
   };
 }) {
   return (
-    <section className="operative">
+    <section className="operative quote-operative">
       <div className="container">
         <div className="operative-intro">
           <Eyebrow>IL TUO LIBRO COMINCIA QUI</Eyebrow>
@@ -31,8 +31,8 @@ export function QuotePage({
             il tuo <em>progetto?</em>
           </h1>
           <p>
-            Raccontaci a che punto sei. Il configuratore usa i nostri listini reali per proporti tre
-            percorsi, con servizi e costi leggibili. Se vuoi, li verifichiamo insieme.
+            Racconta il tuo progetto, a voce o per iscritto. Confronta tre percorsi e scopri i costi
+            prima di lasciare i tuoi contatti.
           </p>
         </div>
         <div className="operative-surface">

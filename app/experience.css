@@ -2018,3 +2018,364 @@
 .proemios-public .operative-surface .field-error {
   color: #8c3024;
 }
+
+/* Hero: il libro e il preventivo sono il centro, la piattaforma resta sullo sfondo. */
+.proemios-public .hero-scene-focused {
+  height: 610px;
+}
+.proemios-public .hero-scene-focused .hero-scene-inner {
+  bottom: 160px;
+}
+.proemios-public .hero-scene-focused .hero-dashboard {
+  width: 80%;
+  top: 25px;
+  left: 3%;
+  transform: rotate(-5deg) rotateY(-7deg);
+}
+.proemios-public .hero-scene-focused .hero-dashboard .preview-body > p,
+.proemios-public .hero-scene-focused .hero-dashboard .preview-chart,
+.proemios-public .hero-scene-focused .hero-dashboard .preview-top {
+  display: none;
+}
+.proemios-public .hero-scene-focused .hero-dashboard .dashboard-preview {
+  min-height: 255px;
+}
+.proemios-public .hero-scene-focused .hero-dashboard .preview-body h3 {
+  font-size: 22px;
+  line-height: 1.2;
+}
+.proemios-public .hero-scene-focused .hero-book-trigger {
+  top: 85px;
+  left: 37%;
+  width: 55%;
+  height: 365px;
+}
+.proemios-public .hero-scene-focused .status-card {
+  padding: 15px 18px;
+  gap: 11px;
+  border: 1px solid #ece8e4;
+  border-radius: 18px;
+  box-shadow: 0 12px 35px #3821380c;
+}
+.proemios-public .hero-scene-focused .status-card strong {
+  font-size: 17px;
+  line-height: 1.3;
+}
+.proemios-public .hero-scene-focused .status-card small {
+  font-size: 14px;
+  color: #515469;
+  margin-top: 3px;
+}
+.proemios-public .hero-scene-focused .status-edit {
+  top: 205px;
+  left: 0;
+}
+.proemios-public .hero-scene-focused .status-review {
+  top: 340px;
+  right: 0;
+}
+.proemios-public .hero-scene-focused .scene-manuscripts {
+  top: 160px;
+  left: 19%;
+  width: 210px;
+  height: 235px;
+}
+.hero-quote-invite {
+  position: absolute;
+  bottom: 0;
+  left: 8%;
+  right: 3%;
+  z-index: 8;
+  text-align: center;
+}
+.proemios-public .hero-quote-invite h2 {
+  font-size: 30px;
+  line-height: 1.2;
+  letter-spacing: -0.03em;
+}
+.proemios-public .hero-quote-invite p {
+  font-size: 14px;
+  line-height: 1.5;
+  color: #515469;
+  margin: 9px 0 17px;
+}
+.proemios-public .hero-quote-invite .button {
+  min-height: 60px;
+  width: 100%;
+  max-width: 365px;
+  font-size: 17px;
+  border-radius: 18px;
+  box-shadow: 0 10px 28px #f1665026;
+}
+.proemios-public .hero-actions .button {
+  min-height: 60px;
+  padding: 18px 25px;
+  font-size: 16px;
+  border-radius: 18px;
+}
+.proemios-public .nav-cta {
+  min-height: 48px;
+  font-size: 14px;
+}
+.proemios-public .hero-scene-focused .book-imprint {
+  font-size: 13px;
+  letter-spacing: 0.14em;
+}
+
+/* Preventivo: domande leggibili e controlli comodi anche al tocco. */
+.proemios-public .wizard-question {
+  font-size: 29px;
+  line-height: 1.25;
+  margin: 0 0 22px;
+  letter-spacing: -0.025em;
+}
+.proemios-public .quote-wizard .editorial-button {
+  min-height: 58px;
+  padding: 16px 25px;
+  font-size: 16px;
+  border-radius: 16px;
+}
+.proemios-public .quote-wizard button[aria-pressed] {
+  min-height: 84px;
+  padding: 20px;
+  border-radius: 18px;
+  transition:
+    background 180ms,
+    border-color 180ms,
+    box-shadow 180ms;
+}
+.proemios-public .quote-wizard button[aria-pressed]:hover {
+  box-shadow: 0 7px 22px #38213808;
+}
+.proemios-public .quote-wizard .apparato {
+  font-size: 14px;
+  line-height: 1.5;
+}
+.proemios-public .voice-brief {
+  padding: 24px;
+  background: #fff0eb;
+  border: 1px solid #f2d6cc;
+  border-radius: 24px;
+  margin-bottom: 30px;
+}
+.voice-brief-heading {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 17px;
+}
+.proemios-public .voice-brief h2 {
+  font-size: 26px;
+  line-height: 1.2;
+}
+.proemios-public .voice-brief p {
+  font-size: 14px;
+  line-height: 1.6;
+  color: #515469;
+  margin-top: 8px;
+}
+.proemios-public .quote-wizard button.voice-record {
+  min-height: 60px;
+  padding: 15px 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex-shrink: 0;
+  border: 1px solid #131936;
+  border-radius: 16px;
+  background: #131936;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+}
+.proemios-public .quote-wizard button.voice-record[aria-pressed="true"] {
+  background: #8c3024;
+  border-color: #8c3024;
+}
+.proemios-public .voice-brief textarea {
+  width: 100%;
+  min-height: 95px;
+  padding: 16px;
+  resize: vertical;
+  border: 1px solid #d9c8c0;
+  border-radius: 15px;
+  background: #fff;
+  color: #131936;
+  font: 16px/1.65 var(--sans);
+}
+.proemios-public .voice-brief textarea::placeholder {
+  color: #626477;
+}
+.voice-brief-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 15px 0;
+}
+.voice-brief-details span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  border-radius: 10px;
+  background: #fff;
+  color: #131936;
+  font-size: 14px;
+}
+.proemios-public .voice-apply {
+  min-height: 54px;
+  font-size: 16px;
+  margin-top: 12px;
+}
+.proemios-public .voice-brief .voice-privacy {
+  font-size: 12px;
+  line-height: 1.6;
+  margin-top: 14px;
+}
+.proemios-public .voice-brief .voice-error {
+  color: #8c3024;
+}
+.proemios-public .assistant-choices button {
+  min-height: 62px;
+  padding: 17px 20px;
+  font-size: 16px;
+  border-radius: 17px;
+}
+.proemios-public .assistant-header p {
+  font-size: 14px;
+  line-height: 1.5;
+}
+.proemios-public .assistant-history button {
+  min-height: 44px;
+  font-size: 14px;
+}
+.proemios-public .assistant-composer .icon-button {
+  width: 52px;
+  height: 52px;
+  flex-shrink: 0;
+}
+.proemios-public .assistant-composer input {
+  min-height: 52px;
+  font-size: 16px;
+}
+.proemios-public .assistant-question > span {
+  font-size: 14px;
+}
+@media (max-width: 1050px) {
+  .proemios-public .hero-scene-focused {
+    height: 570px;
+  }
+  .proemios-public .hero-scene-focused .hero-book-trigger {
+    left: 34%;
+    top: 95px;
+  }
+  .proemios-public .hero-scene-focused .status-review {
+    top: 315px;
+  }
+}
+@media (max-width: 760px) {
+  .proemios-public .hero-scene-focused {
+    height: 530px;
+    margin-top: 40px;
+  }
+  .proemios-public .hero-scene-focused .hero-dashboard {
+    width: 90%;
+    top: 10px;
+    left: 0;
+  }
+  .proemios-public .hero-scene-focused .hero-dashboard .dashboard-preview {
+    min-height: 225px;
+  }
+  .proemios-public .hero-scene-focused .hero-book-trigger {
+    left: calc(50% - 90px);
+    top: 65px;
+    width: 220px;
+    height: 320px;
+  }
+  .proemios-public .hero-scene-focused .scene-manuscripts {
+    left: 5%;
+    top: 125px;
+    width: 160px;
+    height: 210px;
+  }
+  .proemios-public .hero-scene-focused .status-card {
+    padding: 12px;
+    gap: 9px;
+  }
+  .proemios-public .hero-scene-focused .status-icon {
+    width: 30px;
+    height: 30px;
+  }
+  .proemios-public .hero-scene-focused .status-edit {
+    top: 160px;
+    left: 0;
+  }
+  .proemios-public .hero-scene-focused .status-edit > svg,
+  .proemios-public .hero-scene-focused .status-review > .state-dot {
+    display: none;
+  }
+  .proemios-public .hero-scene-focused .status-review {
+    top: 295px;
+    right: 0;
+  }
+  .proemios-public .hero-scene-focused .status-card strong {
+    font-size: 15px;
+  }
+  .proemios-public .hero-scene-focused .status-card small {
+    font-size: 13px;
+  }
+  .hero-quote-invite {
+    left: 0;
+    right: 0;
+  }
+  .proemios-public .hero-quote-invite h2 {
+    font-size: 28px;
+  }
+  .proemios-public .hero-actions .button {
+    width: 100%;
+    min-height: 60px;
+  }
+  .proemios-public .voice-brief {
+    padding: 20px;
+  }
+  .voice-brief-heading {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+  .proemios-public .quote-wizard .voice-record,
+  .proemios-public .voice-apply {
+    width: 100%;
+  }
+  .proemios-public .wizard-question {
+    font-size: 26px;
+  }
+  .proemios-public .assistant-choices {
+    grid-template-columns: 1fr;
+  }
+}
+.proemios-public .quote-operative {
+  padding-top: 42px;
+}
+.proemios-public .quote-operative .operative-intro {
+  margin-bottom: 28px;
+}
+.proemios-public .quote-operative .operative-intro h1 {
+  font-size: clamp(2.7rem, 4vw, 3.6rem);
+  line-height: 1.08;
+}
+.proemios-public .quote-operative .operative-intro > p:not(.eyebrow) {
+  margin-top: 18px;
+  line-height: 1.65;
+}
+@media (max-width: 360px) {
+  .proemios-public .hero-scene-focused .hero-book-trigger {
+    left: calc(50% - 80px);
+    width: 190px;
+  }
+  .proemios-public .hero-scene-focused .status-review {
+    top: 270px;
+  }
+}

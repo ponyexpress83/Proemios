@@ -11,6 +11,7 @@ export function Eyebrow({ children }: { children: ReactNode }) {
 export function Dashboard({ hero = false, white = false }: { hero?: boolean; white?: boolean }) {
   return (
     <div
+      aria-hidden={hero || undefined}
       className={
         "dashboard-wrap " + (hero ? "hero-dashboard" : "") + (white ? " white-dashboard" : "")
       }

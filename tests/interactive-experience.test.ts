@@ -5,6 +5,7 @@ import {
   stateFromText,
   wordsFromText,
   quoteWizardUrl,
+  briefFromText,
 } from "@/lib/quote-assistant";
 import {
   validDemoSession,
@@ -41,6 +42,24 @@ describe("pacchetti e servizi richiesti", () => {
   });
 });
 describe("assistente guidato", () => {
+  it("precompila il brief italiano e distingue parole, anni e servizi negati", () => {
+    expect(
+      briefFromText("Ho finito un romanzo di cinquantamila parole, vorrei editing e copertina."),
+    ).toEqual({
+      projectType: "romanzo",
+      textState: "finito-da-revisionare",
+      wordCount: 50000,
+      requestedServices: ["editing", "cover"],
+    });
+    const brief = briefFromText(
+      "Un memoir ambientato nel 1980. Sono 50 mila parole. Non voglio copertina. Vorrei impaginazione.",
+    );
+    expect(brief.wordCount).toBe(50000);
+    expect(brief.requestedServices).toEqual(["layout"]);
+    expect(briefFromText("Ho 42 anni e vorrei un romanzo").wordCount).toBeUndefined();
+    expect(briefFromText("Vorrei editing").textState).toBeUndefined();
+    expect(briefFromText("Un romanzo di -5000 parole").wordCount).toBeUndefined();
+  });
   it("riconosce risposte italiane senza inventare il genere quando manca", () => {
     expect(projectFromText("Voglio raccontare una storia vera")).toBe("memoir");
     expect(projectFromText("Non so da dove partire")).toBeUndefined();
