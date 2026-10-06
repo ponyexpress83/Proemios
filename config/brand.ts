@@ -16,7 +16,7 @@ export const BRAND = {
   tagline:
     "Dall'idea al libro pubblicato. Servizi editoriali assistiti dalla tecnologia, verificati da professionisti.",
   description:
-    "Proemios è il punto unico per autopubblicarsi: valutazione, editing, impaginazione, copertina, EPUB, pubblicazione Amazon KDP e ISBN. Preventivo esatto in due minuti, analisi del manoscritto gratuita.",
+    "Dall’idea al libro: scrittura, editing, impaginazione, copertina e pubblicazione. Un percorso editoriale con costi chiari, approvazioni condivise e preventivo personalizzato.",
   email: {
     general: "ciao@proemios.it", // TODO confermare
     quotes: "preventivi@proemios.it",

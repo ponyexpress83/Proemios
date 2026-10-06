@@ -1,13 +1,27 @@
-export function Book({ small = false }: { small?: boolean }) {
+import type { CSSProperties } from "react";
+export function Book({ small = false, phase }: { small?: boolean; phase?: number }) {
   return (
     <div className={"physical-book" + (small ? " small-book" : "")} aria-hidden="true">
       <div className="book-shadow" />
-      <div className="book-volume">
+      <div
+        className={
+          "book-volume" +
+          (phase !== undefined ? " studio-book-volume studio-book-phase-" + phase : "")
+        }
+        key={phase}
+      >
         <div className="book-pages" />
         <div className="book-spine">
           <span>PROEMIOS · LA FORMA DELLE STORIE</span>
         </div>
         <div className="book-cover">
+          {phase !== undefined && (
+            <div className="book-cover-mosaic">
+              {Array.from({ length: 16 }, (_, i) => (
+                <span key={i} style={{ "--tile": i } as CSSProperties} />
+              ))}
+            </div>
+          )}
           <span className="book-imprint">PROEMIOS</span>
           <div className="book-cover-lines">
             <i />
@@ -21,6 +35,20 @@ export function Book({ small = false }: { small?: boolean }) {
             <br />
             <em>storie.</em>
           </strong>
+          {phase !== undefined && (
+            <span className="studio-book-status">
+              {
+                [
+                  "LA PRIMA BOZZA",
+                  "LA VOCE SI AFFINA",
+                  "LE PAROLE SI ACCORDANO",
+                  "L’IDENTITÀ PRENDE FORMA",
+                  "PAGINE DA LEGGERE",
+                  "PRONTO PER I LETTORI",
+                ][phase]
+              }
+            </span>
+          )}
         </div>
       </div>
     </div>

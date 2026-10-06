@@ -8,7 +8,7 @@ import { FlussoAnalisi } from "@/components/analisi/flusso";
 import { ModuloContatto } from "@/components/moduli/modulo-contatto";
 import { ModuloAgenzia } from "@/components/moduli/modulo-agenzia";
 import type { ProjectType, ServiceKey } from "@/lib/pricing";
-import { publicEnv } from "@/lib/env";
+import { publicEnv, env } from "@/lib/env";
 export function QuotePage({
   precompilato,
 }: {
@@ -38,6 +38,45 @@ export function QuotePage({
         <div className="operative-surface">
           <FormDemoNotice />
           <Configuratore precompilato={precompilato} demoMode={demoAttiva()} />
+          <details className="quote-analysis-option" id="analisi-facoltativa">
+            <summary>
+              <span>Hai già un testo?</span>
+              <strong>Aggiungi una prima analisi facoltativa</strong>
+              <span className="quote-analysis-toggle" aria-hidden="true">
+                +
+              </span>
+            </summary>
+            <div className="quote-analysis-content">
+              <p>
+                Un report automatico su leggibilità, ritmo e ripetizioni, con un conteggio parole
+                del file. È gratuito e facoltativo: puoi calcolare il preventivo anche senza
+                condividere il testo. La lettura professionale completa è un servizio distinto.
+              </p>
+              <div className="manuscript-privacy">
+                <strong>Prima di condividere il tuo testo</strong>
+                <p>
+                  Il caricamento non trasferisce i tuoi diritti sull’opera. Il file non viene
+                  archiviato dall’applicazione; per il report un estratto viene elaborato dal
+                  servizio di analisi automatica descritto nell’informativa. Nome file, conteggio
+                  parole e report sono associati a una scadenza di {env.MANUSCRIPT_RETENTION_DAYS}{" "}
+                  giorni.
+                </p>
+                <div>
+                  <Link href="/privacy" className="text-link">
+                    Come trattiamo il testo
+                  </Link>
+                  <Link href="/termini" className="text-link">
+                    Diritti e condizioni
+                  </Link>
+                </div>
+              </div>
+              <FormDemoNotice analysis />
+              <FlussoAnalisi
+                giorniConservazione={env.MANUSCRIPT_RETENTION_DAYS}
+                demoMode={demoAttiva()}
+              />
+            </div>
+          </details>
         </div>
       </div>
     </section>
