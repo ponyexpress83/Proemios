@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useRef, type ReactNode, type CSSProperties } from "react";
+import { useState, useEffect, useRef, type ReactNode, type MouseEvent } from "react";
 import Image from "next/image";
 import dynamic from "next/dynamic";
 import { Eyebrow, Dashboard } from "./elements";
@@ -11,9 +11,6 @@ import Link from "@/components/editorial/link";
 import {
   ArrowRight,
   Check,
-  BookOpen,
-  FileText,
-  Bookmark,
   PenLine,
   MessageSquare,
   Folder,
@@ -23,7 +20,6 @@ import {
   ShieldCheck,
   Layers,
   MousePointer2,
-  BriefcaseBusiness,
 } from "lucide-react";
 import {
   Accordion,
@@ -87,9 +83,14 @@ export function CTA() {
     </section>
   );
 }
-function HeroScene() {
+function HeroScene({
+  assistantOpen,
+  onOpen,
+}: {
+  assistantOpen: boolean;
+  onOpen: (e: MouseEvent<HTMLButtonElement>) => void;
+}) {
   const ref = useRef<HTMLDivElement>(null);
-  const [assistantOpen, setAssistantOpen] = useState(false);
   const [sceneHovered, setSceneHovered] = useState(false);
   const [stage, setStage] = useState(0);
   function move(e: React.PointerEvent<HTMLDivElement>) {
@@ -115,37 +116,30 @@ function HeroScene() {
         ref.current?.style.setProperty("--ry", "0deg");
       }}
     >
-      <div className="studio-stage-surface" aria-hidden="true">
-        <div className="studio-mosaic" key={stage}>
-          {Array.from({ length: 16 }, (_, i) => (
-            <span key={i} style={{ "--tile": i } as CSSProperties} />
-          ))}
-        </div>
-      </div>
+      <div className="studio-stage-surface" aria-hidden="true" />
       <div className="hero-scene-inner">
-        <BookPath hovered={sceneHovered || assistantOpen} active={stage} onStageChange={setStage} />
+        <BookPath hovered={sceneHovered || assistantOpen} onStageChange={setStage} />
         <button
           type="button"
           className="hero-book-trigger"
           aria-label="Apri l’assistente per il preventivo del tuo libro"
-          onClick={() => setAssistantOpen(true)}
+          onClick={onOpen}
         >
           <Book phase={stage} />
           <span className="studio-book-cue">
-            <MousePointer2 size={18} /> Clicca il libro<span>Il tuo preventivo comincia qui</span>
+            <MousePointer2 size={18} />
+            <span className="cue-desktop">Clicca sul libro per il preventivo</span>
+            <span className="cue-touch">Tocca il libro per il preventivo</span>
           </span>
         </button>
       </div>
-      {assistantOpen && <QuoteAssistant open={assistantOpen} onOpenChange={setAssistantOpen} />}
     </div>
   );
 }
 export function PathCards() {
-  const icons = [BookOpen, FileText, Bookmark, PenLine, BriefcaseBusiness];
   return (
     <div className="path-grid">
       {paths.map((p, i) => {
-        const Icon = icons[i] ?? BookOpen;
         return (
           <Link className={"path-card " + p.color} href={"/percorsi/" + p.slug} key={p.slug}>
             <span className="path-card-top">
@@ -154,9 +148,24 @@ export function PathCards() {
                 {["MANOSCRITTO", "IDEA", "VITA VISSUTA", "COMPETENZE", "IMPRESA"][i]}
               </span>
             </span>
-            <div className="path-object">
-              <Icon strokeWidth={1.1} />
-              <span />
+            <div className={"path-object path-object-" + i} aria-hidden="true">
+              <span className="path-paper">
+                <b>
+                  {
+                    ["Capitolo uno", "Un’idea", "I miei ricordi", "Il metodo", "La nostra storia"][
+                      i
+                    ]
+                  }
+                </b>
+                <i />
+                <i />
+                <i />
+              </span>
+              {i === 0 && <span className="path-edit-mark">¶</span>}
+              {i === 1 && <span className="path-pencil" />}
+              {i === 2 && <span className="path-photo">1968</span>}
+              {i === 3 && <span className="path-index">01 · 02 · 03</span>}
+              {i === 4 && <span className="path-timeline">1990 — OGGI</span>}
             </div>
             <h3>{p.title}</h3>
             <p>{p.short}</p>
@@ -218,7 +227,7 @@ export function Platform() {
           <h2>
             Il tuo libro.
             <br />
-            <em>Ogni passo, visibile.</em>
+            <em>Tutto sotto controllo.</em>
           </h2>
           <p>
             Revisioni, messaggi, approvazioni, pagamenti e consegne. Il progetto non si perde tra
@@ -388,7 +397,7 @@ function TrustDetails() {
         <div className="trust-detail-grid">
           <article>
             <ShieldCheck />
-            <h3>La tua opera resta tua</h3>
+            <h3>Diritti e riservatezza spiegati</h3>
             <p>
               Condividere il testo non trasferisce a Proemios i tuoi diritti. Nei lavori di
               scrittura, attribuzione e diritti sono concordati nel contratto.
@@ -396,21 +405,27 @@ function TrustDetails() {
             <Link href="/termini" className="text-link">
               Leggi le condizioni <ArrowRight size={16} />
             </Link>
+            <Link href="/privacy" className="text-link">
+              Come trattiamo i dati →
+            </Link>
           </article>
           <article>
             <CreditCard />
-            <h3>Pagamenti e costi chiari</h3>
+            <h3>Costi chiari prima di iniziare</h3>
             <p>
-              Confronti i percorsi prima di scegliere. Attività, acconto e saldo sono indicati nel
-              preventivo; i pagamenti online passano dal checkout Stripe.
+              La prima stima è indicativa. Servizi inclusi, revisioni, costi esterni e maggiorazioni
+              sono esplicitati; il perimetro definitivo si concorda con il team.
             </p>
             <Link href="/preventivo" className="text-link">
               Esplora il preventivo <ArrowRight size={16} />
             </Link>
+            <Link href="/termini" className="text-link">
+              Inclusioni, revisioni e costi esterni →
+            </Link>
           </article>
           <article>
             <CheckCircle2 />
-            <h3>Approvi tu, fase per fase</h3>
+            <h3>Ogni fase passa dalla tua approvazione</h3>
             <p>
               Revisioni, copertina e file finali passano dal tuo confronto con il team. Trovi scelte
               e consegne nel tuo spazio autore.
@@ -523,6 +538,14 @@ export function Agency() {
   );
 }
 export function HomePage() {
+  const [assistantOpen, setAssistantOpen] = useState(false);
+  const [assistantMounted, setAssistantMounted] = useState(false);
+  const opener = useRef<HTMLButtonElement | null>(null);
+  function openAssistant(e: MouseEvent<HTMLButtonElement>) {
+    opener.current = e.currentTarget;
+    setAssistantMounted(true);
+    setAssistantOpen(true);
+  }
   return (
     <Shell>
       <section className="hero">
@@ -539,11 +562,11 @@ export function HomePage() {
               Un team editoriale, una piattaforma, tutto il tuo progetto sotto controllo.
             </p>
             <div className="hero-actions">
-              <Link href="/preventivo" className="button">
-                Calcola il tuo preventivo <ArrowRight size={20} />
-              </Link>
-              <Link href="#da-dove-parti" className="button secondary">
-                Trova il tuo percorso
+              <button type="button" className="button" onClick={openAssistant}>
+                Calcola il preventivo <ArrowRight size={20} />
+              </button>
+              <Link href="/contatti?motivo=editor" className="button secondary">
+                Parla con un editor
               </Link>
             </div>
             <ul className="trust">
@@ -556,13 +579,23 @@ export function HomePage() {
               </li>
               <li>
                 <CreditCard />
-                Pagamenti tramite Stripe
+                Stima senza dati personali
               </li>
             </ul>
           </div>
-          <HeroScene />
+          <HeroScene assistantOpen={assistantOpen} onOpen={openAssistant} />
         </div>
       </section>
+      {assistantMounted && (
+        <QuoteAssistant
+          open={assistantOpen}
+          onOpenChange={setAssistantOpen}
+          returnFocusRef={opener}
+        />
+      )}
+      <noscript>
+        <a href="/preventivo">Calcola il preventivo completo</a>
+      </noscript>
       <section className="section paths-section" id="da-dove-parti">
         <div className="container">
           <div className="section-heading">

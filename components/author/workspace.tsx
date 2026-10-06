@@ -113,7 +113,7 @@ export function AuthorWorkspace() {
       ? "proemios-capitolo-revisionato-demo.txt"
       : "proemios-manoscritto-demo.txt";
     a.click();
-    URL.revokeObjectURL(url);
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
     setNotice("File di esempio scaricato. Non contiene un manoscritto reale.");
   }
   const quote = computeQuote({
@@ -487,7 +487,7 @@ export function AuthorWorkspace() {
                   <span>Acconto previsto</span>
                   <strong>{euro(quote.deposit)}</strong>
                 </div>
-                <span className="status-pill peach">Nessun pagamento effettuato</span>
+                <span className="status-pill peach">Pagamento simulato: nessun addebito</span>
               </div>
               <details>
                 <summary>Vedi i servizi del preventivo</summary>

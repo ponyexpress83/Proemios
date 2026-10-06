@@ -3,7 +3,7 @@
 import Link from "next/link";
 import type { Route } from "next";
 import { Filetto, Etichetta, cx } from "@/components/ui/primitivi";
-import { BottoneLink } from "@/components/ui/bottone";
+import { Bottone, BottoneLink } from "@/components/ui/bottone";
 import { euro, numero } from "@/lib/format";
 import { etichettaGulpease } from "@/lib/metrics";
 import { ANALISI } from "@/config/copy";
@@ -81,7 +81,15 @@ function Elenco({
   );
 }
 
-export function Report({ report, demo = false }: { report: ReportCompleto; demo?: boolean }) {
+export function Report({
+  report,
+  demo = false,
+  onContinue,
+}: {
+  report: ReportCompleto;
+  demo?: boolean;
+  onContinue?: () => void;
+}) {
   const m = report.metriche;
 
   const hrefPreventivo =
@@ -234,9 +242,15 @@ export function Report({ report, demo = false }: { report: ReportCompleto; demo?
           <h3 className="font-display text-2xl font-medium">{ANALISI.ctaPreventivo}</h3>
           <p className="prosa mt-2 max-w-md">{ANALISI.ctaPreventivoTesto}</p>
         </div>
-        <BottoneLink href={hrefPreventivo} misura="grande" className="shrink-0">
-          Calcola il preventivo
-        </BottoneLink>
+        {onContinue ? (
+          <Bottone misura="grande" onClick={onContinue}>
+            Torna al tuo preventivo →
+          </Bottone>
+        ) : (
+          <BottoneLink href={hrefPreventivo} misura="grande" className="shrink-0">
+            Calcola il preventivo
+          </BottoneLink>
+        )}
       </div>
 
       <p className="text-center">

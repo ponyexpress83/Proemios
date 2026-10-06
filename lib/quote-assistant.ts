@@ -39,6 +39,7 @@ export function quoteWizardUrl(input: PricingInput): string {
     parole: String(input.wordCount),
     tempi: input.urgency || "standard",
     servizi: (input.requestedServices || []).join(","),
+    materiale: input.materialAmount || "parziale",
   });
   return "/preventivo?" + params.toString();
 }

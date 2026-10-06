@@ -122,7 +122,7 @@ export const paths = [
   {
     slug: "libro-gia-scritto",
     title: "Ho già scritto il libro",
-    short: "Il manoscritto c’è. Ora facciamolo crescere.",
+    short: "Hai un manoscritto: lavoriamo su revisione, copertina e pubblicazione.",
     description:
       "Una prima lettura ci aiuta a capire se serve editing, correzione bozze o un lavoro sulla struttura. Poi prepariamo il testo, il progetto grafico e i file per la pubblicazione.",
     steps: [
@@ -137,7 +137,7 @@ export const paths = [
   {
     slug: "idea-da-sviluppare",
     title: "Ho un’idea da sviluppare",
-    short: "Da un’intuizione alle prime pagine.",
+    short: "Mettiamo a fuoco l’idea e la trasformiamo in un progetto di libro.",
     description:
       "Mettiamo a fuoco l’idea, i lettori e la forma del libro. Costruiamo un indice e un campione di scrittura, poi scegliamo come lavorare insieme: affiancamento o ghostwriting.",
     steps: [
@@ -152,7 +152,7 @@ export const paths = [
   {
     slug: "memoir",
     title: "Voglio raccontare una storia vera",
-    short: "La tua esperienza, con la cura che merita.",
+    short: "Ricordi, esperienze e testimonianze diventano un racconto.",
     description:
       "Ricordi, documenti e interviste diventano il materiale di un racconto. Ti aiutiamo a trovare un filo, conservando il tuo punto di vista e concordando come trattare persone e vicende reali.",
     steps: [
@@ -166,8 +166,9 @@ export const paths = [
   },
   {
     slug: "libro-professionale",
-    title: "Insegno, formo, condivido un metodo",
-    short: "Trasforma corsi, consulenze e competenze in un manuale utile ai tuoi lettori.",
+    title: "Sono un professionista o un formatore",
+    short:
+      "Trasformiamo il tuo metodo, le tue competenze e i materiali dei tuoi corsi in un libro.",
     description:
       "Se sei un professionista, un consulente o un formatore, partiamo dai tuoi corsi, appunti e materiali didattici per costruire un libro. Organizziamo il tuo metodo in capitoli, esempi ed esercizi: un manuale che trasmette le tue competenze e sostiene il tuo lavoro.",
     steps: [
@@ -181,8 +182,8 @@ export const paths = [
   },
   {
     slug: "storia-impresa",
-    title: "Racconto la mia impresa",
-    short: "Persone, intuizioni e sfide: la tua storia di lavoro merita un libro.",
+    title: "Voglio raccontare la mia impresa",
+    short: "La storia della tua azienda o del tuo percorso di lavoro, raccontata con cura.",
     description:
       "Un’attività nata da un’intuizione, un percorso imprenditoriale o una storia aziendale da tramandare. Partiamo da interviste, documenti e ricordi per raccontare le decisioni, le persone e le svolte che hanno costruito la tua impresa, con una voce autentica.",
     steps: [
