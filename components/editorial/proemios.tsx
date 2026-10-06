@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { Eyebrow, Dashboard } from "./elements";
 export { Eyebrow, Dashboard } from "./elements";
 import { Book } from "./book";
+import { BookPath } from "./book-path";
 const QuoteAssistant = dynamic(() => import("./quote-assistant"), { ssr: false });
 import Link from "@/components/editorial/link";
 import {
@@ -87,6 +88,7 @@ export function CTA() {
 function HeroScene() {
   const ref = useRef<HTMLDivElement>(null);
   const [assistantOpen, setAssistantOpen] = useState(false);
+  const [sceneHovered, setSceneHovered] = useState(false);
   function move(e: React.PointerEvent<HTMLDivElement>) {
     if (e.pointerType !== "mouse" || window.matchMedia("(prefers-reduced-motion: reduce)").matches)
       return;
@@ -97,21 +99,23 @@ function HeroScene() {
   return (
     <div
       ref={ref}
-      className="hero-scene hero-scene-focused"
+      className="hero-scene hero-scene-focused hero-scene-story"
       onPointerMove={move}
+      onPointerEnter={() => setSceneHovered(true)}
+      onFocusCapture={() => setSceneHovered(true)}
+      onBlurCapture={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget)) setSceneHovered(false);
+      }}
       onPointerLeave={() => {
+        setSceneHovered(false);
         ref.current?.style.setProperty("--rx", "0deg");
         ref.current?.style.setProperty("--ry", "0deg");
       }}
     >
-      <div className="scene-halo" />
+      <div className="story-stage-surface" />
       <div className="hero-scene-inner">
         <Dashboard hero />
-        <div className="scene-manuscripts" aria-hidden="true">
-          <i />
-          <i />
-          <i />
-        </div>
+        <BookPath hovered={sceneHovered} />
         <button
           className="hero-book-trigger"
           aria-label="Apri l’assistente per il preventivo del tuo libro"
@@ -119,26 +123,6 @@ function HeroScene() {
         >
           <Book />
         </button>
-        <div className="status-card status-edit">
-          <span className="status-icon sage">
-            <Check size={17} />
-          </span>
-          <div>
-            <strong>Editing</strong>
-            <small>Completato</small>
-          </div>
-          <Check size={14} />
-        </div>
-        <div className="status-card status-review">
-          <span className="status-icon lavender">
-            <PenLine size={17} />
-          </span>
-          <div>
-            <strong>Revisione</strong>
-            <small>In corso</small>
-          </div>
-          <span className="state-dot" />
-        </div>
       </div>
       <div className="hero-quote-invite">
         <h2>Quanto costa il tuo libro?</h2>

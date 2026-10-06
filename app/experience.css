@@ -2380,3 +2380,401 @@
     top: 270px;
   }
 }
+
+/* Un percorso in movimento, ispirato alla chiarezza dei prodotti digitali. */
+.proemios-public .logo {
+  gap: 11px;
+}
+.proemios-public .logo > span {
+  font-weight: 400;
+  font-size: 2.15rem;
+  letter-spacing: -0.045em;
+}
+.proemios-public .logo svg {
+  width: 40px;
+  height: 40px;
+}
+.proemios-public .hero-scene-story {
+  height: 680px;
+}
+.story-stage-surface {
+  position: absolute;
+  inset: 0 0 160px;
+  background: linear-gradient(145deg, #131936, #27203a);
+  border-radius: 36px;
+  box-shadow: 0 26px 70px #13193613;
+}
+.proemios-public .hero-scene-story .hero-scene-inner {
+  bottom: 160px;
+}
+.proemios-public .hero-scene-story .hero-dashboard {
+  left: 38%;
+  width: 57%;
+  top: 83px;
+  transform: rotate(5deg) rotateY(-8deg);
+  opacity: 0.94;
+}
+.proemios-public .hero-scene-story .hero-dashboard .dashboard-preview {
+  min-height: 245px;
+  grid-template-columns: 29% 71%;
+}
+.proemios-public .hero-scene-story .hero-dashboard .preview-sidebar {
+  padding: 17px 10px;
+  gap: 15px;
+}
+.proemios-public .hero-scene-story .hero-dashboard .preview-sidebar span:nth-last-child(-n + 3),
+.proemios-public .hero-scene-story .hero-dashboard .preview-body > h3 {
+  display: none;
+}
+.proemios-public .hero-scene-story .hero-dashboard .preview-body {
+  padding: 18px 12px;
+}
+.proemios-public .hero-scene-story .hero-book-trigger {
+  left: 53%;
+  top: 182px;
+  width: 43%;
+  height: 315px;
+}
+.hero-scene-story .physical-book {
+  width: 228px;
+  height: 305px;
+}
+.hero-scene-story .book-cover strong {
+  font-size: 45px;
+  margin-top: 48px;
+}
+.hero-scene-story .book-shadow {
+  opacity: 0.8;
+}
+.book-path {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  pointer-events: none;
+  --path-stride: 123px;
+}
+.book-path-heading {
+  position: absolute;
+  top: 22px;
+  left: 24px;
+  right: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+  color: #faf8f5;
+  pointer-events: auto;
+}
+.book-path-heading > span {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+.proemios-public .path-playback {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 8px 12px;
+  background: #ffffff10;
+  border: 1px solid #ffffff38;
+  border-radius: 12px;
+  color: #fff;
+  font-size: 13px;
+}
+.proemios-public .path-playback:hover {
+  background: #ffffff20;
+}
+.book-path-window {
+  position: absolute;
+  left: 24px;
+  top: 95px;
+  width: 36%;
+  height: 342px;
+  overflow: hidden;
+  pointer-events: auto;
+}
+.book-path-track {
+  display: flex;
+  flex-direction: column;
+  gap: 27px;
+  transition: transform 700ms cubic-bezier(0.2, 0.65, 0.2, 1);
+  padding: 1px;
+}
+.book-path-node {
+  position: relative;
+  flex-shrink: 0;
+  height: 96px;
+}
+.proemios-public .book-path-node button {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  padding: 14px 12px;
+  text-align: left;
+  border: 1px solid #e4dfeb;
+  border-radius: 18px;
+  background: #faf8f5;
+  color: #131936;
+  box-shadow: 0 9px 24px #0000000d;
+  transition:
+    background 450ms,
+    border-color 450ms,
+    box-shadow 450ms;
+}
+.proemios-public .book-path-node.is-current button {
+  background: #f16650;
+  border-color: #ffb4a2;
+  box-shadow:
+    0 0 0 3px #f1665020,
+    0 12px 24px #00000016;
+}
+.proemios-public .book-path-node.is-done button {
+  background: #dbf4e7;
+  border-color: #b6d6c4;
+}
+.path-stage-icon {
+  width: 30px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+}
+.book-path-node strong,
+.book-path-node small {
+  display: block;
+}
+.book-path-node strong {
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.book-path-node small {
+  font-size: 13px;
+  line-height: 1.4;
+  margin-top: 5px;
+  color: #515469;
+}
+.book-path-node.is-current small {
+  color: #342037;
+}
+.path-stage-number {
+  position: absolute;
+  top: 9px;
+  right: 12px;
+  font-size: 12px;
+  color: #515469;
+}
+.book-path-connector {
+  position: absolute;
+  left: 28px;
+  top: -27px;
+  height: 27px;
+  width: 2px;
+  background: #ffffff38;
+}
+.book-path-connector:after {
+  content: "";
+  position: absolute;
+  bottom: 11px;
+  left: -3px;
+  width: 8px;
+  height: 8px;
+  border: 1px solid #777283;
+  background: #29233b;
+  border-radius: 50%;
+  transition:
+    background 450ms,
+    border-color 450ms;
+}
+.book-path-connector i {
+  display: block;
+  width: 100%;
+  height: 0;
+  background: #f16650;
+  transition: height 700ms ease;
+}
+.is-current .book-path-connector i,
+.is-done .book-path-connector i {
+  height: 100%;
+}
+.is-current .book-path-connector:after,
+.is-done .book-path-connector:after {
+  background: #f16650;
+  border-color: #f16650;
+}
+.book-path-caption {
+  position: absolute;
+  left: 24px;
+  right: 24px;
+  bottom: 22px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #faf8f5;
+  font-size: 14px;
+}
+.book-path-caption > span {
+  color: #d3cddd;
+  font-size: 13px;
+}
+.proemios-public .book-path-node button:focus-visible,
+.proemios-public .path-playback:focus-visible,
+.proemios-public .hero-scene-story .hero-book-trigger:focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: 4px;
+}
+@media (max-width: 1050px) and (min-width: 761px) {
+  .proemios-public .hero-scene-story .hero-book-trigger {
+    left: 53%;
+    top: 205px;
+  }
+  .hero-scene-story .physical-book {
+    width: 185px;
+    height: 255px;
+  }
+  .hero-scene-story .book-cover strong {
+    font-size: 36px;
+  }
+  .hero-scene-story .book-cover {
+    padding: 20px;
+  }
+  .book-path-window {
+    left: 18px;
+    width: 40%;
+  }
+  .proemios-public .book-path-node button {
+    grid-template-columns: 1fr;
+  }
+  .path-stage-icon {
+    display: none;
+  }
+}
+@media (max-width: 760px) {
+  .proemios-public .hero-scene-story {
+    height: 635px;
+    margin-top: 35px;
+  }
+  .story-stage-surface {
+    border-radius: 28px;
+    bottom: 150px;
+  }
+  .proemios-public .hero-scene-story .hero-scene-inner {
+    bottom: 150px;
+  }
+  .book-path-heading {
+    top: 18px;
+    left: 18px;
+    right: 18px;
+  }
+  .book-path-heading > span {
+    font-size: 12px;
+  }
+  .book-path-window {
+    left: 18px;
+    top: 87px;
+    width: 43%;
+    height: 320px;
+  }
+  .book-path {
+    --path-stride: 113px;
+  }
+  .book-path-track {
+    gap: 25px;
+  }
+  .book-path-node {
+    height: 88px;
+  }
+  .proemios-public .book-path-node button {
+    display: flex;
+    padding: 14px 11px;
+  }
+  .path-stage-icon,
+  .path-stage-number {
+    display: none;
+  }
+  .book-path-node strong {
+    font-size: 15px;
+  }
+  .book-path-node small {
+    font-size: 12px;
+  }
+  .book-path-connector {
+    height: 25px;
+    top: -25px;
+  }
+  .book-path-caption {
+    bottom: 20px;
+    left: 18px;
+    right: 18px;
+  }
+  .proemios-public .hero-scene-story .hero-dashboard {
+    left: 35%;
+    width: 61%;
+    top: 87px;
+  }
+  .proemios-public .hero-scene-story .hero-dashboard .dashboard-preview {
+    min-height: 190px;
+    grid-template-columns: 32% 68%;
+  }
+  .proemios-public .hero-scene-story .hero-dashboard .preview-sidebar {
+    padding: 10px 7px;
+    font-size: 12px;
+  }
+  .proemios-public .hero-scene-story .hero-dashboard .preview-sidebar b {
+    padding: 6px 3px;
+    font-size: 12px;
+  }
+  .proemios-public .hero-scene-story .hero-dashboard .preview-body {
+    padding: 10px;
+  }
+  .proemios-public .hero-scene-story .hero-dashboard .preview-cards > div {
+    padding: 10px;
+  }
+  .proemios-public .hero-scene-story .hero-book-trigger {
+    left: 51%;
+    top: 214px;
+    width: 47%;
+    height: 242px;
+  }
+  .hero-scene-story .physical-book {
+    width: 180px;
+    height: 242px;
+  }
+  .hero-scene-story .book-cover {
+    padding: 18px;
+  }
+  .hero-scene-story .book-cover strong {
+    font-size: 34px;
+    margin-top: 32px;
+  }
+  .proemios-public .hero-scene-story .book-imprint {
+    font-size: 12px;
+  }
+}
+@media (max-width: 390px) {
+  .hero-scene-story .physical-book {
+    width: 145px;
+    height: 218px;
+  }
+  .hero-scene-story .book-cover strong {
+    font-size: 29px;
+  }
+  .hero-scene-story .book-cover {
+    padding: 15px;
+  }
+  .proemios-public .hero-scene-story .hero-book-trigger {
+    left: 52%;
+    top: 215px;
+  }
+  .book-path-window {
+    width: 43%;
+    left: 14px;
+  }
+  .book-path-node strong {
+    font-size: 14px;
+  }
+}
