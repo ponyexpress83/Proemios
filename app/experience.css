@@ -2492,7 +2492,7 @@
   top: 95px;
   width: 36%;
   height: 342px;
-  overflow: hidden;
+  overflow: clip;
   pointer-events: auto;
 }
 .book-path-track {
