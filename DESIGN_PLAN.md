@@ -15,7 +15,7 @@ Il sito pubblico riprende la direzione approvata «Editorial technology with dep
 
 Le pagine operative usano il configuratore, il caricamento manoscritto e i moduli originali. Tariffe e calcoli restano in `config/pricing.ts` e `lib/pricing.ts`; API, database, pagamenti, attribution e protezione del backoffice rimangono quelli del progetto.
 
-`/accedi` conduce al backoffice protetto `/admin`: non introduce un sistema account per gli autori. La dashboard nei visual è il riferimento approvato con dati dimostrativi, non un nuovo portale operativo. Il backoffice conserva la propria UI.
+`/accedi` introduce una demo interattiva dello spazio autore in `/area-autore`, distinta dal backoffice protetto `/admin`. Login dimostrativo, messaggi, download di file di esempio e approvazioni funzionano senza account reali, database clienti o transazioni. Lo stato è conservato nella scheda del browser e si cancella con l’uscita o il ripristino della demo. I mockup italiani condividono palette, tipografia e componenti con questo spazio. Il backoffice conserva la propria UI.
 
 ## Mobile e movimento
 
