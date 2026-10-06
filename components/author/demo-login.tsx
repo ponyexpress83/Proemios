@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { ArrowRight } from "lucide-react";
-import { DEMO_SESSION_KEY } from "@/lib/author-demo";
+import { DEMO_SESSION_KEY, validDemoSession } from "@/lib/author-demo";
 import { Book } from "@/components/editorial/book";
 import Link from "@/components/editorial/link";
 import { authorSection } from "./navigation";
@@ -13,6 +13,9 @@ export function DemoLogin() {
         DEMO_SESSION_KEY,
         JSON.stringify({ user: "demo-author", createdAt: Date.now() }),
       );
+      if (!validDemoSession(sessionStorage.getItem(DEMO_SESSION_KEY))) {
+        throw new Error("Sessione demo non conservata dal browser");
+      }
       const section = authorSection(new URLSearchParams(window.location.search).get("sezione"));
       window.location.assign("/area-autore?sezione=" + section);
     } catch {

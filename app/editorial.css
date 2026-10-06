@@ -199,6 +199,8 @@ body:has(.proemios-public),
 .proemios-public .text-link {
   display: inline-flex;
   align-items: center;
+  min-height: 44px;
+  min-width: 44px;
   gap: 12px;
   font-size: 0.9rem;
   font-weight: 700;
@@ -285,6 +287,9 @@ body:has(.proemios-public),
 .proemios-public .login-link {
   font-size: 0.8rem;
   font-weight: 700;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
 }
 .proemios-public .menu-toggle {
   display: none;
@@ -622,15 +627,6 @@ body:has(.proemios-public),
 }
 .proemios-public .path-card:hover .path-object svg {
   transform: rotate(-6deg) rotateY(15deg);
-}
-.proemios-public .path-object > span {
-  width: 58px;
-  height: 8px;
-  position: absolute;
-  bottom: 7px;
-  border-radius: 50%;
-  background: #38213808;
-  filter: blur(5px);
 }
 .proemios-public .path-card h3 {
   font-size: 1.45rem;
@@ -1444,7 +1440,9 @@ body:has(.proemios-public),
   margin-bottom: 16px;
 }
 .proemios-public .footer-columns a {
-  display: block;
+  display: flex;
+  align-items: center;
+  min-height: 44px;
   color: #626477;
   font-size: 0.8rem;
   line-height: 1.5;
@@ -1465,6 +1463,7 @@ body:has(.proemios-public),
 .proemios-public .footer-bottom a {
   display: flex;
   align-items: center;
+  min-height: 44px;
   gap: 10px;
 }
 .proemios-public .inner-hero {
@@ -2668,7 +2667,7 @@ body:has(.proemios-public),
   }
   .proemios-public .footer-columns a {
     font-size: 0.85rem;
-    min-height: 34px;
+    min-height: 44px;
   }
   .proemios-public .footer-bottom {
     flex-wrap: wrap;

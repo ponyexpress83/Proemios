@@ -119,7 +119,10 @@ function HeroScene({
     >
       <div className="studio-stage-surface" aria-hidden="true" />
       <div className="hero-scene-inner">
-        <BookPath hovered={sceneHovered || sceneFocused || assistantOpen} onStageChange={setStage} />
+        <BookPath
+          hovered={sceneHovered || sceneFocused || assistantOpen}
+          onStageChange={setStage}
+        />
         <button
           type="button"
           className="hero-book-trigger"
@@ -243,7 +246,7 @@ export function Platform() {
             ))}
           </div>
           <Link href="/accedi" className="text-link">
-            Prova il tuo spazio <ArrowRight size={18} />
+            Prova l’area autore <ArrowRight size={18} />
           </Link>
         </div>
         <div className="platform-visual">

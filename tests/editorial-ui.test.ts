@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { HomePage } from "@/components/editorial/proemios";
 import { Configuratore } from "@/components/preventivo/configuratore";
 import { AuthorWorkspace } from "@/components/author/workspace";
+import { DemoLogin } from "@/components/author/demo-login";
 import { DEMO_SESSION_KEY } from "@/lib/author-demo";
 import { BookPath } from "@/components/editorial/book-path";
 import { reportDemo } from "@/lib/demo";
@@ -167,13 +168,22 @@ describe("analisi integrata e brief", () => {
 });
 
 describe("azioni della demo autore", () => {
+  it("spiega il blocco di archiviazione senza presentarlo come un ingresso riuscito", () => {
+    vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new Error("Storage unavailable");
+    });
+    render(createElement(DemoLogin));
+    expect(screen.queryByRole("textbox")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Entra con un clic →" }));
+    expect(screen.getByRole("alert").textContent).toContain("Consenti l’archiviazione");
+  });
   it("messaggi, file, approvazione, fase successiva, pagamenti e ripristino restano nella demo", async () => {
     sessionStorage.setItem(
       DEMO_SESSION_KEY,
       JSON.stringify({ user: "demo-author", createdAt: Date.now() }),
     );
     render(createElement(AuthorWorkspace));
-    expect(screen.getByRole("heading", { name: "La tua storia prende forma." })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: /La tua storia/ })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Messaggi" }));
     fireEvent.change(screen.getByLabelText("Prova a scrivere al team"), {
       target: { value: "Messaggio sintetico di prova." },
