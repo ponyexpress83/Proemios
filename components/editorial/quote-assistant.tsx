@@ -278,7 +278,9 @@ export default function QuoteAssistant({
                       advance(
                         {},
                         input.requestedServices?.length
-                          ? `${input.requestedServices.length} servizi selezionati`
+                          ? input.requestedServices.length === 1
+                            ? "1 servizio selezionato"
+                            : `${input.requestedServices.length} servizi selezionati`
                           : "Composizione proposta dal percorso",
                       )
                     }

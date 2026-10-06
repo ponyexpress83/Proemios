@@ -12,7 +12,7 @@ progetto, abbonamenti AI, portale white label) sono documentate in `db/schema.ts
 
 ## Sito pubblico
 
-Il design editoriale avorio/corallo e le pagine multipagina sono in `components/editorial`, `lib/editorial-content.ts` e `app/editorial.css`. I moduli sono collegati alle API del progetto; il preventivo usa le tariffe esistenti. `/accedi` apre il backoffice riservato al team, non un portale clienti. Per riferimenti visivi e limiti dei contenuti dimostrativi, vedere `DESIGN_PLAN.md`.
+Il design editoriale avorio/corallo e le pagine multipagina sono in `components/editorial`, `lib/editorial-content.ts`, `app/editorial.css` e `app/experience.css`. Il libro nella hero apre un assistente guidato per il preventivo, calcolato con le tariffe esistenti. `/accedi` apre la demo dell’area autori: usa “Entra con un clic”, oppure `demo@proemios.it` / `ProemiosDemo2026!`. Messaggi, file e approvazioni sono simulati e conservati nella scheda del browser; non è un sistema di autenticazione o un archivio clienti operativo. Il backoffice del team rimane separato in `/admin`. Per riferimenti visivi e limiti dei contenuti dimostrativi, vedere `DESIGN_PLAN.md`.
 
 ## Stack
 

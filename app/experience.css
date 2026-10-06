@@ -192,8 +192,9 @@
 }
 .proemios-public .book-chat-cue {
   position: absolute;
-  bottom: -17px;
-  left: -16%;
+  bottom: 78px;
+  left: -52%;
+  transform: translateZ(65px);
   display: flex;
   align-items: center;
   gap: 12px;
