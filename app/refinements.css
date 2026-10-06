@@ -27,6 +27,8 @@
   color: #382138;
   transform: perspective(400px) translateY(-3px) rotateX(6deg) scale(1.04);
   box-shadow: 0 7px 18px #38213810;
+  text-decoration: underline;
+  text-underline-offset: 6px;
 }
 .proemios-public .login-link {
   font-size: 14px;
@@ -237,6 +239,7 @@
   left: 52%;
   width: 44%;
   height: 377px;
+  transform-style: flat;
   padding: 0;
   transform: none;
   z-index: 5;
@@ -797,51 +800,6 @@
 .proemios-public .footer :focus-visible {
   outline-color: #f3aa99;
 }
-.quote-analysis-option {
-  margin-top: 45px;
-  border: 1px solid #dcd4ec;
-  border-radius: 20px;
-  background: #f6f2fc;
-  scroll-margin-top: 110px;
-}
-.quote-analysis-option > summary {
-  position: relative;
-  cursor: pointer;
-  padding: 25px 60px 25px 26px;
-  list-style: none;
-}
-.quote-analysis-option > summary::-webkit-details-marker {
-  display: none;
-}
-.quote-analysis-option > summary > span:first-child {
-  display: block;
-  font-size: 14px;
-  color: #62556a;
-  margin-bottom: 6px;
-}
-.quote-analysis-option > summary > strong {
-  font-size: 19px;
-  line-height: 1.5;
-  color: #18243d;
-}
-.quote-analysis-toggle {
-  position: absolute;
-  right: 26px;
-  top: 33px;
-  font-size: 27px;
-  line-height: 1;
-}
-.quote-analysis-option[open] .quote-analysis-toggle {
-  transform: rotate(45deg);
-}
-.quote-analysis-content {
-  padding: 0 26px 26px;
-}
-.proemios-public .quote-analysis-content > p {
-  font-size: 16px;
-  line-height: 1.7;
-  margin-bottom: 22px;
-}
 .manuscript-privacy {
   padding: 22px;
   margin-bottom: 24px;
@@ -1177,12 +1135,6 @@
   .preview-project-timeline span {
     font-size: 10px;
   }
-  .quote-analysis-option > summary {
-    padding-left: 20px;
-  }
-  .quote-analysis-content {
-    padding: 0 16px 18px;
-  }
   .manuscript-privacy {
     padding: 17px;
   }
@@ -1239,4 +1191,39 @@
   width: 24px;
   height: 24px;
   flex-shrink: 0;
+}
+
+.proemios-public :is(button, .button, .icon-button) {
+  min-height: 44px;
+}
+.proemios-public .desktop-nav a {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+.proemios-public .wizard-question,
+.proemios-public [id] {
+  scroll-margin-top: 110px;
+}
+.proemios-public .manuscript-privacy a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  color: #793a36;
+}
+@media (max-width: 600px) {
+  .analysis-count-choice {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+.demo-entry-details {
+  padding: 25px 0;
+}
+.proemios-public .demo-entry-details p {
+  margin: 14px 0 22px;
+  line-height: 1.65;
+}
+.proemios-public .demo-entry-details .button {
+  width: 100%;
 }

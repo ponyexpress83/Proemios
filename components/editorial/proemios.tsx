@@ -92,6 +92,7 @@ function HeroScene({
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [sceneHovered, setSceneHovered] = useState(false);
+  const [sceneFocused, setSceneFocused] = useState(false);
   const [stage, setStage] = useState(0);
   function move(e: React.PointerEvent<HTMLDivElement>) {
     if (e.pointerType !== "mouse" || window.matchMedia("(prefers-reduced-motion: reduce)").matches)
@@ -106,9 +107,9 @@ function HeroScene({
       className="hero-scene hero-scene-studio"
       onPointerMove={move}
       onPointerEnter={() => setSceneHovered(true)}
-      onFocusCapture={() => setSceneHovered(true)}
+      onFocusCapture={() => setSceneFocused(true)}
       onBlurCapture={(e) => {
-        if (!e.currentTarget.contains(e.relatedTarget)) setSceneHovered(false);
+        if (!e.currentTarget.contains(e.relatedTarget)) setSceneFocused(false);
       }}
       onPointerLeave={() => {
         setSceneHovered(false);
@@ -118,7 +119,7 @@ function HeroScene({
     >
       <div className="studio-stage-surface" aria-hidden="true" />
       <div className="hero-scene-inner">
-        <BookPath hovered={sceneHovered || assistantOpen} onStageChange={setStage} />
+        <BookPath hovered={sceneHovered || sceneFocused || assistantOpen} onStageChange={setStage} />
         <button
           type="button"
           className="hero-book-trigger"

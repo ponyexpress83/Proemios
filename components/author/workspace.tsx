@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Dialog } from "radix-ui";
 import {
   BookOpen,
@@ -45,6 +45,9 @@ const stages = [
   "Pubblicazione",
 ];
 export function AuthorWorkspace() {
+  const modalOpener = useRef<HTMLButtonElement | null>(null);
+  const menuButton = useRef<HTMLButtonElement>(null);
+  const sidebar = useRef<HTMLElement>(null);
   const [ready, setReady] = useState(false);
   const [state, setState] = useState<DemoState>(initialDemoState);
   const [section, setSection] = useState<Section>("overview");
@@ -78,8 +81,12 @@ export function AuthorWorkspace() {
   }, [ready, state]);
   useEffect(() => {
     if (!menu) return;
+    sidebar.current?.querySelector<HTMLButtonElement>("nav button")?.focus();
     function key(e: KeyboardEvent) {
-      if (e.key === "Escape") setMenu(false);
+      if (e.key === "Escape") {
+        setMenu(false);
+        menuButton.current?.focus();
+      }
     }
     window.addEventListener("keydown", key);
     return () => window.removeEventListener("keydown", key);
@@ -88,6 +95,7 @@ export function AuthorWorkspace() {
     setSection(next);
     setMenu(false);
     setNotice("");
+    if (menu) menuButton.current?.focus();
   }
   function logout() {
     try {
@@ -129,7 +137,7 @@ export function AuthorWorkspace() {
     );
   return (
     <div className="author-workspace">
-      <aside className={"author-sidebar" + (menu ? " is-open" : "")}>
+      <aside ref={sidebar} className={"author-sidebar" + (menu ? " is-open" : "")}>
         <Logo />
         <div className="sidebar-label">IL TUO SPAZIO</div>
         <nav aria-label="Area autore">
@@ -158,6 +166,7 @@ export function AuthorWorkspace() {
       <div className="author-main">
         <header className="author-topbar">
           <button
+            ref={menuButton}
             className="icon-button workspace-menu"
             aria-label={menu ? "Chiudi navigazione" : "Apri navigazione"}
             aria-expanded={menu}
@@ -423,7 +432,13 @@ export function AuthorWorkspace() {
                       <strong>{f.title}</strong>
                       <span>{f.note} · TXT di esempio</span>
                     </div>
-                    <button className="text-link" onClick={() => setPreview(f.id)}>
+                    <button
+                      className="text-link"
+                      onClick={(e) => {
+                        modalOpener.current = e.currentTarget;
+                        setPreview(f.id);
+                      }}
+                    >
                       Leggi
                     </button>
                     <button
@@ -459,7 +474,13 @@ export function AuthorWorkspace() {
                     <CheckCircle2 size={20} /> Approvazione simulata registrata in questa scheda.
                   </p>
                 ) : (
-                  <button className="button" onClick={() => setApproval(true)}>
+                  <button
+                    className="button"
+                    onClick={(e) => {
+                      modalOpener.current = e.currentTarget;
+                      setApproval(true);
+                    }}
+                  >
                     Approva la revisione <Check size={17} />
                   </button>
                 )}
@@ -562,7 +583,13 @@ export function AuthorWorkspace() {
       >
         <Dialog.Portal>
           <Dialog.Overlay className="assistant-overlay" />
-          <Dialog.Content className="proemios-public document-dialog">
+          <Dialog.Content
+            className="proemios-public document-dialog"
+            onCloseAutoFocus={(e) => {
+              e.preventDefault();
+              modalOpener.current?.focus();
+            }}
+          >
             <Dialog.Title>
               {preview === "original" ? "Manoscritto originale" : "Capitolo revisionato"}
             </Dialog.Title>
@@ -586,7 +613,13 @@ export function AuthorWorkspace() {
       <Dialog.Root open={approval} onOpenChange={setApproval}>
         <Dialog.Portal>
           <Dialog.Overlay className="assistant-overlay" />
-          <Dialog.Content className="proemios-public document-dialog">
+          <Dialog.Content
+            className="proemios-public document-dialog"
+            onCloseAutoFocus={(e) => {
+              e.preventDefault();
+              modalOpener.current?.focus();
+            }}
+          >
             <Dialog.Title>Confermi questa versione?</Dialog.Title>
             <Dialog.Description>
               Simuleremo l’approvazione del capitolo e l’avanzamento alla copertina. Puoi

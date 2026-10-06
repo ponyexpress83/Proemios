@@ -11,11 +11,11 @@ export function FileNotice({ demo, retention }: { demo: boolean; retention: numb
           : "Il giudizio editoriale è automatico: un estratto (fino a circa 8.000 parole) viene elaborato da Anthropic. Non è una lettura integrale di un editor."}
       </p>
       <p>
-        Il codice non archivia il testo integrale nel database. In produzione conserva contatti,
-        nome file, metriche e report, accessibili al team autorizzato; i fornitori tecnici sono
-        elencati nell’informativa. La scadenza di {retention} giorni dei record di analisi non
-        certifica una cancellazione automatica. Per chiedere la cancellazione scrivi a{" "}
-        <a href={"mailto:" + BRAND.email.privacy}>{BRAND.email.privacy}</a>.
+        Il testo integrale non viene archiviato nel database dell’applicazione. In produzione
+        conserva contatti, nome file, metriche e report, accessibili al team autorizzato; i
+        fornitori tecnici sono elencati nell’informativa. La scadenza di {retention} giorni dei
+        record di analisi non certifica una cancellazione automatica. Per chiedere la cancellazione
+        scrivi a <a href={"mailto:" + BRAND.email.privacy}>{BRAND.email.privacy}</a>.
       </p>
       <p>
         Il caricamento non trasferisce i diritti sull’opera. Licenze, attribuzione e riservatezza si
