@@ -2,7 +2,7 @@
 
 import { contattoPreventivoSchema } from "@/lib/validation";
 import type { Route } from "next";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Bottone } from "@/components/ui/bottone";
 import { Campo, Input, AreaTesto, Consenso } from "@/components/ui/campi";
@@ -59,6 +59,19 @@ export function Configuratore({
   };
 }) {
   const [passo, setPasso] = useState(0);
+  const question = useRef<HTMLHeadingElement>(null);
+  const previousStep = useRef(0);
+  useEffect(() => {
+    if (previousStep.current === passo) return;
+    previousStep.current = passo;
+    question.current?.focus({ preventScroll: true });
+    question.current?.scrollIntoView({
+      block: "start",
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        ? "instant"
+        : "smooth",
+    });
+  }, [passo]);
   const [invio, setInvio] = useState(false);
   const [errore, setErrore] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -214,6 +227,7 @@ export function Configuratore({
       <div>
         {passo === 0 && (
           <VoiceBrief
+            initialText={s.note}
             onApply={(input, text) => {
               setS((prev) => ({
                 ...prev,
@@ -243,7 +257,7 @@ export function Configuratore({
         </div>
 
         <div className="min-h-[22rem]">
-          <h2 className="wizard-question">
+          <h2 ref={question} tabIndex={-1} className="wizard-question">
             {
               [
                 "Che tipo di libro vuoi realizzare?",

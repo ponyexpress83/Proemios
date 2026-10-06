@@ -2124,6 +2124,7 @@
 
 /* Preventivo: domande leggibili e controlli comodi anche al tocco. */
 .proemios-public .wizard-question {
+  scroll-margin-top: 125px;
   font-size: 29px;
   line-height: 1.25;
   margin: 0 0 22px;

@@ -232,7 +232,7 @@ export default function QuoteAssistant({
                     Conferma i servizi <ArrowRight size={18} />
                   </button>
                 )}
-                {step === 2 && (
+                {step === 2 && input.textState === "solo-materiali" && (
                   <p className="assistant-note">
                     Non hai ancora un testo? Scegli una lunghezza stimata. Per la scrittura useremo
                     la quantità di materiali “discreta”, da verificare con un editor.
@@ -284,13 +284,15 @@ export default function QuoteAssistant({
                     </button>
                   </form>
                 )}
-                <p className="assistant-note" role="status">
-                  {listening
-                    ? "Microfono attivo: parla, poi controlla il testo prima di inviarlo."
-                    : voice
-                      ? "La dettatura è gestita dal browser e può usare il suo servizio vocale. Si attiva solo quando premi il microfono."
-                      : "Dettatura non disponibile qui: tutte le funzioni restano accessibili da tastiera."}
-                </p>
+                {step !== 3 && (
+                  <p className="assistant-note" role="status">
+                    {listening
+                      ? "Microfono attivo: parla, poi controlla il testo prima di inviarlo."
+                      : voice
+                        ? "La dettatura è gestita dal browser e può usare il suo servizio vocale. Si attiva solo quando premi il microfono."
+                        : "Dettatura non disponibile qui: tutte le funzioni restano accessibili da tastiera."}
+                  </p>
+                )}
               </>
             ) : (
               <div className="assistant-result">

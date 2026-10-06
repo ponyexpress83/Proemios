@@ -9,10 +9,12 @@ import { TIPI_PROGETTO, STATI_TESTO, SERVIZI } from "./opzioni";
 
 export function VoiceBrief({
   onApply,
+  initialText = "",
 }: {
   onApply: (input: Partial<PricingInput>, text: string) => void;
+  initialText?: string;
 }) {
-  const [text, setText] = useState("");
+  const [text, setText] = useState(initialText);
   const [applied, setApplied] = useState(false);
   const field = useRef<HTMLTextAreaElement>(null);
   const voice = useDictation((transcript) => {
