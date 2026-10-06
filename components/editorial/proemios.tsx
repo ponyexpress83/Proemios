@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useRef, type ReactNode } from "react";
+import { useState, useEffect, useRef, type ReactNode, type CSSProperties } from "react";
 import Image from "next/image";
 import dynamic from "next/dynamic";
 import { Eyebrow, Dashboard } from "./elements";
@@ -22,6 +22,8 @@ import {
   Package,
   ShieldCheck,
   Layers,
+  MousePointer2,
+  BriefcaseBusiness,
 } from "lucide-react";
 import {
   Accordion,
@@ -89,6 +91,7 @@ function HeroScene() {
   const ref = useRef<HTMLDivElement>(null);
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [sceneHovered, setSceneHovered] = useState(false);
+  const [stage, setStage] = useState(0);
   function move(e: React.PointerEvent<HTMLDivElement>) {
     if (e.pointerType !== "mouse" || window.matchMedia("(prefers-reduced-motion: reduce)").matches)
       return;
@@ -99,7 +102,7 @@ function HeroScene() {
   return (
     <div
       ref={ref}
-      className="hero-scene hero-scene-focused hero-scene-story"
+      className="hero-scene hero-scene-studio"
       onPointerMove={move}
       onPointerEnter={() => setSceneHovered(true)}
       onFocusCapture={() => setSceneHovered(true)}
@@ -112,23 +115,25 @@ function HeroScene() {
         ref.current?.style.setProperty("--ry", "0deg");
       }}
     >
-      <div className="story-stage-surface" />
+      <div className="studio-stage-surface" aria-hidden="true">
+        <div className="studio-mosaic" key={stage}>
+          {Array.from({ length: 16 }, (_, i) => (
+            <span key={i} style={{ "--tile": i } as CSSProperties} />
+          ))}
+        </div>
+      </div>
       <div className="hero-scene-inner">
-        <Dashboard hero />
-        <BookPath hovered={sceneHovered} />
+        <BookPath hovered={sceneHovered || assistantOpen} active={stage} onStageChange={setStage} />
         <button
+          type="button"
           className="hero-book-trigger"
           aria-label="Apri l’assistente per il preventivo del tuo libro"
           onClick={() => setAssistantOpen(true)}
         >
-          <Book />
-        </button>
-      </div>
-      <div className="hero-quote-invite">
-        <h2>Quanto costa il tuo libro?</h2>
-        <p>Scopri una prima stima, senza lasciare i tuoi dati.</p>
-        <button className="button" onClick={() => setAssistantOpen(true)}>
-          Calcola il preventivo <ArrowRight size={21} />
+          <Book phase={stage} />
+          <span className="studio-book-cue">
+            <MousePointer2 size={18} /> Clicca il libro<span>Il tuo preventivo comincia qui</span>
+          </span>
         </button>
       </div>
       {assistantOpen && <QuoteAssistant open={assistantOpen} onOpenChange={setAssistantOpen} />}
@@ -136,20 +141,26 @@ function HeroScene() {
   );
 }
 export function PathCards() {
-  const icons = [BookOpen, FileText, Bookmark, PenLine];
+  const icons = [BookOpen, FileText, Bookmark, PenLine, BriefcaseBusiness];
   return (
     <div className="path-grid">
       {paths.map((p, i) => {
         const Icon = icons[i] ?? BookOpen;
         return (
           <Link className={"path-card " + p.color} href={"/percorsi/" + p.slug} key={p.slug}>
-            <span className="card-number">0{i + 1}</span>
+            <span className="path-card-top">
+              <span className="card-number">0{i + 1}</span>
+              <span className="path-category">
+                {["MANOSCRITTO", "IDEA", "VITA VISSUTA", "COMPETENZE", "IMPRESA"][i]}
+              </span>
+            </span>
             <div className="path-object">
               <Icon strokeWidth={1.1} />
               <span />
             </div>
             <h3>{p.title}</h3>
             <p>{p.short}</p>
+            <span className="path-card-cta">Esplora il percorso</span>
             <span className="card-arrow">
               <ArrowRight size={22} />
             </span>
@@ -207,15 +218,11 @@ export function Platform() {
           <h2>
             Il tuo libro.
             <br />
-            <em>
-              Tutto sotto
-              <br />
-              controllo.
-            </em>
+            <em>Ogni passo, visibile.</em>
           </h2>
           <p>
-            Segui ogni fase, parla con il team, approva le revisioni e trova tutti i file in un
-            unico spazio.
+            Revisioni, messaggi, approvazioni, pagamenti e consegne. Il progetto non si perde tra
+            email e allegati: sai sempre dove sei e cosa succede dopo.
           </p>
           <div className="platform-features">
             {features.map(([name, Icon]) => (
@@ -231,7 +238,9 @@ export function Platform() {
         </div>
         <div className="platform-visual">
           <Dashboard />
-          <p className="mockup-note">Demo italiana · entra e prova messaggi, file e approvazioni</p>
+          <p className="mockup-note">
+            Anteprima interattiva con dati di esempio · scegli una voce per esplorare
+          </p>
           <div className="platform-note">
             <ShieldCheck size={20} />
             <span>
@@ -357,6 +366,64 @@ export function Team() {
 export function Testimonials() {
   return null;
 }
+function TrustDetails() {
+  return (
+    <section className="trust-section section">
+      <div className="container">
+        <div className="section-heading">
+          <div>
+            <Eyebrow>PRIMA DI INIZIARE</Eyebrow>
+            <h2>
+              La tua storia.
+              <br />
+              <em>Scelte sicure.</em>
+            </h2>
+          </div>
+          <p>
+            Le cose importanti si chiariscono prima:
+            <br />
+            cosa facciamo, quanto costa e chi decide.
+          </p>
+        </div>
+        <div className="trust-detail-grid">
+          <article>
+            <ShieldCheck />
+            <h3>La tua opera resta tua</h3>
+            <p>
+              Condividere il testo non trasferisce a Proemios i tuoi diritti. Nei lavori di
+              scrittura, attribuzione e diritti sono concordati nel contratto.
+            </p>
+            <Link href="/termini" className="text-link">
+              Leggi le condizioni <ArrowRight size={16} />
+            </Link>
+          </article>
+          <article>
+            <CreditCard />
+            <h3>Pagamenti e costi chiari</h3>
+            <p>
+              Confronti i percorsi prima di scegliere. Attività, acconto e saldo sono indicati nel
+              preventivo; i pagamenti online passano dal checkout Stripe.
+            </p>
+            <Link href="/preventivo" className="text-link">
+              Esplora il preventivo <ArrowRight size={16} />
+            </Link>
+          </article>
+          <article>
+            <CheckCircle2 />
+            <h3>Approvi tu, fase per fase</h3>
+            <p>
+              Revisioni, copertina e file finali passano dal tuo confronto con il team. Trovi scelte
+              e consegne nel tuo spazio autore.
+            </p>
+            <Link href="/accedi" className="text-link">
+              Prova l’area autore <ArrowRight size={16} />
+            </Link>
+          </article>
+        </div>
+      </div>
+    </section>
+  );
+}
 export function Orbit() {
   const [active, setActive] = useState(0);
   const stages = [
@@ -473,24 +540,23 @@ export function HomePage() {
             </p>
             <div className="hero-actions">
               <Link href="/preventivo" className="button">
-                Richiedi un preventivo <ArrowRight size={20} />
+                Calcola il tuo preventivo <ArrowRight size={20} />
               </Link>
-              <Link href="/analisi-manoscritto" className="button secondary">
-                Analisi gratuita del testo
+              <Link href="#da-dove-parti" className="button secondary">
+                Trova il tuo percorso
               </Link>
             </div>
             <ul className="trust">
               <li>
-                <Check />
-                Professionisti editoriali
+                <ShieldCheck />I diritti restano tuoi
               </li>
               <li>
                 <Check />
-                Processo trasparente
+                Costi e fasi chiari
               </li>
               <li>
-                <Check />
-                Un unico interlocutore
+                <CreditCard />
+                Pagamenti tramite Stripe
               </li>
             </ul>
           </div>
@@ -517,6 +583,7 @@ export function HomePage() {
           <PathCards />
         </div>
       </section>
+      <Platform />
       <section className="section workflow-section">
         <div className="container">
           <div className="section-heading">
@@ -535,7 +602,7 @@ export function HomePage() {
           <Timeline />
         </div>
       </section>
-      <Platform />
+      <TrustDetails />
       <section className="section">
         <div className="container">
           <div className="section-heading">

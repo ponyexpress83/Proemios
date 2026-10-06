@@ -2,12 +2,9 @@
 import { useEffect, useState } from "react";
 import { Dialog } from "radix-ui";
 import {
-  LayoutDashboard,
   BookOpen,
-  MessageSquare,
   Folder,
   CheckCircle2,
-  CreditCard,
   Package,
   LogOut,
   ArrowRight,
@@ -34,16 +31,11 @@ import {
 } from "@/lib/author-demo";
 import { computeQuote } from "@/lib/pricing";
 import { euro } from "@/lib/format";
-const sections = [
-  { id: "overview", name: "Panoramica", icon: LayoutDashboard },
-  { id: "project", name: "Il mio libro", icon: BookOpen },
-  { id: "messages", name: "Messaggi", icon: MessageSquare },
-  { id: "files", name: "File e revisioni", icon: Folder },
-  { id: "approvals", name: "Approvazioni", icon: CheckCircle2 },
-  { id: "payments", name: "Pagamenti", icon: CreditCard },
-  { id: "deliveries", name: "Consegne", icon: Package },
-] as const;
-type Section = (typeof sections)[number]["id"];
+import {
+  AUTHOR_SECTIONS as sections,
+  authorSection,
+  type AuthorSection as Section,
+} from "./navigation";
 const stages = [
   "Manoscritto",
   "Editing",
@@ -68,6 +60,7 @@ export function AuthorWorkspace() {
         return;
       }
       setState(restoreDemoState(sessionStorage.getItem(DEMO_STATE_KEY)));
+      setSection(authorSection(new URLSearchParams(window.location.search).get("sezione")));
       setReady(true);
     } catch {
       window.location.replace("/accedi");

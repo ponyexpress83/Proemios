@@ -76,7 +76,7 @@ export function Header() {
               </Link>
             ))}
             <Link href="/analisi-manoscritto" onClick={() => setOpen(false)}>
-              Analisi gratuita →
+              Analisi del testo →
             </Link>
             <Link href="/preventivo" className="button" onClick={() => setOpen(false)}>
               Richiedi preventivo <ArrowRight size={18} />
@@ -115,6 +115,9 @@ export function Footer() {
           <div>
             <Logo />
             <p>Dalle idee alle opere.</p>
+            <p className="footer-reassurance">
+              Costi chiari. Scelte condivise. La tua voce, sempre.
+            </p>
           </div>
           <Link href="/accedi" className="text-link">
             Prova l’area autori <ArrowRight size={18} />
@@ -135,6 +138,7 @@ export function Footer() {
         <div className="footer-bottom">
           <span>© {new Date().getFullYear()} Proemios</span>
           <span>Una storia alla volta.</span>
+          <span>Un servizio di Smart Content S.r.l.s.</span>
           <Link href="/preventivo">
             Iniziamo dal tuo progetto <ArrowRight size={16} />
           </Link>

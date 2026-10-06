@@ -4,6 +4,7 @@ import { ArrowRight, Eye, EyeOff } from "lucide-react";
 import { DEMO_EMAIL, DEMO_PASSWORD, DEMO_SESSION_KEY } from "@/lib/author-demo";
 import { Book } from "@/components/editorial/book";
 import Link from "@/components/editorial/link";
+import { authorSection } from "./navigation";
 export function DemoLogin() {
   const [email, setEmail] = useState(DEMO_EMAIL);
   const [password, setPassword] = useState(DEMO_PASSWORD);
@@ -19,7 +20,8 @@ export function DemoLogin() {
         DEMO_SESSION_KEY,
         JSON.stringify({ user: "demo-author", createdAt: Date.now() }),
       );
-      window.location.assign("/area-autore");
+      const section = authorSection(new URLSearchParams(window.location.search).get("sezione"));
+      window.location.assign("/area-autore?sezione=" + section);
     } catch {
       setError("Consenti l’archiviazione per questa scheda del browser per aprire la demo.");
     }

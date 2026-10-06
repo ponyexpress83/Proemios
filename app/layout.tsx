@@ -11,6 +11,7 @@ import { JsonLd, organizationJsonLd, assoluto, indicizzazioneBloccata } from "@/
 import "./globals.css";
 import "./editorial.css";
 import "./experience.css";
+import "./refinements.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL(assoluto()),
