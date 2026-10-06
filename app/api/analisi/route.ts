@@ -61,7 +61,7 @@ export async function POST(req: Request) {
   }
   if (file.size > MAX_BYTES) {
     return NextResponse.json(
-      { errore: "Il file supera i 15 MB. Prova a esportarlo senza immagini." },
+      { errore: "Il file supera 4 MB. Carica un estratto più breve o esportalo senza immagini." },
       { status: 413 },
     );
   }

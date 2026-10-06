@@ -7,6 +7,7 @@ import {
   RESPONSABILI_ESTERNI,
   AGGIORNAMENTO_DOCUMENTI,
 } from "@/config/legal";
+import { demoAttiva } from "@/lib/demo";
 import { env } from "@/lib/env";
 import { metadatiPagina } from "@/lib/seo";
 
@@ -25,13 +26,26 @@ export default function PrivacyPage() {
       titolo="Informativa sulla privacy"
       aggiornamento={AGGIORNAMENTO_DOCUMENTI}
       premessa={
-        <p>
-          Questa informativa spiega quali dati personali raccogliamo tramite il sito {BRAND.domain},
-          perché li raccogliamo, per quanto tempo li conserviamo e quali diritti puoi esercitare. È
-          resa ai sensi degli articoli 13 e 14 del Regolamento (UE) 2016/679 («GDPR») e del D.lgs.
-          196/2003 come modificato dal D.lgs. 101/2018. È scritta per essere letta: se qualcosa non
-          ti è chiaro, scrivi a {BRAND.email.privacy}.
-        </p>
+        <div>
+          {demoAttiva() && (
+            <div className="form-demo-note">
+              Stai usando una demo. Preventivi, contatti e analisi sono simulati: non vengono
+              inviate email né eseguiti pagamenti. Non inserire dati o manoscritti personali. L’area
+              autore conserva le azioni solo nella scheda del browser, fino all’uscita; l’assistente
+              preventivo conserva le risposte solo finché è aperto. La dettatura facoltativa è
+              gestita dal browser e può usare il servizio vocale del suo fornitore. Il testo
+              seguente descrive il trattamento previsto per il servizio operativo e va verificato
+              prima dell’attivazione.
+            </div>
+          )}
+          <p>
+            Questa informativa spiega quali dati personali raccogliamo tramite il sito{" "}
+            {BRAND.domain}, perché li raccogliamo, per quanto tempo li conserviamo e quali diritti
+            puoi esercitare. È resa ai sensi degli articoli 13 e 14 del Regolamento (UE) 2016/679
+            («GDPR») e del D.lgs. 196/2003 come modificato dal D.lgs. 101/2018. È scritta per essere
+            letta: se qualcosa non ti è chiaro, scrivi a {BRAND.email.privacy}.
+          </p>
+        </div>
       }
       sezioni={[
         {

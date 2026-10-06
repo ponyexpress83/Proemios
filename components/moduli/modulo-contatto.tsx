@@ -10,10 +10,19 @@ import { UI } from "@/config/copy";
 
 type Stato = "compilazione" | "invio" | "inviato" | "errore";
 
-export function ModuloContatto() {
+export function ModuloContatto({
+  motivo,
+  quote,
+  demoMode = false,
+}: {
+  motivo?: string;
+  quote?: string;
+  demoMode?: boolean;
+}) {
   const [stato, setStato] = useState<Stato>("compilazione");
   const [errore, setErrore] = useState("");
   const [consenso, setConsenso] = useState(false);
+  const [demoResponse, setDemoResponse] = useState(demoMode);
   const [marketing, setMarketing] = useState(false);
 
   async function invia(e: React.FormEvent<HTMLFormElement>) {
@@ -36,14 +45,15 @@ export function ModuloContatto() {
           nome: String(fd.get("nome") ?? ""),
           email: String(fd.get("email") ?? ""),
           telefono: String(fd.get("telefono") ?? ""),
-          messaggio: String(fd.get("messaggio") ?? ""),
+          messaggio: `${motivo === "editor" ? "Richiesta: confronto con un editor.\n" : ""}${quote ? `Riferimento preventivo: ${quote}.\n` : ""}${String(fd.get("messaggio") ?? "")}`,
           consensoPrivacy: consenso,
           consensoMarketing: marketing,
           sito: String(fd.get("sito") ?? ""),
         }),
       });
-      const dati = (await res.json()) as { errore?: string };
+      const dati = (await res.json()) as { errore?: string; demo?: boolean };
       if (!res.ok) throw new Error(dati.errore ?? UI.erroreGenerico);
+      setDemoResponse(dati.demo === true);
       setStato("inviato");
       form.reset();
     } catch (err) {
@@ -55,11 +65,16 @@ export function ModuloContatto() {
   if (stato === "inviato") {
     return (
       <div className="rounded-scheda border-esito-positivo/40 bg-carta-alta border p-8">
-        <p className="apparato text-esito-positivo">Messaggio ricevuto</p>
-        <h3 className="font-display mt-3 text-xl font-medium">Ti rispondiamo presto</h3>
+        <p className="apparato text-esito-positivo">
+          {demoResponse ? "Invio simulato" : "Messaggio ricevuto"}
+        </p>
+        <h3 className="font-display mt-3 text-xl font-medium">
+          {demoResponse ? "Hai provato il modulo." : "Grazie per averci scritto."}
+        </h3>
         <p className="prosa mt-3">
-          Di solito entro un giorno lavorativo. Se nel frattempo vuoi già i numeri, il configuratore
-          di preventivo è sempre aperto.
+          {demoResponse
+            ? "Nessuna email è stata inviata e nessuna persona riceverà questa richiesta. Puoi continuare a esplorare il sito."
+            : "La richiesta è disponibile al team. Puoi anche esplorare i percorsi nel configuratore di preventivo."}
         </p>
       </div>
     );
@@ -77,7 +92,7 @@ export function ModuloContatto() {
       </div>
 
       <Campo id="ct-tel" label="Telefono" hint="Facoltativo">
-        {(p) => <Input {...p} name="telefono" autoComplete="tel" />}
+        {(p) => <Input {...p} name="telefono" type="tel" autoComplete="tel" />}
       </Campo>
 
       <Campo
@@ -86,7 +101,18 @@ export function ModuloContatto() {
         hint="A che punto sei e cosa ti serve. Bastano due frasi."
         obbligatorio
       >
-        {(p) => <AreaTesto {...p} name="messaggio" required minLength={10} rows={5} />}
+        {(p) => (
+          <AreaTesto
+            {...p}
+            name="messaggio"
+            required
+            minLength={10}
+            rows={5}
+            defaultValue={
+              motivo === "editor" ? "Vorrei parlare con un editor del mio progetto." : ""
+            }
+          />
+        )}
       </Campo>
 
       <div className="hidden" aria-hidden>

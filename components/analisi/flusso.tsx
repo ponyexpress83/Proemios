@@ -12,11 +12,18 @@ import type { ReportCompleto } from "@/lib/ai";
 
 type Stato = "attesa" | "analisi" | "fatto" | "errore";
 
-export function FlussoAnalisi({ giorniConservazione }: { giorniConservazione: number }) {
+export function FlussoAnalisi({
+  giorniConservazione,
+  demoMode = false,
+}: {
+  giorniConservazione: number;
+  demoMode?: boolean;
+}) {
   const [stato, setStato] = useState<Stato>("attesa");
   const [errore, setErrore] = useState("");
   const [report, setReport] = useState<ReportCompleto | null>(null);
   const [demo, setDemo] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [nomeFile, setNomeFile] = useState("");
   const [consenso, setConsenso] = useState(false);
   const [marketing, setMarketing] = useState(false);
@@ -27,12 +34,17 @@ export function FlussoAnalisi({ giorniConservazione }: { giorniConservazione: nu
 
     const form = e.currentTarget;
     const fd = new FormData(form);
-    const file = fd.get("file");
+    const file = selectedFile ?? fd.get("file");
 
     if (!(file instanceof File) || file.size === 0) {
       setErrore("Scegli un file da analizzare.");
       return;
     }
+    if (file.size > 4 * 1024 * 1024) {
+      setErrore("Il file supera 4 MB. Carica un estratto più breve del testo.");
+      return;
+    }
+    fd.set("file", file);
     if (!consenso) {
       setErrore(UI.consensoRichiesto);
       return;
@@ -44,6 +56,10 @@ export function FlussoAnalisi({ giorniConservazione }: { giorniConservazione: nu
     setStato("analisi");
     try {
       const res = await fetch("/api/analisi", { method: "POST", body: fd });
+      if (res.status === 413)
+        throw new Error("Il file è troppo grande. Usa un estratto fino a 4 MB.");
+      if (!res.headers.get("content-type")?.includes("application/json"))
+        throw new Error("Il servizio non è disponibile. Riprova tra poco.");
       const dati = (await res.json()) as {
         report?: ReportCompleto;
         errore?: string;
@@ -69,14 +85,25 @@ export function FlussoAnalisi({ giorniConservazione }: { giorniConservazione: nu
     <div className="mx-auto max-w-2xl">
       <form
         onSubmit={invia}
-        className="rounded-scheda border-filetto-notte bg-notte-alta border p-6 sm:p-8"
+        className="rounded-scheda border-filetto bg-carta-alta border p-6 sm:p-8"
         noValidate
       >
         {/* Caricamento */}
         <label
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={(e) => {
+            e.preventDefault();
+            if (inCorso) return;
+            const f = e.dataTransfer.files[0];
+            if (f) {
+              setSelectedFile(f);
+              setNomeFile(f.name);
+              setErrore("");
+            }
+          }}
           className={cx(
             "garbo rounded-scheda flex cursor-pointer flex-col items-center justify-center border border-dashed px-6 py-12 text-center",
-            nomeFile ? "border-ottone bg-ottone/5" : "border-filetto-notte hover:border-ottone",
+            nomeFile ? "border-ottone bg-ottone/5" : "border-filetto hover:border-ottone",
             inCorso && "pointer-events-none opacity-60",
           )}
         >
@@ -96,35 +123,45 @@ export function FlussoAnalisi({ giorniConservazione }: { giorniConservazione: nu
               strokeLinejoin="round"
             />
           </svg>
-          <span className="font-ui text-carta mt-4 text-[0.95rem] font-medium">
+          <span className="font-ui text-inchiostro mt-4 text-[0.95rem] font-medium">
             {nomeFile || "Scegli il file o trascinalo qui"}
           </span>
-          <span className="apparato text-carta/40 mt-2">{ANALISI.formati}</span>
+          <span className="apparato text-stampa mt-2">{ANALISI.formati}</span>
           <input
             type="file"
             name="file"
             accept=".docx,.pdf,.txt"
             required
             className="sr-only"
-            onChange={(e) => setNomeFile(e.target.files?.[0]?.name ?? "")}
+            onChange={(e) => {
+              setSelectedFile(e.target.files?.[0] ?? null);
+              setNomeFile(e.target.files?.[0]?.name ?? "");
+              setErrore("");
+            }}
           />
         </label>
 
-        <Filetto className="my-7" tono="notte" />
+        <Filetto className="my-7" tono="carta" />
 
         {/* Email gate */}
-        <p className="apparato text-ottone">{ANALISI.gateTitolo}</p>
-        <p className="prosa text-carta/65 mt-2 text-sm">{ANALISI.gateTesto}</p>
+        <p className="apparato text-ottone">
+          {demoMode ? "Dati di prova per il report demo" : ANALISI.gateTitolo}
+        </p>
+        <p className="prosa text-stampa mt-2 text-sm">
+          {demoMode
+            ? "Il report di esempio compare qui: nessuna email sarà inviata. Usa nome ed email di prova."
+            : "Il report compare qui sulla pagina. Non sostituisce il confronto con un editor."}
+        </p>
 
         <div className="mt-5 grid gap-5 sm:grid-cols-2">
           <Campo id="an-nome" label="Nome" obbligatorio>
             {(p) => (
-              <Input {...p} tono="notte" name="nome" required minLength={2} autoComplete="name" />
+              <Input {...p} tono="carta" name="nome" required minLength={2} autoComplete="name" />
             )}
           </Campo>
           <Campo id="an-email" label="Email" obbligatorio>
             {(p) => (
-              <Input {...p} tono="notte" name="email" type="email" required autoComplete="email" />
+              <Input {...p} tono="carta" name="email" type="email" required autoComplete="email" />
             )}
           </Campo>
         </div>
@@ -135,7 +172,7 @@ export function FlussoAnalisi({ giorniConservazione }: { giorniConservazione: nu
             name="consensoPrivacy"
             checked={consenso}
             onChange={setConsenso}
-            tono="notte"
+            tono="carta"
           >
             Ho letto la{" "}
             <Link href={"/privacy" as Route} className="hover:text-ottone underline">
@@ -148,7 +185,7 @@ export function FlussoAnalisi({ giorniConservazione }: { giorniConservazione: nu
             name="consensoMarketing"
             checked={marketing}
             onChange={setMarketing}
-            tono="notte"
+            tono="carta"
           >
             Mandatemi anche le guide sull&rsquo;autopubblicazione. Facoltativo.
           </Consenso>
@@ -162,7 +199,7 @@ export function FlussoAnalisi({ giorniConservazione }: { giorniConservazione: nu
 
         <Bottone
           type="submit"
-          variante="chiaro"
+          variante="primario"
           misura="grande"
           className="mt-6 w-full"
           disabled={inCorso}
@@ -170,7 +207,11 @@ export function FlussoAnalisi({ giorniConservazione }: { giorniConservazione: nu
           {inCorso ? ANALISI.inCorso : "Analizza il manoscritto"}
         </Bottone>
 
-        <p className="glossa text-carta/40 mt-5">{ANALISI.conservazione(giorniConservazione)}</p>
+        <p className="glossa text-stampa mt-5">
+          {demoMode
+            ? "L’analisi è simulata. Non caricare testi o dati personali. Il file non viene archiviato dalla demo."
+            : ANALISI.conservazione(giorniConservazione)}
+        </p>
       </form>
     </div>
   );

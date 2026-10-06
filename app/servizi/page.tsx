@@ -3,7 +3,7 @@ import { metadatiPagina } from "@/lib/seo";
 export const metadata = metadatiPagina({
   titolo: "Servizi editoriali",
   descrizione:
-    "Un unico percorso editoriale, dall’idea al libro. Professionisti, cura e strumenti per seguire ogni fase.",
+    "Editing, correzione bozze, scrittura, copertina e pubblicazione: scegli il lavoro editoriale che serve al tuo libro.",
   path: "/servizi",
 });
 export default function Page() {

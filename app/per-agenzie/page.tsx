@@ -4,7 +4,7 @@ import { metadatiPagina } from "@/lib/seo";
 export const metadata = metadatiPagina({
   titolo: "Per agenzie",
   descrizione:
-    "Un unico percorso editoriale, dall’idea al libro. Professionisti, cura e strumenti per seguire ogni fase.",
+    "Servizi editoriali white-label per agenzie e publisher. Il tuo brand, un referente e un percorso coordinato per i tuoi clienti.",
   path: "/per-agenzie",
 });
 export default function Page() {

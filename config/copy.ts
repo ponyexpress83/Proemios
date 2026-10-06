@@ -96,8 +96,8 @@ export const ANALISI = {
   titolo: "Analisi del manoscritto",
   occhiello:
     "Carica il testo e ricevi una prima diagnosi: leggibilità, ritmo, tic ricorrenti, tempi verbali, lettore-tipo, punti di forza e aree su cui intervenire. Con la fascia di costo calcolata sul conteggio parole reale del file.",
-  formati: "Accettiamo .docx, .pdf e .txt, fino a 15 MB.",
-  gateTitolo: "Dove mandiamo il report",
+  formati: "Accettiamo .docx, .pdf e .txt, fino a 4 MB.",
+  gateTitolo: "Dove trovi il report",
   gateTesto:
     "Il report compare qui sulla pagina e ti arriva anche via email, così lo ritrovi quando ti serve.",
   inCorso: "Stiamo leggendo il testo. Ci vuole meno di un minuto.",
@@ -107,7 +107,7 @@ export const ANALISI = {
   erroreLimite:
     "Hai usato le analisi disponibili per oggi. Torna domani, oppure scrivici e la facciamo insieme.",
   conservazione: (giorni: number) =>
-    `Del tuo file conserviamo solo il conteggio parole e il report. Il testo non viene archiviato e l'estratto usato per l'analisi è cancellato entro ${giorni} giorni.`,
+    `Il file non viene archiviato dall’applicazione. Il report e il conteggio parole sono associati a una scadenza di ${giorni} giorni.`,
   ctaPreventivo: "Vuoi il preventivo esatto?",
   ctaPreventivoTesto: "Il configuratore parte già compilato con quello che sappiamo del tuo testo.",
 } as const;

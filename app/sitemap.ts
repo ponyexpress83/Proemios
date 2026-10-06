@@ -1,9 +1,13 @@
 import type { MetadataRoute } from "next";
-import { services as editorialServices, paths as editorialPaths, articles as editorialArticles } from '@/lib/editorial-content';
+import {
+  services as editorialServices,
+  paths as editorialPaths,
+  articles as editorialArticles,
+} from "@/lib/editorial-content";
 import { SERVICE_SLUGS } from "@/config/services";
 import { CASE_STUDIES } from "@/config/case-studies";
 import { tuttiGliArticoli } from "@/lib/blog";
-import { assoluto } from "@/lib/seo";
+import { assoluto, indicizzazioneBloccata } from "@/lib/seo";
 
 /**
  * Sitemap dinamica.
@@ -12,7 +16,8 @@ import { assoluto } from "@/lib/seo";
  * (`pubblicato: false`, che sono già `noindex`).
  */
 export default function sitemap(): MetadataRoute.Sitemap {
-  const now = new Date();
+  if (indicizzazioneBloccata()) return [];
+  const now = new Date("2026-10-06");
 
   const statiche: {
     path: string;
@@ -44,7 +49,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: s.priorita,
   }));
 
-  for (const slug of new Set([...SERVICE_SLUGS,...editorialServices.map(s=>s.slug)])) {
+  for (const slug of new Set([...SERVICE_SLUGS, ...editorialServices.map((s) => s.slug)])) {
     voci.push({
       url: assoluto(`/servizi/${slug}`),
       lastModified: now,
@@ -72,6 +77,16 @@ export default function sitemap(): MetadataRoute.Sitemap {
     });
   }
 
-  for(const path of ['/percorsi',...editorialPaths.map(p=>'/percorsi/'+p.slug),...editorialArticles.map(a=>'/blog/'+a.slug)]) voci.push({url:assoluto(path),lastModified:now,changeFrequency:'monthly',priority:.7});
+  for (const path of [
+    "/percorsi",
+    ...editorialPaths.map((p) => "/percorsi/" + p.slug),
+    ...editorialArticles.map((a) => "/blog/" + a.slug),
+  ])
+    voci.push({
+      url: assoluto(path),
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.7,
+    });
   return voci;
 }

@@ -1,4 +1,7 @@
-import { Eyebrow, Dashboard } from "./proemios";
+import { demoAttiva } from "@/lib/demo";
+import { DemoLogin } from "@/components/author/demo-login";
+import type { TextState } from "@/lib/pricing";
+import { Eyebrow } from "./elements";
 import Link from "./link";
 import { Configuratore } from "@/components/preventivo/configuratore";
 import { FlussoAnalisi } from "@/components/analisi/flusso";
@@ -9,7 +12,13 @@ import { publicEnv } from "@/lib/env";
 export function QuotePage({
   precompilato,
 }: {
-  precompilato?: { tipo?: ProjectType; servizi?: ServiceKey[]; parole?: number };
+  precompilato?: {
+    tipo?: ProjectType;
+    servizi?: ServiceKey[];
+    parole?: number;
+    statoTesto?: TextState;
+    tempi?: "standard" | "prioritaria";
+  };
 }) {
   return (
     <section className="operative">
@@ -22,12 +31,13 @@ export function QuotePage({
             il tuo <em>progetto?</em>
           </h1>
           <p>
-            Raccontaci a che punto sei. Il configuratore usa i prezzi del progetto per proporti tre
+            Raccontaci a che punto sei. Il configuratore usa i nostri listini reali per proporti tre
             percorsi, con servizi e costi leggibili. Se vuoi, li verifichiamo insieme.
           </p>
         </div>
         <div className="operative-surface">
-          <Configuratore precompilato={precompilato} />
+          <FormDemoNotice />
+          <Configuratore precompilato={precompilato} demoMode={demoAttiva()} />
         </div>
       </div>
     </section>
@@ -51,18 +61,25 @@ export function AnalysisPage({ retention }: { retention: number }) {
           </p>
         </div>
         <div className="operative-surface">
-          <FlussoAnalisi giorniConservazione={retention} />
+          <FormDemoNotice analysis />
+          <FlussoAnalisi giorniConservazione={retention} demoMode={demoAttiva()} />
         </div>
       </div>
     </section>
   );
 }
-export function ContactPage() {
+export function ContactPage({ motivo, quote }: { motivo?: string; quote?: string }) {
   return (
     <section className="operative">
       <div className="form-layout container">
         <div>
-          <Eyebrow>PARLIAMONE</Eyebrow>
+          <Eyebrow>
+            {motivo === "editor"
+              ? "PARLA CON UN EDITOR"
+              : quote
+                ? "PARLIAMO DEL TUO PREVENTIVO"
+                : "PARLIAMONE"}
+          </Eyebrow>
           <h1>
             Ogni libro inizia
             <br />
@@ -83,7 +100,8 @@ export function ContactPage() {
           )}
         </div>
         <div className="form-card">
-          <ModuloContatto />
+          <FormDemoNotice />
+          <ModuloContatto motivo={motivo} quote={quote} demoMode={demoAttiva()} />
         </div>
       </div>
     </section>
@@ -106,6 +124,7 @@ export function AgencyForm() {
           </p>
         </div>
         <div className="form-card">
+          <FormDemoNotice />
           <ModuloAgenzia />
         </div>
       </div>
@@ -113,42 +132,16 @@ export function AgencyForm() {
   );
 }
 export function AccessPage() {
+  return <DemoLogin />;
+}
+export function FormDemoNotice({ analysis = false }: { analysis?: boolean }) {
+  if (!demoAttiva()) return null;
   return (
-    <section className="login-section">
-      <div className="login-layout container">
-        <div className="login-art">
-          <Eyebrow>IL TUO SPAZIO PROEMIOS</Eyebrow>
-          <h2>
-            Un solo spazio.
-            <br />
-            Ogni <em>capitolo.</em>
-          </h2>
-          <Dashboard />
-          <p className="form-note">Interfaccia di riferimento · dati dimostrativi</p>
-        </div>
-        <div className="login-card form-card">
-          <Eyebrow>AREA RISERVATA</Eyebrow>
-          <h1>
-            Gestisci il
-            <br />
-            <em>lavoro editoriale.</em>
-          </h1>
-          <p>
-            Il backoffice esistente raccoglie preventivi, contatti, richieste delle agenzie e
-            analisi dei manoscritti.
-          </p>
-          <Link href="/admin" className="button">
-            Accedi al backoffice
-          </Link>
-          <div className="login-banner" style={{ marginTop: 22 }}>
-            Accesso riservato al team, con le credenziali già configurate. L’anteprima della
-            dashboard mostra la direzione visiva del prodotto.
-          </div>
-          <Link href="/contatti" className="text-link" style={{ marginTop: 20 }}>
-            Sei un autore? Parla con noi.
-          </Link>
-        </div>
-      </div>
-    </section>
+    <div className="form-demo-note">
+      Demo: anteprima simulata, nessuna email sarà inviata e nessun pagamento sarà addebitato.{" "}
+      {analysis
+        ? "Non caricare manoscritti reali: usa un testo di esempio."
+        : "Usa soltanto dati di prova."}
+    </div>
   );
 }

@@ -1,77 +1,86 @@
-import type { Metadata } from "next";
-import { Gabbia, Filetto } from "@/components/ui/primitivi";
-import { BottoneLink } from "@/components/ui/bottone";
+import { demoAttiva } from "@/lib/demo";
+import { stripe, stripeConfigurato } from "@/lib/stripe";
 import { metadatiPagina } from "@/lib/seo";
-
-export const metadata: Metadata = metadatiPagina({
-  titolo: "Acconto ricevuto",
-  descrizione: "Conferma dell'acconto per il tuo progetto editoriale.",
+import Link from "@/components/editorial/link";
+export const metadata = metadatiPagina({
+  titolo: "Esito del percorso",
+  descrizione: "Verifica della conferma del percorso editoriale Proemios.",
   path: "/preventivo/grazie",
   noindex: true,
 });
-
-const PASSI = [
-  "Entro un giorno lavorativo ti scriviamo per fissare la call di avvio.",
-  "Ci mandi i materiali definitivi: testo, immagini, riferimenti.",
-  "Partiamo. Ogni consegna passa da una tua approvazione prima di proseguire.",
-];
-
-export default async function GraziePage({
+export default async function Page({
   searchParams,
 }: {
-  searchParams: Promise<{ demo?: string }>;
+  searchParams: Promise<{ demo?: string; session_id?: string }>;
 }) {
   const sp = await searchParams;
-  const simulato = sp.demo === "1";
-
+  const simulated = demoAttiva() && sp.demo === "1";
+  let paid = false;
+  if (
+    !demoAttiva() &&
+    stripeConfigurato() &&
+    sp.session_id &&
+    /^cs_[a-zA-Z0-9_]{10,240}$/.test(sp.session_id)
+  ) {
+    try {
+      const session = await stripe().checkout.sessions.retrieve(sp.session_id);
+      paid =
+        session.mode === "payment" &&
+        session.payment_status === "paid" &&
+        Boolean(session.metadata?.quoteId);
+    } catch {
+      paid = false;
+    }
+  }
   return (
-    <div className="bg-notte text-carta su-notte py-20 sm:py-28">
-      <Gabbia>
-        <div className="mx-auto max-w-xl">
-          <p className="apparato text-ottone">
-            {simulato ? "Acconto simulato" : "Acconto ricevuto"}
+    <section className="operative">
+      <div className="container">
+        <div className="form-card" style={{ maxWidth: 760, margin: "auto" }}>
+          <p className="eyebrow">
+            {simulated
+              ? "SIMULAZIONE COMPLETATA"
+              : paid
+                ? "PAGAMENTO VERIFICATO"
+                : "CONFERMA NON DISPONIBILE"}
           </p>
-          <h1 className="font-display mt-5 text-[2.3rem] leading-[1.08] font-medium sm:text-[3rem]">
-            La data è tua.
+          <h1 style={{ fontSize: "clamp(2.8rem,5vw,4rem)" }}>
+            {simulated ? (
+              <>
+                Hai provato
+                <br />
+                <em>il prossimo passo.</em>
+              </>
+            ) : paid ? (
+              <>
+                Un nuovo
+                <br />
+                <em>capitolo comincia.</em>
+              </>
+            ) : (
+              <>
+                Verifichiamo
+                <br />
+                <em>il tuo percorso.</em>
+              </>
+            )}
           </h1>
-          <Filetto className="mt-7" tono="notte" />
-
-          {simulato && (
-            <div className="border-ottone/50 bg-notte-alta rounded-scheda mt-7 border border-dashed p-5">
-              <p className="apparato text-ottone">Questa è una demo</p>
-              <p className="font-lettura text-carta/75 mt-2 text-sm leading-relaxed">
-                Nessun pagamento è stato aperto e nessun importo è stato addebitato. Nella versione
-                in esercizio, da qui si passa al circuito di pagamento e la conferma arriva via
-                email.
-              </p>
-            </div>
-          )}
-
-          <p className="prosa-grande text-carta/75 mt-7">
-            {simulato
-              ? "Da questo punto in poi il percorso è quello reale: ecco come procede un progetto una volta confermato."
-              : "Abbiamo registrato il pagamento e ti è arrivata una email di conferma. Il tuo progetto è entrato nel piano di lavorazione."}
+          <p style={{ marginTop: 25 }}>
+            {simulated
+              ? "Nessun pagamento è stato aperto, nessun importo addebitato e nessuna email inviata. La data di lavorazione non è stata prenotata."
+              : paid
+                ? "Il pagamento risulta completato nel circuito di pagamento. Il team confermerà con te materiali, tempi e prossimi passaggi."
+                : "Da questo collegamento non possiamo confermare un pagamento. Se hai già completato il checkout, conserva la ricevuta e contatta il team."}
           </p>
-
-          <ol className="mt-10 space-y-4">
-            {PASSI.map((p, i) => (
-              <li key={i} className="flex gap-4">
-                <span className="cifre text-ottone shrink-0">{String(i + 1).padStart(2, "0")}</span>
-                <span className="font-lettura text-carta/80 leading-relaxed">{p}</span>
-              </li>
-            ))}
-          </ol>
-
-          <div className="mt-10 flex flex-col gap-3 sm:flex-row">
-            <BottoneLink href="/" variante="chiaro" misura="grande">
+          <div className="dialog-actions">
+            <Link href={simulated ? "/accedi" : "/contatti"} className="button">
+              {simulated ? "Prova l’area autore" : "Parla con noi"} →
+            </Link>
+            <Link href="/" className="button secondary">
               Torna alla home
-            </BottoneLink>
-            <BottoneLink href="/contatti" variante="secondarioNotte" misura="grande">
-              Scrivici
-            </BottoneLink>
+            </Link>
           </div>
         </div>
-      </Gabbia>
-    </div>
+      </div>
+    </section>
   );
 }

@@ -3,7 +3,7 @@ import { metadatiPagina } from "@/lib/seo";
 export const metadata = metadatiPagina({
   titolo: "Guide editoriali",
   descrizione:
-    "Un unico percorso editoriale, dall’idea al libro. Professionisti, cura e strumenti per seguire ogni fase.",
+    "Guide pratiche su editing, impaginazione e pubblicazione. Le risposte alle prime domande di chi vuole trasformare un testo in un libro.",
   path: "/blog",
 });
 export default function Page() {

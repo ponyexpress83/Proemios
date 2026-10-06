@@ -31,10 +31,10 @@
   --color-filetto-notte: rgb(244 244 240 / 0.16);
 
   /* ── Tipografia ── */
-  --font-display: var(--font-display), Georgia, "Times New Roman", serif;
-  --font-lettura: var(--font-lettura), Georgia, serif;
-  --font-ui: var(--font-ui), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-mono), ui-monospace, "SF Mono", monospace;
+  --font-display: Editorial, Georgia, serif;
+  --font-lettura: Editorial, Georgia, serif;
+  --font-ui: Interface, Arial, sans-serif;
+  --font-mono: Interface, Arial, sans-serif;
 
   /* ── Gabbia ── */
   --spacing-gabbia: 78rem; /* larghezza totale con colonna margine */

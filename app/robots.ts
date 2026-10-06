@@ -1,6 +1,5 @@
 import type { MetadataRoute } from "next";
-import { demoAttiva } from "@/lib/demo";
-import { assoluto } from "@/lib/seo";
+import { assoluto, indicizzazioneBloccata } from "@/lib/seo";
 
 /**
  * In modalità demo il sito è chiuso ai motori: una copia dimostrativa su un
@@ -15,7 +14,7 @@ import { assoluto } from "@/lib/seo";
 export const dynamic = "force-dynamic";
 
 export default function robots(): MetadataRoute.Robots {
-  if (demoAttiva()) {
+  if (indicizzazioneBloccata()) {
     return { rules: { userAgent: "*", disallow: "/" } };
   }
 
@@ -23,7 +22,7 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: "*",
       allow: "/",
-      disallow: ["/admin", "/api/"],
+      disallow: ["/admin", "/api/", "/area-autore", "/accedi", "/preventivo/grazie"],
     },
     sitemap: assoluto("/sitemap.xml"),
     host: assoluto("/"),

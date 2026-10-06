@@ -14,9 +14,13 @@ export default function Icon() {
         borderRadius: 8,
       }}
     >
-      <svg width="26" height="26" viewBox="0 0 32 32">
-        <path d="M5 7c5 0 8 3 11 7 3-4 6-7 11-7v17c-5 0-8 1-11 4-3-3-6-4-11-4Z" fill="#F16650" />
-        <path d="M16 14v14" stroke="#fff" strokeWidth="1.5" />
+      <svg width="28" height="28" viewBox="0 0 48 48">
+        <path
+          d="M10 37V9h13c10 0 16 6 16 14s-6 14-16 14H10Zm7-21v14h6c6 0 9-2 9-7s-3-7-9-7h-6Z"
+          fill="#131936"
+        />
+        <path d="m10 37 7-7v10l-7 4Z" fill="#131936" />
+        <path d="m21 19 6 4-6 4Z" fill="#F16650" />
       </svg>
     </div>,
     size,

@@ -1,6 +1,8 @@
 import { Gabbia, Filetto } from "@/components/ui/primitivi";
 import { BottoneLink } from "@/components/ui/bottone";
 
+export const metadata = { title: "Pagina non trovata", robots: { index: false, follow: false } };
+
 export default function NonTrovata() {
   return (
     <Gabbia className="py-24 sm:py-32">

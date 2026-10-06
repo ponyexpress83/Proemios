@@ -5,7 +5,7 @@ import mammoth from "mammoth";
  * Solo runtime Node (mammoth e pdf-parse non girano su edge).
  */
 
-export const MAX_BYTES = 15 * 1024 * 1024; // 15 MB
+export const MAX_BYTES = 4 * 1024 * 1024; // margine sotto il limite della richiesta multipart
 export const ESTENSIONI = [".docx", ".pdf", ".txt"] as const;
 export type Estensione = (typeof ESTENSIONI)[number];
 

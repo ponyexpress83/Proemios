@@ -1,22 +1,22 @@
 @font-face {
   font-family: Editorial;
-  src: url("/fonts/editorial.otf") format("opentype");
+  src: url("/fonts/editorial.woff2") format("woff2");
   font-display: swap;
 }
 @font-face {
   font-family: Editorial;
-  src: url("/fonts/editorial-italic.otf") format("opentype");
+  src: url("/fonts/editorial-italic.woff2") format("woff2");
   font-style: italic;
   font-display: swap;
 }
 @font-face {
   font-family: Interface;
-  src: url("/fonts/sans.otf") format("opentype");
+  src: url("/fonts/sans.woff2") format("woff2");
   font-display: swap;
 }
 @font-face {
   font-family: Interface;
-  src: url("/fonts/sans-bold.otf") format("opentype");
+  src: url("/fonts/sans-bold.woff2") format("woff2");
   font-weight: 700;
   font-display: swap;
 }
@@ -413,7 +413,7 @@ body:has(.proemios-public),
   gap: 4px;
   background: #f5f2ef;
   padding-inline: 10px;
-  font-size: 9px;
+  font-size: 12px;
   color: #747587;
   line-height: 1;
 }
@@ -546,7 +546,7 @@ body:has(.proemios-public),
   justify-content: space-between;
   gap: 20px;
   color: #747587;
-  font-size: 0.66rem;
+  font-size: 0.75rem;
 }
 .proemios-public .scene-caption span:first-child {
   letter-spacing: 0.1em;
@@ -762,7 +762,7 @@ body:has(.proemios-public),
   width: 104%;
 }
 .proemios-public .platform-section .mockup-note {
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   text-align: right;
   max-width: none;
   margin-top: 33px;
@@ -911,14 +911,14 @@ body:has(.proemios-public),
 }
 .proemios-public .paper-label {
   font-family: var(--sans);
-  font-size: 0.65rem;
+  font-size: 0.75rem;
   letter-spacing: 0.12em;
   color: #777786;
   display: block;
   text-align: right;
 }
 .proemios-public .paper-chapter {
-  font-size: 0.67rem !important;
+  font-size: 0.75rem !important;
   letter-spacing: 0.12em;
   margin-top: 30px !important;
   color: #696778;
@@ -1123,7 +1123,7 @@ body:has(.proemios-public),
 .proemios-public .placeholder-badge {
   display: inline-block;
   background: #f3efeb;
-  font-size: 0.67rem;
+  font-size: 0.75rem;
   color: #626477;
   padding: 5px 9px;
   border-radius: 4px;
@@ -1268,7 +1268,7 @@ body:has(.proemios-public),
   border-radius: 50%;
   display: grid;
   place-items: center;
-  font-size: 0.66rem;
+  font-size: 0.75rem;
   background: #f2ede6;
   color: #626477;
 }
@@ -1385,7 +1385,7 @@ body:has(.proemios-public),
   bottom: -20px;
   right: 0;
   color: #626477;
-  font-size: 0.68rem;
+  font-size: 0.75rem;
 }
 .proemios-public .quote-section {
   background: #fff0eb;
@@ -2075,7 +2075,7 @@ body:has(.proemios-public),
   }
   .proemios-public .trust {
     gap: 12px;
-    font-size: 0.66rem;
+    font-size: 0.75rem;
   }
   .proemios-public .platform-grid {
     gap: 35px;
@@ -2285,7 +2285,7 @@ body:has(.proemios-public),
     padding: 0;
   }
   .proemios-public .eyebrow {
-    font-size: 0.66rem;
+    font-size: 0.75rem;
     letter-spacing: 0.12em;
     margin-bottom: 22px;
   }
@@ -2313,7 +2313,7 @@ body:has(.proemios-public),
     display: flex;
     gap: 10px 14px;
     margin-top: 23px;
-    font-size: 0.68rem;
+    font-size: 0.75rem;
   }
   .proemios-public .hero-scene {
     height: 470px;
@@ -2346,7 +2346,7 @@ body:has(.proemios-public),
     font-size: 0.75rem;
   }
   .proemios-public .status-card small {
-    font-size: 0.65rem;
+    font-size: 0.75rem;
   }
   .proemios-public .status-review {
     top: 287px;
@@ -2485,7 +2485,7 @@ body:has(.proemios-public),
     font-size: 0.75rem;
   }
   .proemios-public .platform-section .mockup-note {
-    font-size: 0.66rem;
+    font-size: 0.75rem;
     margin-top: 40px;
   }
   .proemios-public .service-grid {
@@ -2535,7 +2535,7 @@ body:has(.proemios-public),
     line-height: 1.7;
   }
   .proemios-public .manuscript small {
-    font-size: 0.66rem;
+    font-size: 0.75rem;
   }
   .proemios-public .team-grid {
     display: block;
@@ -2641,7 +2641,7 @@ body:has(.proemios-public),
   }
   .proemios-public .agency-visual > small {
     bottom: -12px;
-    font-size: 0.6rem;
+    font-size: 0.75rem;
   }
   .proemios-public .quote-section {
     padding: 60px 0;
@@ -2834,7 +2834,7 @@ body:has(.proemios-public),
     top: 325px;
   }
   .proemios-public .hero-bottom {
-    font-size: 0.68rem;
+    font-size: 0.75rem;
   }
   .proemios-public .manuscript {
     height: 520px;
@@ -2844,7 +2844,7 @@ body:has(.proemios-public),
     padding: 23px;
   }
   .proemios-public .orbit-label {
-    font-size: 0.64rem;
+    font-size: 0.75rem;
     gap: 5px;
     padding: 8px;
   }
@@ -2890,13 +2890,13 @@ body:has(.proemios-public),
   display: none;
 }
 .proemios-public .hero-copy > h1 {
-  animation: reveal 0.7s both;
+  animation: none;
 }
 .proemios-public .hero-copy > p {
-  animation: reveal 0.65s 0.08s both;
+  animation: none;
 }
 .proemios-public .hero-actions {
-  animation: reveal 0.6s 0.16s both;
+  animation: none;
 }
 .proemios-public .trust {
   animation: reveal 0.6s 0.22s both;

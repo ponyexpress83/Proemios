@@ -1,14 +1,15 @@
 "use client";
 import { useState, useEffect, useRef, type ReactNode } from "react";
 import Image from "next/image";
+import dynamic from "next/dynamic";
+import { Eyebrow, Dashboard } from "./elements";
+export { Eyebrow, Dashboard } from "./elements";
+import { Book } from "./book";
+const QuoteAssistant = dynamic(() => import("./quote-assistant"), { ssr: false });
 import Link from "@/components/editorial/link";
 import {
-  ArrowUpRight,
   ArrowRight,
   Check,
-  ChevronDown,
-  Menu,
-  X,
   BookOpen,
   FileText,
   Bookmark,
@@ -21,6 +22,7 @@ import {
   ShieldCheck,
   Layers,
   Circle,
+  Mic,
 } from "lucide-react";
 import {
   Accordion,
@@ -28,146 +30,9 @@ import {
   AccordionTrigger,
   AccordionContent,
 } from "@/components/editorial/accordion";
-import { Slider } from "@/components/editorial/slider";
+import { BeforeAfter } from "./before-after";
+export { BeforeAfter } from "./before-after";
 import { services, paths, workflow } from "@/lib/editorial-content";
-export function Logo() {
-  return (
-    <Link href="/" className="logo" aria-label="Proemios, homepage">
-      <svg viewBox="0 0 40 34" aria-hidden="true">
-        <path
-          d="M3 4c7 0 13 4 17 11C24 8 30 4 37 4v24c-7-1-13 1-17 5-4-4-10-6-17-5Z"
-          fill="currentColor"
-        />
-        <path d="M20 15v18" stroke="#FAF8F5" strokeWidth="1.6" />
-        <path d="M3 4c7 0 13 4 17 11V23C15 14 9 10 3 11Z" fill="#fff" opacity=".28" />
-      </svg>
-      <span>
-        Proemios<span className="logo-dot">.</span>
-      </span>
-    </Link>
-  );
-}
-const nav: [string, string][] = [
-  ["Servizi", "/servizi"],
-  ["Percorsi", "/percorsi"],
-  ["Come funziona", "/come-funziona"],
-  ["Per professionisti", "/percorsi/libro-professionale"],
-  ["Per agenzie", "/per-agenzie"],
-  ["Risorse", "/blog"],
-];
-export function Header() {
-  const [open, setOpen] = useState(false);
-  const [scroll, setScroll] = useState(false);
-  useEffect(() => {
-    const fn = () => setScroll(window.scrollY > 12);
-    fn();
-    window.addEventListener("scroll", fn, { passive: true });
-    return () => window.removeEventListener("scroll", fn);
-  }, []);
-  return (
-    <>
-      <a href="#contenuto" className="skip">
-        Salta al contenuto
-      </a>
-      <header className={"header " + (scroll ? "scrolled" : "")}>
-        <div className="nav-wrap">
-          <Logo />
-          <nav aria-label="Navigazione principale" className="desktop-nav">
-            {nav.map(([n, h]) => (
-              <Link key={h} href={h}>
-                {n}
-              </Link>
-            ))}
-          </nav>
-          <div className="nav-actions">
-            <Link href="/accedi" className="login-link">
-              Accedi
-            </Link>
-            <Link className="button small" href="/preventivo">
-              Richiedi preventivo <ArrowUpRight size={15} />
-            </Link>
-            <button
-              className="menu-toggle"
-              aria-label={open ? "Chiudi menu" : "Apri menu"}
-              aria-expanded={open}
-              aria-controls="mobile-nav"
-              onClick={() => setOpen(!open)}
-            >
-              {open ? <X /> : <Menu />}
-            </button>
-          </div>
-        </div>
-        {open && (
-          <nav id="mobile-nav" className="mobile-nav" aria-label="Menu mobile">
-            {nav.map(([n, h]) => (
-              <Link key={h} href={h} onClick={() => setOpen(false)}>
-                {n}
-                <ArrowUpRight size={18} />
-              </Link>
-            ))}
-            <Link href="/accedi" onClick={() => setOpen(false)}>
-              Area riservata
-            </Link>
-          </nav>
-        )}
-      </header>
-    </>
-  );
-}
-export function Footer() {
-  const cols = [
-    ["Servizi", ...services.map((s) => [s.title, "/servizi/" + s.slug])],
-    ["Percorsi", ...paths.map((p) => [p.title, "/percorsi/" + p.slug])],
-    [
-      "Azienda",
-      ["Chi siamo", "/chi-siamo"],
-      ["Per agenzie", "/per-agenzie"],
-      ["Contatti", "/contatti"],
-    ],
-    [
-      "Risorse",
-      ["Come funziona", "/come-funziona"],
-      ["Guide editoriali", "/blog"],
-      ["Casi studio", "/casi-studio"],
-      ["Analisi manoscritto", "/analisi-manoscritto"],
-    ],
-    ["Legale", ["Privacy", "/privacy"], ["Termini", "/termini"], ["Cookie", "/cookie"]],
-  ];
-  return (
-    <footer className="footer">
-      <div className="container">
-        <div className="footer-top">
-          <div>
-            <Logo />
-            <p>Dalle idee alle opere.</p>
-          </div>
-          <Link href="/accedi" className="text-link">
-            Entra nel tuo spazio <ArrowUpRight size={18} />
-          </Link>
-        </div>
-        <div className="footer-columns">
-          {cols.map((c) => (
-            <div key={c[0] as string}>
-              <h3>{c[0] as string}</h3>
-              {c.slice(1).map((l, i) => (
-                <Link key={i} href={l[1] as string}>
-                  {l[0]}
-                </Link>
-              ))}
-            </div>
-          ))}
-        </div>
-        <div className="footer-bottom">
-          <span>© {new Date().getFullYear()} Proemios</span>
-          <span>Una storia alla volta.</span>
-          <Link href="/preventivo">
-            Iniziamo dal tuo progetto <ArrowUpRight size={16} />
-          </Link>
-        </div>
-      </div>
-    </footer>
-  );
-}
 export function Shell({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (
@@ -192,14 +57,6 @@ export function Shell({ children }: { children: ReactNode }) {
   }, []);
   return <>{children}</>;
 }
-export function Eyebrow({ children }: { children: ReactNode }) {
-  return (
-    <p className="eyebrow">
-      <span />
-      {children}
-    </p>
-  );
-}
 export function CTA() {
   return (
     <section className="quote-section">
@@ -218,7 +75,7 @@ export function CTA() {
         </div>
         <div className="quote-actions">
           <Link href="/preventivo" className="button">
-            Calcola il preventivo <ArrowUpRight size={20} />
+            Calcola il preventivo <ArrowRight size={20} />
           </Link>
           <Link href="/contatti" className="text-link">
             Parla con noi <ArrowRight size={18} />
@@ -229,41 +86,9 @@ export function CTA() {
     </section>
   );
 }
-export function Dashboard({ hero = false, white = false }: { hero?: boolean; white?: boolean }) {
-  return (
-    <div
-      className={
-        "dashboard-wrap " + (hero ? "hero-dashboard" : "") + (white ? " white-dashboard" : "")
-      }
-    >
-      <div className="dashboard-back back-one" />
-      <div className="dashboard-back back-two" />
-      <div className="dashboard-browser">
-        <div className="browser-bar">
-          <i />
-          <i />
-          <i />
-          <span>{white ? "Il tuo spazio editoriale" : "proemios / il tuo spazio"}</span>
-        </div>
-        {white && (
-          <div className="white-brand">
-            IL TUO BRAND <span>Il progetto del tuo cliente</span>
-          </div>
-        )}
-        <Image
-          src="/images/dashboard.webp"
-          alt="Dashboard Proemios di riferimento: sidebar corallo, grafico attività, elenco progetti e profilo editor"
-          width={937}
-          height={593}
-          sizes={hero ? "(max-width: 768px) 65vw, 35vw" : "(max-width: 768px) 100vw, 55vw"}
-          loading={hero ? "eager" : "lazy"}
-        />
-      </div>
-    </div>
-  );
-}
 function HeroScene() {
   const ref = useRef<HTMLDivElement>(null);
+  const [assistantOpen, setAssistantOpen] = useState(false);
   function move(e: React.PointerEvent<HTMLDivElement>) {
     if (e.pointerType !== "mouse" || window.matchMedia("(prefers-reduced-motion: reduce)").matches)
       return;
@@ -284,16 +109,24 @@ function HeroScene() {
       <div className="scene-halo" />
       <div className="hero-scene-inner">
         <Dashboard hero />
-        <Image
-          className="hero-book"
-          src="/images/editorial-hero.webp"
-          width={850}
-          height={850}
-          sizes="(max-width: 768px) 100vw, 52vw"
-          priority
-          alt="Libro corallo in prospettiva, con copertina La forma delle storie e manoscritto a pagine aperte"
-          fetchPriority="high"
-        />
+        <div className="scene-manuscripts" aria-hidden="true">
+          <i />
+          <i />
+          <i />
+        </div>
+        <button
+          className="hero-book-trigger"
+          aria-label="Apri l’assistente per il preventivo del tuo libro"
+          onClick={() => setAssistantOpen(true)}
+        >
+          <Book />
+          <span className="book-chat-cue">
+            <Mic size={20} />
+            <span>
+              Raccontami il tuo libro<small>Apri il preventivo guidato →</small>
+            </span>
+          </span>
+        </button>
         <div className="status-card status-edit">
           <span className="status-icon sage">
             <Check size={17} />
@@ -325,6 +158,7 @@ function HeroScene() {
           <small>Da iniziare</small>
         </div>
       </div>
+      {assistantOpen && <QuoteAssistant open={assistantOpen} onOpenChange={setAssistantOpen} />}
       <div className="scene-caption">
         <span>UNA STORIA. UN PERCORSO.</span>
         <span>Il prossimo libro potrebbe essere il tuo.</span>
@@ -348,7 +182,7 @@ export function PathCards() {
             <h3>{p.title}</h3>
             <p>{p.short}</p>
             <span className="card-arrow">
-              <ArrowUpRight size={22} />
+              <ArrowRight size={22} />
             </span>
           </Link>
         );
@@ -422,13 +256,13 @@ export function Platform() {
               </span>
             ))}
           </div>
-          <Link href="/come-funziona" className="text-link">
-            Scopri come lavoriamo <ArrowUpRight size={18} />
+          <Link href="/accedi" className="text-link">
+            Prova il tuo spazio <ArrowRight size={18} />
           </Link>
         </div>
         <div className="platform-visual">
           <Dashboard />
-          <p className="mockup-note">Interfaccia di riferimento · progetti e dati dimostrativi</p>
+          <p className="mockup-note">Demo italiana · entra e prova messaggi, file e approvazioni</p>
           <div className="platform-note">
             <ShieldCheck size={20} />
             <span>
@@ -463,7 +297,7 @@ export function ServicesGrid() {
           .map((s) => (
             <Link href={"/servizi/" + s.slug} key={s.slug}>
               {s.title}
-              <ArrowUpRight size={16} />
+              <ArrowRight size={16} />
             </Link>
           ))}
         {i === 0 && <span>Revisione linguistica</span>}
@@ -474,119 +308,30 @@ export function ServicesGrid() {
     </>
   );
   return (
-    <>
-      <div className="service-grid desktop-services">
-        {groups.map((g, i) => (
-          <article className={"service-area service-" + i} key={g}>
-            <div className="service-area-title">
-              <span>0{i + 1}</span>
-              <h3>{g}</h3>
-              <ArrowUpRight size={21} />
-            </div>
-            {body(g, i)}
-          </article>
-        ))}
-      </div>
-      <Accordion type="single" collapsible defaultValue="Revisione" className="mobile-services">
-        {groups.map((g, i) => (
-          <AccordionItem value={g} className={"service-area service-" + i} key={g}>
-            <AccordionTrigger className="mobile-service-trigger">
-              <span>0{i + 1}</span>
-              <span>{g}</span>
-            </AccordionTrigger>
-            <AccordionContent>{body(g, i)}</AccordionContent>
-          </AccordionItem>
-        ))}
-      </Accordion>
-    </>
+    <Accordion
+      type="multiple"
+      defaultValue={[
+        "Revisione",
+        "Scrittura",
+        "Design e produzione",
+        "Pubblicazione",
+        "Promozione",
+      ]}
+      className="service-grid unified-services"
+    >
+      {groups.map((g, i) => (
+        <AccordionItem value={g} className={"service-area service-" + i} key={g}>
+          <AccordionTrigger className="unified-service-trigger">
+            <span>0{i + 1}</span>
+            <span>{g}</span>
+          </AccordionTrigger>
+          <AccordionContent>{body(g, i)}</AccordionContent>
+        </AccordionItem>
+      ))}
+    </Accordion>
   );
 }
-export function BeforeAfter() {
-  const [v, setV] = useState(50);
-  return (
-    <section className="section before-section">
-      <div className="before-grid container">
-        <div className="manuscript">
-          <div className="paper-base">
-            <span className="paper-label">ORIGINALE</span>
-            <p className="paper-chapter">CAPITOLO PRIMO</p>
-            <h3>Il ritorno</h3>
-            <p>
-              Quando tornò al paese, lui si accorse che tutto era cambiato, ma anche tutto era
-              rimasto uguale.
-            </p>
-            <p>
-              Le case erano sempre li. E la piazza era sempre quella piazza che lui conosceva così
-              bene.
-            </p>
-            <p>
-              Si fermò per un momento. Pensava che forse non avrebbe dovuto tornare, ma era tornato.
-            </p>
-            <small>Testo dimostrativo, creato per questo confronto.</small>
-          </div>
-          <div className="paper-revised" style={{ clipPath: `inset(0 0 0 ${v}%)` }}>
-            <span className="paper-label">REVISIONATO</span>
-            <p className="paper-chapter">CAPITOLO PRIMO</p>
-            <h3>Il ritorno</h3>
-            <p>
-              Quando tornò al paese,{" "}
-              <mark>gli sembrò che tutto fosse diverso. Eppure riconosceva ogni angolo.</mark>
-            </p>
-            <p>
-              Le case erano ancora <mark>lì</mark>. La piazza conservava{" "}
-              <mark>le voci e le ombre che ricordava.</mark>
-            </p>
-            <p>
-              Si fermò.{" "}
-              <mark>Aveva esitato a lungo, prima di tornare. Adesso era di nuovo a casa.</mark>
-            </p>
-            <small>Una possibile revisione, da discutere con l’autore.</small>
-          </div>
-          <div className="comparison-line" style={{ left: v + "%" }}>
-            <span>↔</span>
-          </div>
-          <Slider
-            className="comparison-slider"
-            value={[v]}
-            onValueChange={(x) => setV(x[0] ?? 50)}
-            min={5}
-            max={95}
-            step={1}
-            aria-label="Posizione del confronto originale e revisionato"
-          />
-          <p className="slider-hint">
-            Trascina per confrontare <span>← →</span>
-          </p>
-        </div>
-        <div>
-          <Eyebrow>LA CURA SI VEDE</Eyebrow>
-          <h2>
-            Dal manoscritto
-            <br />
-            alla versione
-            <br />
-            <em>pronta.</em>
-          </h2>
-          <div className="quality-tags">
-            {["Correzione", "Stile", "Coerenza", "Chiarezza"].map((x) => (
-              <span key={x}>
-                <Check size={14} />
-                {x}
-              </span>
-            ))}
-          </div>
-          <p>
-            Tecnologia editoriale e supervisione professionale lavorano insieme. La decisione finale
-            resta sempre umana.
-          </p>
-          <Link href="/servizi/editing" className="text-link">
-            Il lavoro dietro ogni pagina <ArrowUpRight size={18} />
-          </Link>
-        </div>
-      </div>
-    </section>
-  );
-}
+
 export function Team() {
   return (
     <section className="team-section section">
@@ -601,7 +346,7 @@ export function Team() {
             </h2>
           </div>
           <Link href="/chi-siamo" className="text-link">
-            Conosci il nostro approccio <ArrowUpRight size={18} />
+            Conosci il nostro approccio <ArrowRight size={18} />
           </Link>
         </div>
         <div className="team-grid">
@@ -624,16 +369,16 @@ export function Team() {
               ["Publishing specialist", "Ti accompagna nei passaggi di pubblicazione."],
             ].map(([r, d], i) => (
               <div key={r}>
-                <span className={"role-avatar role-" + i}>{["Ed", "Pm", "Gr", "Ps"][i]}</span>
+                <span className={"role-avatar role-" + i}>
+                  <PenLine size={23} />
+                </span>
                 <div>
                   <h3>{r}</h3>
                   <p>{d}</p>
                 </div>
               </div>
             ))}
-            <small>
-              Le schede personali del team saranno pubblicate con profili e foto verificati.
-            </small>
+            <small>Competenze che entrano nel percorso quando servono al tuo libro.</small>
           </div>
         </div>
       </div>
@@ -641,57 +386,7 @@ export function Team() {
   );
 }
 export function Testimonials() {
-  return (
-    <section className="section stories-section">
-      <div className="container">
-        <div className="section-heading">
-          <div>
-            <Eyebrow>OGNI OPERA HA UN PERCORSO</Eyebrow>
-            <h2>
-              Storie che sono
-              <br />
-              diventate <em>libri.</em>
-            </h2>
-          </div>
-          <p>
-            Spazio dedicato alle esperienze degli autori.
-            <br />
-            Pubblicheremo solo testimonianze verificate.
-          </p>
-        </div>
-        <div className="testimonial-grid">
-          {[
-            "Un romanzo, dalla prima revisione",
-            "Una vita da raccontare",
-            "Un metodo da condividere",
-          ].map((t, i) => (
-            <article className="testimonial" key={t}>
-              <span className="placeholder-badge">Testimonianza da inserire</span>
-              <div className="testimonial-header">
-                <span className={"testimonial-cover cover-" + i}>
-                  <BookOpen size={22} />
-                </span>
-                <h3>{t}</h3>
-              </div>
-              <p>
-                Qui troverai il racconto dell’autore, il libro realizzato e il lavoro svolto
-                insieme.
-              </p>
-              <div className="testimonial-person">
-                <span>—</span>
-                <div>
-                  Profilo autore da verificare
-                  <small>
-                    {["Editing e produzione", "Memoir e ghostwriting", "Libro professionale"][i]}
-                  </small>
-                </div>
-              </div>
-            </article>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
+  return null;
 }
 export function Orbit() {
   const [active, setActive] = useState(0);
@@ -779,7 +474,7 @@ export function Agency() {
             la tua identità.
           </p>
           <Link href="/per-agenzie" className="button secondary">
-            Scopri Proemios per agenzie <ArrowUpRight size={18} />
+            Scopri Proemios per agenzie <ArrowRight size={18} />
           </Link>
         </div>
         <div className="agency-visual">
@@ -809,10 +504,10 @@ export function HomePage() {
             </p>
             <div className="hero-actions">
               <Link href="/preventivo" className="button">
-                Richiedi un preventivo <ArrowUpRight size={20} />
+                Richiedi un preventivo <ArrowRight size={20} />
               </Link>
-              <Link href="/contatti?motivo=editor" className="button secondary">
-                Parla con un editor
+              <Link href="/analisi-manoscritto" className="button secondary">
+                Analisi gratuita del testo
               </Link>
             </div>
             <ul className="trust">
@@ -831,12 +526,6 @@ export function HomePage() {
             </ul>
           </div>
           <HeroScene />
-        </div>
-        <div className="hero-bottom container">
-          <span>Tu racconti la storia. Noi ti aiutiamo a darle forma.</span>
-          <a href="#da-dove-parti">
-            Scopri il tuo percorso <ChevronDown size={17} />
-          </a>
         </div>
       </section>
       <section className="section paths-section" id="da-dove-parti">
@@ -871,7 +560,7 @@ export function HomePage() {
               </h2>
             </div>
             <Link href="/come-funziona" className="text-link">
-              Tutte le fasi, senza sorprese <ArrowUpRight size={18} />
+              Tutte le fasi, senza sorprese <ArrowRight size={18} />
             </Link>
           </div>
           <Timeline />
@@ -889,17 +578,23 @@ export function HomePage() {
               </h2>
             </div>
             <Link href="/servizi" className="text-link">
-              Esplora tutti i servizi <ArrowUpRight size={18} />
+              Esplora tutti i servizi <ArrowRight size={18} />
             </Link>
           </div>
           <ServicesGrid />
         </div>
       </section>
       <BeforeAfter />
-      <Team />
-      <Testimonials />
-      <Orbit />
-      <Agency />
+      <section className="partner-strip container">
+        <div>
+          <Eyebrow>PER AGENZIE E PUBLISHER</Eyebrow>
+          <h2>Il tuo brand. La nostra cura editoriale.</h2>
+          <p>Un percorso white-label per accompagnare i progetti dei tuoi clienti.</p>
+        </div>
+        <Link href="/per-agenzie" className="button secondary">
+          Parliamo di collaborazione <ArrowRight size={18} />
+        </Link>
+      </section>
       <CTA />
     </Shell>
   );
