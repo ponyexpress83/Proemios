@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { InternalPage } from "@/components/editorial/internal-pages";
+import { services as serviziEditoriali } from "@/lib/editorial-content";
 import { ArrowRight } from "lucide-react";
 import { Gabbia, Sezione, Titolo, Occhiello, Dato } from "@/components/ui/primitivi";
 import { BottoneLink } from "@/components/ui/bottone";
@@ -12,8 +14,22 @@ import { AREE, SLUG_SERVIZI, getServizio } from "@/config/catalogo";
 import { PERCORSI } from "@/config/percorsi";
 import { metadatiPagina, JsonLd, breadcrumbJsonLd, serviceJsonLd } from "@/lib/seo";
 
+/**
+ * Il catalogo (`config/catalogo.ts`) è la sorgente canonica: ha le tariffe, ed è
+ * il bersaglio dei 301 definiti in `next.config.ts`. La nuova identità
+ * editoriale porta però tre pagine di atterraggio con slug propri — `editing`,
+ * `pubblicazione`, `promozione` — a cui puntano testata e piè di pagina: senza
+ * l'unione quei link cadrebbero su un 404.
+ *
+ * Dove i due insiemi si sovrappongono vince il catalogo: quelle pagine hanno il
+ * prezzo, e il prezzo è la fonte di verità.
+ */
+const SLUG_SOLO_EDITORIALI = serviziEditoriali
+  .map((s) => s.slug)
+  .filter((slug) => !SLUG_SERVIZI.includes(slug));
+
 export function generateStaticParams() {
-  return SLUG_SERVIZI.map((slug) => ({ slug }));
+  return [...SLUG_SERVIZI, ...SLUG_SOLO_EDITORIALI].map((slug) => ({ slug }));
 }
 
 export async function generateMetadata({
@@ -22,6 +38,15 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
+  const editoriale = SLUG_SOLO_EDITORIALI.includes(slug)
+    ? serviziEditoriali.find((x) => x.slug === slug)
+    : undefined;
+  if (editoriale)
+    return metadatiPagina({
+      titolo: editoriale.title,
+      descrizione: editoriale.description,
+      path: `/servizi/${slug}`,
+    });
   const servizio = getServizio(slug);
   if (!servizio) return metadatiPagina({ titolo: "Servizio", descrizione: "", path: "/servizi" });
   return metadatiPagina({
@@ -33,6 +58,7 @@ export async function generateMetadata({
 
 export default async function PaginaServizio({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
+  if (SLUG_SOLO_EDITORIALI.includes(slug)) return <InternalPage route={`servizi/${slug}`} />;
   const servizio = getServizio(slug);
   if (!servizio) notFound();
 

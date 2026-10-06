@@ -32,6 +32,10 @@ label per le agenzie.
 - **I prezzi vengono da `config/pricing.ts`.** Un test verifica che non ne esista
   nessuno fuori di lì.
 
+## Sito pubblico
+
+Il design editoriale avorio/corallo e le pagine multipagina sono in `components/editorial`, `lib/editorial-content.ts` e `app/editorial.css`. I moduli sono collegati alle API del progetto; il preventivo usa le tariffe esistenti. `/accedi` apre il backoffice riservato al team, non un portale clienti. Per riferimenti visivi e limiti dei contenuti dimostrativi, vedere `DESIGN_PLAN.md`.
+
 ## Stack
 
 Next.js 15 (App Router) · React 19 · TypeScript strict · Tailwind CSS 4 ·

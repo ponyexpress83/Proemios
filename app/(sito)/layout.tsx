@@ -1,6 +1,4 @@
-import { Testata } from "@/components/layout/testata";
-import { Colophon } from "@/components/layout/colophon";
-import { FasciaDemo } from "@/components/layout/fascia-demo";
+import { SiteChrome } from "@/components/editorial/site-chrome";
 
 /**
  * Guscio del sito pubblico: navigazione di marketing, piè di pagina, fascia
@@ -11,16 +9,10 @@ import { FasciaDemo } from "@/components/layout/fascia-demo";
  * a un progetto non ha bisogno del bottone «Fai il preventivo» sopra la testa,
  * e un piè di pagina con l'anagrafica societaria in mezzo a un cruscotto è
  * rumore.
+ *
+ * Il `<main id="contenuto">` lo apre `SiteChrome`, non questo layout: il salto
+ * al contenuto definito nel layout radice punta lì.
  */
 export default function LayoutSito({ children }: { children: React.ReactNode }) {
-  return (
-    <>
-      <FasciaDemo />
-      <Testata />
-      <main id="contenuto" className="flex-1">
-        {children}
-      </main>
-      <Colophon />
-    </>
-  );
+  return <SiteChrome>{children}</SiteChrome>;
 }

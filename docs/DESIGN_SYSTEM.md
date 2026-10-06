@@ -1,7 +1,15 @@
 # Proemios — Design System
 
-Stato: vigente dalla Fase 1 di Complete v1. Sostituisce integralmente il
-precedente sistema chiaro (carta/alloro/ottone), rimosso dal repository.
+Stato: vigente dalla Fase 1 di Complete v1. Sostituisce il precedente sistema
+chiaro (carta/alloro/ottone), rimosso dal repository.
+
+> **Ambito.** Questo sistema vale per le **aree riservate**: back-office
+> (`/admin`), portale cliente (`/area`), redazione (`/redazione`) e accesso
+> (`/accedi`). Il **sito pubblico** ha una propria identità editoriale chiara —
+> avorio, corallo, navy — descritta in `DESIGN_PLAN.md` e applicata dentro
+> `.proemios-public`. Le pagine pubbliche non ancora ridisegnate usano i
+> componenti di questo sistema con i token rimappati sul chiaro: i valori nelle
+> tabelle qui sotto sono quelli delle aree riservate.
 
 ## 1. Identità
 

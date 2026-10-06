@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import type { Route } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { InternalPage } from "@/components/editorial/internal-pages";
+import { paths as percorsiEditoriali } from "@/lib/editorial-content";
 import { ArrowRight } from "lucide-react";
 import { Gabbia, Sezione, Titolo, Occhiello } from "@/components/ui/primitivi";
 import { BottoneLink } from "@/components/ui/bottone";
@@ -14,8 +16,17 @@ import { PERCORSI, SLUG_PERCORSI, getPercorso } from "@/config/percorsi";
 import { getServizio } from "@/config/catalogo";
 import { metadatiPagina, JsonLd, breadcrumbJsonLd, faqJsonLd, serviceJsonLd } from "@/lib/seo";
 
+/**
+ * Due insiemi di slug convivono su questa rotta: gli otto percorsi del
+ * catalogo (`config/percorsi.ts`, con prezzi) e le quattro pagine di
+ * atterraggio della nuova identità editoriale (`lib/editorial-content.ts`),
+ * a cui puntano testata e piè di pagina. Senza l'unione quei quattro link
+ * cadrebbero su un 404.
+ */
 export function generateStaticParams() {
-  return SLUG_PERCORSI.map((slug) => ({ slug }));
+  return Array.from(
+    new Set([...SLUG_PERCORSI, ...percorsiEditoriali.map((p) => p.slug)]),
+  ).map((slug) => ({ slug }));
 }
 
 export async function generateMetadata({
@@ -24,6 +35,13 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
+  const editoriale = percorsiEditoriali.find((p) => p.slug === slug);
+  if (editoriale)
+    return metadatiPagina({
+      titolo: editoriale.title,
+      descrizione: editoriale.description,
+      path: `/percorsi/${slug}`,
+    });
   const percorso = getPercorso(slug);
   if (!percorso) return metadatiPagina({ titolo: "Percorso", descrizione: "", path: "/percorsi" });
   return metadatiPagina({
@@ -35,6 +53,8 @@ export async function generateMetadata({
 
 export default async function PaginaPercorso({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
+  if (percorsiEditoriali.some((p) => p.slug === slug))
+    return <InternalPage route={`percorsi/${slug}`} />;
   const percorso = getPercorso(slug);
   if (!percorso) notFound();
 

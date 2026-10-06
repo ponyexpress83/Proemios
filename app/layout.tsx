@@ -8,6 +8,7 @@ import { AttributionCapture } from "@/components/marketing/attribution-capture";
 import { demoAttiva } from "@/lib/demo";
 import { JsonLd, organizationJsonLd } from "@/lib/seo";
 import "./globals.css";
+import "./editorial.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL(BRAND.url),
@@ -32,6 +33,7 @@ export const metadata: Metadata = {
   },
   alternates: { canonical: BRAND.url },
   robots: demoAttiva() ? { index: false, follow: false } : { index: true, follow: true },
+  icons: {icon: "/favicon.svg", shortcut: "/favicon.svg"},
   formatDetection: { telephone: false },
 };
 
