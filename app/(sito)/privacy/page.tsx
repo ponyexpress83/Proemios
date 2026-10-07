@@ -47,7 +47,7 @@ export default function PrivacyPage() {
                 <Dato valore={TITOLARE.registroImprese} />.
               </p>
               <p className="mt-3">
-                Contatti: {BRAND.email.privacy} · PEC <Dato valore={TITOLARE.pec} />.
+                Contatti: {BRAND.email.privacy}, PEC <Dato valore={TITOLARE.pec} />.
               </p>
               <p className="mt-3">
                 Responsabile della protezione dei dati (DPO): <Dato valore={TITOLARE.dpo} />. La
@@ -292,7 +292,7 @@ export default function PrivacyPage() {
             <p>
               Il sito non utilizza cookie di profilazione né strumenti di tracciamento
               pubblicitario. Il dettaglio è nella{" "}
-              <a href="/cookie" className="text-viola-chiaro underline underline-offset-2">
+              <a href="/cookie" className="sottolinea-matita text-blu-matita">
                 cookie policy
               </a>
               .

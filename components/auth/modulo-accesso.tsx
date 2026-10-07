@@ -1,9 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Campo, Input } from "@/components/ui/campi";
-import { Bottone } from "@/components/ui/bottone";
-import { Avviso } from "@/components/ui/stati";
+import { Campo, Input } from "@/components/sito/campo";
+import { Pulsante } from "@/components/sito/pulsante";
 import { richiediLinkAccesso } from "@/app/accedi/azioni";
 import { cn } from "@/lib/cn";
 
@@ -27,16 +26,19 @@ export function ModuloAccesso({
 
   if (inviato) {
     return (
-      <Avviso tono="successo" titolo="Controlla la posta" className={className}>
-        Se esiste un account per <strong>{email}</strong>, il link di accesso è appena partito.
-        Vale una volta sola.
-      </Avviso>
+      <div className={cn("rounded-foglio border-t-4 border-esito-ok bg-bianco p-6 shadow-foglio", className)} role="status">
+        <h2 className="font-serif text-t-lg text-inchiostro">Controlla la posta.</h2>
+        <p className="mt-2 text-t-base text-grafite">
+          Se esiste un account per <strong className="text-inchiostro">{email}</strong>, il link di
+          accesso è appena partito. Vale una volta sola.
+        </p>
+      </div>
     );
   }
 
   return (
     <form
-      className={cn("flex flex-col gap-4", className)}
+      className={cn("flex flex-col gap-5", className)}
       onSubmit={(e) => {
         e.preventDefault();
         setErrore(null);
@@ -47,14 +49,14 @@ export function ModuloAccesso({
         });
       }}
     >
-      <Campo label="Indirizzo email" id="email-accesso" obbligatorio>
+      <Campo label="Indirizzo email" id="email-accesso" obbligatorio errore={errore ?? undefined}>
         {(props) => (
           <Input
             {...props}
             type="email"
+            inputMode="email"
             name="email"
             autoComplete="email"
-            required
             placeholder="nome@esempio.it"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -62,11 +64,9 @@ export function ModuloAccesso({
         )}
       </Campo>
 
-      {errore ? <Avviso tono="errore">{errore}</Avviso> : null}
-
-      <Bottone type="submit" variante="identita" misura="grande" disabled={inCorso}>
-        {inCorso ? "Un momento…" : "Mandami il link"}
-      </Bottone>
+      <Pulsante type="submit" variante="primario" disabled={inCorso}>
+        {inCorso ? "Un momento…" : "Mandami il link di accesso"}
+      </Pulsante>
     </form>
   );
 }

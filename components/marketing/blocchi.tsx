@@ -1,51 +1,35 @@
-import type { Route } from "next";
-import Link from "next/link";
-import { ArrowRight } from "lucide-react";
-import { Gabbia, Titolo } from "@/components/ui/primitivi";
-import { BottoneLink } from "@/components/ui/bottone";
+import { Foglio } from "@/components/sito/foglio";
+import { PulsanteLink } from "@/components/sito/pulsante";
+import { Collegamento } from "@/components/sito/collegamento";
+import { Contenitore, Intestazione } from "@/components/sito/sezione";
 import { PrezzoRiga } from "./prezzo";
-import { Apparizione } from "./apparizione";
 import type { Percorso, Servizio } from "@/config/catalogo";
 import { cn } from "@/lib/cn";
 
-/** Scheda di un percorso nelle griglie di catalogo e in home. */
+/** Scheda di un percorso: un foglio, intero cliccabile, un solo link. */
 export function SchedaPercorso({ percorso }: { percorso: Percorso }) {
   return (
-    <Link
-      href={`/percorsi/${percorso.slug}` as Route}
-      className="garbo group flex h-full flex-col gap-3 rounded-lg border border-bordo bg-superficie p-6 hover:border-bordo-forte hover:bg-superficie-viva"
-    >
-      <h3 className="text-lg font-semibold text-testo">{percorso.nome}</h3>
-      <p className="flex-1 text-sm leading-relaxed text-testo-attenuato">{percorso.claim}</p>
-      <span className="etichetta garbo flex items-center gap-1.5 text-viola-chiaro group-hover:gap-2.5">
-        Vedi il percorso
-        <ArrowRight className="size-3" aria-hidden />
-      </span>
-    </Link>
+    <Foglio href={`/percorsi/${percorso.slug}`} className="flex h-full flex-col" aria-label={percorso.nome}>
+      <h3 className="font-serif text-t-md leading-snug text-inchiostro">{percorso.nome}</h3>
+      <p className="mt-2 flex-1 text-t-sm text-grafite">{percorso.claim}</p>
+    </Foglio>
   );
 }
 
-/** Scheda di un singolo servizio. */
+/** Scheda di un singolo servizio: titolo, una riga, la tariffa. */
 export function SchedaServizio({ servizio }: { servizio: Servizio }) {
   return (
-    <Link
-      href={`/servizi/${servizio.slug}` as Route}
-      className="garbo group flex h-full flex-col gap-2 rounded-lg border border-bordo bg-superficie p-5 hover:border-bordo-forte hover:bg-superficie-viva"
-    >
-      <h3 className="text-base font-medium text-testo">{servizio.nome}</h3>
-      <p className="flex-1 text-sm leading-relaxed text-testo-tenue">{servizio.sommario}</p>
-      <div className="mt-2 flex items-center justify-between border-t border-bordo pt-3">
+    <Foglio href={`/servizi/${servizio.slug}`} className="flex h-full flex-col" aria-label={servizio.nome}>
+      <h3 className="font-serif text-t-md leading-snug text-inchiostro">{servizio.nome}</h3>
+      <p className="mt-2 flex-1 text-t-sm text-grafite">{servizio.sommario}</p>
+      <div className="mt-4 border-t border-filetto pt-3">
         <PrezzoRiga prezzo={servizio.prezzo} />
-        <ArrowRight
-          aria-hidden
-          className="garbo size-3.5 text-testo-tenue group-hover:translate-x-0.5 group-hover:text-viola-chiaro"
-        />
       </div>
-    </Link>
+    </Foglio>
   );
 }
 
-/** Elenco numerato di passaggi: usato per i processi e i percorsi. */
+/** Passaggi numerati: qui i numeri hanno senso, è una sequenza. */
 export function Passi({
   passi,
   className,
@@ -54,26 +38,28 @@ export function Passi({
   className?: string;
 }) {
   return (
-    <ol className={cn("grid gap-px overflow-hidden rounded-lg bg-bordo sm:grid-cols-2 lg:grid-cols-4", className)}>
+    <ol className={cn("grid gap-6 sm:grid-cols-2 lg:grid-cols-4", className)}>
       {passi.map((p, i) => (
-        <li key={p.titolo} className="flex flex-col gap-3 bg-superficie p-6">
-          <span className="cifre text-sm text-viola-chiaro">
-            {String(i + 1).padStart(2, "0")}
+        <li key={p.titolo} className="flex gap-4 lg:block">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-pillola border border-inchiostro font-serif text-t-base text-inchiostro lg:mb-4">
+            {i + 1}
           </span>
-          <h3 className="text-base font-medium text-testo">{p.titolo}</h3>
-          <p className="text-sm leading-relaxed text-testo-tenue">{p.descrizione}</p>
+          <div>
+            <h3 className="font-serif text-t-md text-inchiostro">{p.titolo}</h3>
+            <p className="mt-1 text-t-sm text-grafite">{p.descrizione}</p>
+          </div>
         </li>
       ))}
     </ol>
   );
 }
 
-/** Fascia di chiusura con la doppia CTA: preventivo (self service) o call (umano). */
+/** Chiusura di pagina: una domanda, una riga, due pulsanti. */
 export function FasciaCta({
-  titolo = "Dicci cosa hai in mano.",
-  testo = "Due minuti per un preventivo con i numeri, o venti per parlarne con una persona. In entrambi i casi non ti vendiamo niente che non ti serva.",
-  ctaPrimaria = { href: "/preventivo", testo: "Fai il preventivo" },
-  ctaSecondaria = { href: "/contatti", testo: "Parla con noi" },
+  titolo = "Quanto costa il tuo libro?",
+  testo = "Sei domande per un preventivo con i numeri, o venti minuti per parlarne con una persona. In nessun caso ti vendiamo qualcosa che non ti serve.",
+  ctaPrimaria = { href: "/preventivo", testo: "Calcola il preventivo" },
+  ctaSecondaria = { href: "/contatti", testo: "Parla con un editor" },
 }: {
   titolo?: string;
   testo?: string;
@@ -81,45 +67,35 @@ export function FasciaCta({
   ctaSecondaria?: { href: string; testo: string };
 }) {
   return (
-    <section className="border-y border-bordo bg-fondo-alto">
-      <Gabbia className="relative overflow-hidden py-20">
-        <span className="alone top-1/2 -left-24 size-72 -translate-y-1/2 bg-viola/30" />
-        <div className="relative flex flex-col items-start gap-8 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex max-w-xl flex-col gap-4">
-            <h2 className="text-3xl font-semibold text-testo sm:text-4xl">{titolo}</h2>
-            <p className="text-base leading-relaxed text-testo-attenuato">{testo}</p>
-          </div>
-          <div className="flex shrink-0 flex-col gap-3 sm:flex-row">
-            <BottoneLink href={ctaPrimaria.href} variante="identita" misura="grande">
-              {ctaPrimaria.testo}
-            </BottoneLink>
-            <BottoneLink href={ctaSecondaria.href} variante="secondario" misura="grande">
-              {ctaSecondaria.testo}
-            </BottoneLink>
-          </div>
+    <section className="border-t border-filetto py-sezione-mobile lg:py-sezione" aria-label={titolo}>
+      <Contenitore stretto className="text-center">
+        <h2 className="font-serif text-t-xl text-balance text-inchiostro">{titolo}</h2>
+        <p className="mt-4 text-t-md text-grafite">{testo}</p>
+        <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
+          <PulsanteLink href={ctaPrimaria.href} variante="primario">
+            {ctaPrimaria.testo}
+          </PulsanteLink>
+          <PulsanteLink href={ctaSecondaria.href} variante="secondario">
+            {ctaSecondaria.testo}
+          </PulsanteLink>
         </div>
-      </Gabbia>
+      </Contenitore>
     </section>
   );
 }
 
-/** Citazione editoriale: l'unico punto in cui compare la serif. */
+/** Citazione: l'unico posto, oltre ai titoli di opere, dove il corsivo è di casa. */
 export function Citazione({ children, fonte }: { children: string; fonte?: string }) {
   return (
-    <figure className="flex flex-col gap-4">
-      <blockquote className="editoriale text-2xl leading-snug text-testo sm:text-3xl">
-        “{children}”
-      </blockquote>
-      {fonte ? (
-        <figcaption className="etichetta text-testo-tenue">{fonte}</figcaption>
-      ) : null}
+    <figure className="border-l-2 border-rosso-matita pl-6">
+      <blockquote className="font-serif text-t-md italic text-inchiostro">«{children}»</blockquote>
+      {fonte ? <figcaption className="mt-3 text-t-sm text-grafite">{fonte}</figcaption> : null}
     </figure>
   );
 }
 
-/** Intestazione di sezione riutilizzabile, con comparsa allo scorrimento. */
+/** Intestazione di sezione riutilizzabile. `occhiello` resta per compatibilità e non si mostra. */
 export function IntestazioneSezione({
-  occhiello,
   titolo,
   sotto,
   azione,
@@ -130,15 +106,10 @@ export function IntestazioneSezione({
   azione?: { href: string; testo: string };
 }) {
   return (
-    <Apparizione className="mb-12 flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
-      <Titolo occhiello={occhiello} sotto={sotto} className="max-w-2xl">
-        {titolo}
-      </Titolo>
-      {azione ? (
-        <BottoneLink href={azione.href} variante="secondario" className="shrink-0">
-          {azione.testo}
-        </BottoneLink>
-      ) : null}
-    </Apparizione>
+    <Intestazione
+      titolo={titolo}
+      lead={sotto}
+      azione={azione ? <Collegamento href={azione.href}>{azione.testo}</Collegamento> : undefined}
+    />
   );
 }

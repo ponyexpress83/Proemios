@@ -716,7 +716,78 @@ su utenti veri: a chi cambia idea costa un click in più su «Indietro».
 
 ### C5 — Pagine interne
 
-_(da compilare)_
+**Cosa è cambiato.** Le tredici pagine interne — `/servizi`, `/servizi/[slug]`,
+`/percorsi`, `/percorsi/[slug]`, `/come-funziona`, `/per-agenzie`, `/blog`,
+`/blog/[slug]`, `/casi-studio`, `/casi-studio/[slug]`, `/chi-siamo`,
+`/strumenti-ai`, `/preventivo/grazie` — più `/accedi` (con le sue due
+sottopagine), le tre legali e il 404 stanno ora sugli stessi componenti di
+`components/sito`: `Sezione`/`Contenitore`/`Intestazione`, `Foglio`,
+`Pulsante`, `Collegamento`, `Campo`. I blocchi condivisi che le pagine
+importavano (`components/marketing/*`, `components/sezioni/*`,
+`components/moduli/*`, `components/auth/modulo-accesso`) sono riscritti nel
+markup con la stessa firma, così nessuna pagina ha dovuto cambiare le chiamate
+e la logica dei moduli — `fetch`, consensi, honeypot, `signIn` — è identica.
+
+Il vecchio strato «editorial» è sparito del tutto: `components/editorial/`
+(sette file), `app/editorial.css` (3 164 righe), `lib/editorial-utils.ts`,
+`oggetto-editoriale.tsx` e due immagini di repertorio. Non c'è più nessuna
+rete di sicurezza con i token legacy: una pagina pubblica che importasse
+`ui/*` (l'area amministrativa) si vedrebbe subito, e il controllo è nel
+riepilogo sotto. `lib/editorial-content.ts` resta come **dati**: i dieci slug
+che esistevano solo lì (`/servizi/editing|pubblicazione|promozione`,
+`/percorsi/libro-gia-scritto|idea-da-sviluppare|memoir|libro-professionale`,
+tre guide in `/blog`) continuano a rispondere 200, resi da
+`components/sito/contenuti-editoriali.tsx` con i componenti nuovi.
+
+Scelte per pagina. `/servizi` è l'indice completo del catalogo (31 voci, con
+la tariffa in riga invece di un «Scopri»): è lo stesso `IndiceServizi` della
+home con `tutte`. `/percorsi/[slug]` mette i servizi del percorso con i
+prezzi del catalogo, le tappe, le domande e «Non è il tuo caso?» con gli altri
+percorsi. `/come-funziona` riusa `Tappe` della home. `/blog` unisce gli
+articoli MDX pubblicati e le guide editoriali: gli MDX sono tutti
+`pubblicato: false` per scelta della Fase 1 (sono outline di lavoro), quindi
+oggi l'indice mostra tre guide — non è un bug, è il contenuto che c'è.
+`/accedi` ha un layout proprio con `data-tema="carta"` e il logo, senza
+testata né colophon: chi arriva lì vuole entrare, non navigare. Il 404 ha il
+titolo con la cancellatura su «non c'è» e due uscite, home e preventivo.
+
+**Verificato provando.** Tutte le rotte pubbliche e tutti gli URL della
+sitemap rispondono 200 (33 rotte di controllo più la sitemap intera); le
+pagine inesistenti danno 404. Audit sulle 15 pagine × 4 larghezze: 7 corpi
+tipografici più il `clamp` del display (44/46,08/72 secondo la larghezza), 2
+famiglie, 3 raggi, 2 ombre, 8 sfondi e 7 colori di testo — tutti token; zero
+testi sotto i 13 px; zero violazioni axe serious/critical; un H1 per pagina.
+I target sotto i 44 px che restano sono il link «Vai al contenuto» finché è
+nascosto, l'honeypot, la casella del consenso (20 px, ma dentro una `label`
+alta 44) e il link «privacy policy» in linea nel testo del consenso, che la
+2.5.8 esclude esplicitamente. Nessuna pagina pubblica importa `ui/*`. I dieci
+test end-to-end del percorso cliente passano.
+
+Due errori trovati dall'audit e corretti prima del commit: `Foglio` con
+`href` dentro un `<ul>` rendeva un `<a>` diretto figlio della lista
+(`as="li"` veniva ignorato quando c'era il link) — ora il link sta dentro il
+`<li>`; e l'indice delle guide era diviso per argomento con tre sezioni da una
+carta l'una: ora è una griglia sola con l'argomento in maiuscoletto dentro la
+carta.
+
+**Cosa ho tolto.** Le tre intestazioni di raggruppamento di `/blog`. Il link
+«Come funziona» dentro le garanzie quando sei già su `/come-funziona`
+(`Tappe` ha `qui`). I puntini mediani rimasti nelle copy (`config/plans.ts`,
+`config/case-studies.ts`, `area-autore`, termini, privacy, le code «· caso
+dimostrativo» e «· in redazione»): virgole. Il colore lime del link «Vai al
+contenuto», che era un token dell'area amministrativa: ora inchiostro su
+carta, `text-t-sm`.
+
+**Cosa non mi convince ancora.** `/servizi` a 375 px è un elenco lungo
+(4 200 px) con la tariffa a fine riga: funziona come indice, ma sul telefono
+il filetto puntinato fra nome e prezzo a volte è di tre caratteri. Un'ancora
+per categoria in cima aiuterebbe chi cerca una voce precisa; rimandato a C6
+se resta spazio. `DESIGN_PLAN.md`, `README.md` e `docs/DESIGN_SYSTEM.md`
+citano ancora `components/editorial`: li aggiorno in C6 insieme al resto
+della documentazione, in un commit a parte. I titoli delle schede usano
+ancora « · » come separatore nel `<title>` (`lib/seo.tsx`): sono metadati,
+che il brief chiede di mantenere, e non copy visibile; lo segnalo e non lo
+tocco.
 
 ### C6 — Rifinitura
 

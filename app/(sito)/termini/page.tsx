@@ -36,7 +36,7 @@ export default function TerminiPage() {
               <Dato valore={TITOLARE.formaGiuridica} />
               ), con sede legale in <Dato valore={TITOLARE.sedeLegale} />, partita IVA{" "}
               <Dato valore={TITOLARE.partitaIva} />, iscritta al{" "}
-              <Dato valore={TITOLARE.registroImprese} />. Contatti: {BRAND.email.general} · PEC{" "}
+              <Dato valore={TITOLARE.registroImprese} />. Contatti: {BRAND.email.general}, PEC{" "}
               <Dato valore={TITOLARE.pec} />.
             </p>
           ),

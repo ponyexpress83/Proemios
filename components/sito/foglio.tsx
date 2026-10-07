@@ -31,12 +31,15 @@ export function Foglio({
       "transition-[box-shadow,transform] duration-200 ease-matita hover:-translate-y-0.5 hover:shadow-sollevata-sito focus-visible:-translate-y-0.5",
     className,
   );
-  if (href)
-    return (
-      <Link href={href as Route} className={classi} {...resto}>
+  if (href) {
+    const link = (
+      <Link href={href as Route} className={cn(classi, Tag !== "div" && "w-full")} {...resto}>
         {children}
       </Link>
     );
+    // Dentro un <ul> il foglio-link deve restare un <li>: il link ne riempie la cella.
+    return Tag === "div" ? link : <Tag className="flex">{link}</Tag>;
+  }
   return (
     <Tag className={classi} {...resto}>
       {children}

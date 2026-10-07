@@ -24,13 +24,12 @@ function rigaPrezzo(p: PrezzoPubblico): string {
   }
 }
 
-/** Le parti mostrate in home: tutte tranne B2B, che ha la sua fascia. */
-const PARTI = SERVIZI_PER_AREA.filter((a) => a.area !== "b2b");
-
-export function IndiceServizi() {
+export function IndiceServizi({ tutte = false }: { tutte?: boolean }) {
+  /** In home tutte le parti tranne B2B, che ha la sua fascia; in /servizi tutte. */
+  const parti = tutte ? SERVIZI_PER_AREA : SERVIZI_PER_AREA.filter((a) => a.area !== "b2b");
   return (
     <div className="columns-1 gap-x-12 md:columns-2">
-      {PARTI.map((parte) => (
+      {parti.map((parte) => (
         <section key={parte.area} className="mb-8 break-inside-avoid" aria-labelledby={`indice-${parte.area}`}>
           <h3 id={`indice-${parte.area}`} className="font-serif text-t-lg text-inchiostro">
             {parte.nome}

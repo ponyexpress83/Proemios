@@ -35,7 +35,8 @@ const GARANZIE: { titolo: string; testo: string; href: string; azione: string }[
   },
 ];
 
-export function Tappe() {
+/** `qui`: percorso della pagina corrente, per non linkare la pagina a sé stessa. */
+export function Tappe({ qui }: { qui?: string } = {}) {
   return (
     <div>
       <ol className="tappe grid gap-8 lg:grid-cols-5 lg:gap-6">
@@ -58,9 +59,11 @@ export function Tappe() {
             <SegnoMargine className="absolute top-0 left-0 h-10 w-3.5" colore="rosso" />
             <h3 className="font-serif text-t-md text-inchiostro">{g.titolo}</h3>
             <p className="mt-1 text-t-sm text-grafite">{g.testo}</p>
-            <Collegamento href={g.href} className="mt-3 text-t-sm">
-              {g.azione}
-            </Collegamento>
+            {g.href !== qui && (
+              <Collegamento href={g.href} className="mt-3 text-t-sm">
+                {g.azione}
+              </Collegamento>
+            )}
           </li>
         ))}
       </ul>

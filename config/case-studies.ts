@@ -28,7 +28,7 @@ export const CASE_STUDIES: CaseStudy[] = [
     titolo: "Dal diario di una vita a un romanzo pubblicato",
     sottotitolo:
       "Quaderni scritti a mano nell'arco di trent'anni, diventati un romanzo impaginato e in vendita.",
-    cliente: "Progetto privato · memoir familiare",
+    cliente: "Progetto privato, memoir familiare",
     servizio: "da-materiali-a-libro",
     autorizzato: true,
     puntoDiPartenza:
@@ -73,7 +73,7 @@ export const CASE_STUDIES: CaseStudy[] = [
     titolo: "Il manuale che un consulente usa come biglietto da visita",
     sottotitolo:
       "Materiali di corsi e appunti sparsi, riorganizzati in un libro di posizionamento.",
-    cliente: "Consulente · esempio dimostrativo",
+    cliente: "Consulente, esempio dimostrativo",
     servizio: "ghostwriting",
     // Esempio illustrativo, non un lavoro concluso: da sostituire con un caso reale.
     autorizzato: false,

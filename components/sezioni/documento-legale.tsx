@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Gabbia, Filetto } from "@/components/ui/primitivi";
+import { Contenitore, Filetto } from "@/components/sito/sezione";
 import { campiMancanti, daCompilare } from "@/config/legal";
 
 export type SezioneLegale = {
@@ -8,7 +8,9 @@ export type SezioneLegale = {
 };
 
 /**
- * Impaginato condiviso dei documenti legali.
+ * Impaginato condiviso dei documenti legali, composto come un testo da
+ * leggere: misura di lettura, titoli numerati perché qui l'ordine è il
+ * contenuto, filetti a separare gli articoli.
  *
  * Il testo è standard e completo. Restano da compilare solo i dati
  * anagrafici del titolare, centralizzati in `config/legal.ts`: finché sono
@@ -28,43 +30,39 @@ export function DocumentoLegale({
   const mancanti = campiMancanti();
 
   return (
-    <Gabbia className="py-14 sm:py-20">
-      <div className="mx-auto max-w-prose">
-        <h1 className="text-[2.2rem] leading-[1.1] font-medium sm:text-[2.8rem]">
-          {titolo}
-        </h1>
-        <p className="etichetta text-testo-tenue mt-4">Ultimo aggiornamento: {aggiornamento}</p>
-        <Filetto className="mt-6" />
+    <Contenitore stretto className="py-sezione-mobile lg:py-sezione">
+      <h1 className="font-serif text-t-display text-balance text-inchiostro">{titolo}</h1>
+      <p className="mt-4 text-t-sm text-grafite">Ultimo aggiornamento: {aggiornamento}</p>
+      <Filetto className="mt-6" />
 
-        {mancanti > 0 && (
-          <div className="rounded-lg border-lime bg-superficie mt-8 border border-dashed p-5">
-            <p className="etichetta text-lime">Prima della pubblicazione</p>
-            <p className="prosa mt-2 text-sm">
-              Il testo di questo documento è completo. Restano da compilare{" "}
-              <strong>{mancanti} dati anagrafici</strong> del titolare in{" "}
-              <code className="font-mono text-[0.9em]">config/legal.ts</code> (compaiono nel testo
-              come <em>DA INSERIRE</em>). Fai validare il documento definitivo a un professionista
-              prima di metterlo online.
-            </p>
-          </div>
-        )}
+      {mancanti > 0 && (
+        <div className="mt-8 rounded-foglio border border-dashed border-rosso-matita bg-bianco p-5">
+          <p className="maiuscoletto text-t-sm text-rosso-matita">Prima della pubblicazione</p>
+          <p className="mt-2 text-t-sm text-grafite">
+            Il testo di questo documento è completo. Restano da compilare{" "}
+            <strong className="text-inchiostro">{mancanti} dati anagrafici</strong> del titolare in{" "}
+            <code className="rounded-campo bg-carta-ombra px-1 text-t-xs">config/legal.ts</code>{" "}
+            (compaiono nel testo come <em>DA INSERIRE</em>). Fai validare il documento definitivo a un
+            professionista prima di metterlo online.
+          </p>
+        </div>
+      )}
 
-        <div className="prosa mt-8">{premessa}</div>
+      <div className="documento mt-8 text-t-base text-grafite">{premessa}</div>
 
-        <ol className="mt-12 space-y-10">
-          {sezioni.map((s, i) => (
-            <li key={i}>
-              <h2 className="text-testo text-xl font-medium">
-                <span className="cifre text-lime mr-2">{String(i + 1).padStart(2, "0")}</span>
-                {s.titolo}
-              </h2>
-              <Filetto className="mt-3" />
-              <div className="prosa mt-4">{s.contenuto}</div>
-            </li>
-          ))}
-        </ol>
-      </div>
-    </Gabbia>
+      <ol className="mt-12 space-y-10">
+        {sezioni.map((s, i) => (
+          <li key={i}>
+            <h2 className="font-serif text-t-lg text-inchiostro">
+              <span className="tabellare mr-3 text-rosso-matita">{i + 1}.</span>
+              {s.titolo}
+            </h2>
+            <Filetto className="mt-3" />
+            <div className="documento mt-4 text-t-base text-grafite">{s.contenuto}</div>
+          </li>
+        ))}
+      </ol>
+    </Contenitore>
   );
 }
 
@@ -73,8 +71,6 @@ export function Dato({ valore }: { valore: string | null }) {
   if (valore === null) return <>non nominato</>;
   if (!daCompilare(valore)) return <>{valore}</>;
   return (
-    <mark className="bg-lime/15 text-lime rounded-[2px] px-1 font-mono text-[0.85em] not-italic">
-      {valore}
-    </mark>
+    <mark className="rounded-campo bg-carta-ombra px-1 text-t-sm not-italic text-rosso-matita">{valore}</mark>
   );
 }

@@ -1,7 +1,6 @@
-import { Check, Minus } from "lucide-react";
 import { cn } from "@/lib/cn";
 
-/** Elenco di cose incluse. La spunta è decorativa: il senso è nel titolo sopra. */
+/** Elenco di cose incluse: un trattino a matita, non una spunta in bollino. */
 export function ElencoIncluso({
   voci,
   className,
@@ -15,8 +14,8 @@ export function ElencoIncluso({
     <ul className={cn("grid gap-3", colonne === 2 && "sm:grid-cols-2", className)}>
       {voci.map((v) => (
         <li key={v} className="flex items-start gap-3">
-          <Check className="mt-0.5 size-4 shrink-0 text-lime" aria-hidden />
-          <span className="text-sm leading-relaxed text-testo-attenuato">{v}</span>
+          <span className="mt-3 h-0.5 w-3 shrink-0 rounded-pillola bg-rosso-matita" aria-hidden="true" />
+          <span className="text-t-base text-inchiostro">{v}</span>
         </li>
       ))}
     </ul>
@@ -29,8 +28,8 @@ export function ElencoEscluso({ voci, className }: { voci: readonly string[]; cl
     <ul className={cn("grid gap-3", className)}>
       {voci.map((v) => (
         <li key={v} className="flex items-start gap-3">
-          <Minus className="mt-0.5 size-4 shrink-0 text-testo-tenue" aria-hidden />
-          <span className="text-sm leading-relaxed text-testo-tenue">{v}</span>
+          <span className="mt-3 h-0.5 w-3 shrink-0 rounded-pillola bg-grafite" aria-hidden="true" />
+          <span className="text-t-base text-grafite">{v}</span>
         </li>
       ))}
     </ul>

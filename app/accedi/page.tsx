@@ -1,15 +1,13 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { Gabbia, Occhiello } from "@/components/ui/primitivi";
-import { Avviso } from "@/components/ui/stati";
 import { ModuloAccesso } from "@/components/auth/modulo-accesso";
 import { attoreCorrente } from "@/lib/auth/sessione";
 import { metadatiPagina } from "@/lib/seo";
 import { BRAND } from "@/config/brand";
 
 export const metadata: Metadata = metadatiPagina({
-  titolo: "Accedi",
-  descrizione: "Accedi all'area riservata di Proemios.",
+  titolo: "Area autori",
+  descrizione: "Entra nell'area autore di Proemios con un link inviato via email.",
   path: "/accedi",
   noindex: true,
 });
@@ -26,30 +24,28 @@ export default async function PaginaAccesso({
   if (attore) redirect(attore.ruolo === "client" ? "/area" : "/admin");
 
   return (
-    <Gabbia className="flex min-h-[70dvh] items-center justify-center py-16">
-      <div className="w-full max-w-md">
-        <div className="flex flex-col gap-3">
-          <Occhiello>Area riservata</Occhiello>
-          <h1 className="text-3xl font-semibold text-testo">Accedi a {BRAND.name}</h1>
-          <p className="text-sm leading-relaxed text-testo-attenuato">
-            Ti mandiamo un link di accesso via email. Non serve una password: il link vale una
-            volta sola e scade dopo poco.
+    <div className="mx-auto w-full max-w-md">
+      <h1 className="font-serif text-t-xl text-balance text-inchiostro">Entra nell&rsquo;area autore</h1>
+      <p className="mt-3 text-t-base text-grafite">
+        Ti mandiamo un link di accesso via email. Non serve una password: il link vale una volta
+        sola e scade dopo poco.
+      </p>
+
+      {errore ? (
+        <div className="mt-6 rounded-foglio border-2 border-rosso-matita bg-bianco p-4 text-t-sm" role="alert">
+          <p className="font-bold text-inchiostro">Accesso non riuscito.</p>
+          <p className="mt-1 text-grafite">
+            Il link potrebbe essere scaduto o già usato. Richiedine uno nuovo qui sotto.
           </p>
         </div>
+      ) : null}
 
-        {errore ? (
-          <Avviso tono="errore" titolo="Accesso non riuscito" className="mt-6">
-            Il link potrebbe essere scaduto o già usato. Richiedine uno nuovo qui sotto.
-          </Avviso>
-        ) : null}
+      <ModuloAccesso destinazione={da} className="mt-8" />
 
-        <ModuloAccesso destinazione={da} className="mt-8" />
-
-        <p className="mt-8 text-xs leading-relaxed text-testo-tenue">
-          L&rsquo;accesso è su invito. Se non hai ancora un account e stai lavorando con noi,
-          scrivi al tuo referente: non è possibile registrarsi da questa pagina.
-        </p>
-      </div>
-    </Gabbia>
+      <p className="mt-8 text-t-sm text-grafite">
+        L&rsquo;accesso è su invito: se stai lavorando con {BRAND.name} e non hai ancora un account,
+        scrivi al tuo referente. Da questa pagina non ci si può registrare.
+      </p>
+    </div>
   );
 }

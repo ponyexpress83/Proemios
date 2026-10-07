@@ -4,8 +4,8 @@ import { cn } from "@/lib/cn";
 
 /**
  * Rende un prezzo pubblico. Unico punto in cui un `PrezzoPubblico` diventa
- * testo: la formula "su preventivo" deve essere identica ovunque compaia, e la
- * motivazione va sempre mostrata insieme — un "su preventivo" senza perché
+ * testo: la formula «su preventivo» deve essere identica ovunque compaia, e la
+ * motivazione va sempre mostrata insieme — un «su preventivo» senza perché
  * legge come una reticenza.
  */
 export function Prezzo({
@@ -20,8 +20,8 @@ export function Prezzo({
   if (prezzo.tipo === "preventivo") {
     return (
       <div className={cn("flex flex-col gap-1", className)}>
-        <p className="text-base font-medium text-testo">Su preventivo</p>
-        {!compatto ? <p className="text-sm text-testo-tenue">{prezzo.motivo}</p> : null}
+        <p className="text-t-md text-inchiostro">Su preventivo</p>
+        {!compatto ? <p className="text-t-sm text-grafite">{prezzo.motivo}</p> : null}
       </div>
     );
   }
@@ -35,17 +35,17 @@ export function Prezzo({
 
   return (
     <div className={cn("flex flex-col gap-1", className)}>
-      <p className="cifre text-base font-medium text-testo">
+      <p className="tabellare text-t-md text-inchiostro">
         {prezzo.tipo === "fascia" || prezzo.tipo === "a-parola" ? (
-          <span className="text-testo-tenue">da </span>
+          <span className="text-grafite">da </span>
         ) : null}
         {testo}
       </p>
       {!compatto ? (
-        <p className="text-sm text-testo-tenue">
+        <p className="text-t-sm text-grafite">
           IVA esclusa
           {prezzo.tipo === "a-parola" && prezzo.minimo
-            ? ` · minimo di progetto ${euro(prezzo.minimo)}`
+            ? `, minimo di progetto ${euro(prezzo.minimo)}`
             : ""}
         </p>
       ) : null}
@@ -53,10 +53,10 @@ export function Prezzo({
   );
 }
 
-/** Riga compatta per le griglie di catalogo. */
+/** Riga compatta per gli elenchi e gli indici. */
 export function PrezzoRiga({ prezzo }: { prezzo: PrezzoPubblico }) {
   if (prezzo.tipo === "preventivo") {
-    return <span className="etichetta text-testo-tenue">Su preventivo</span>;
+    return <span className="text-t-sm text-grafite">su preventivo</span>;
   }
   const testo =
     prezzo.tipo === "forfait"
@@ -64,5 +64,5 @@ export function PrezzoRiga({ prezzo }: { prezzo: PrezzoPubblico }) {
       : prezzo.tipo === "fascia"
         ? `da ${euro(prezzo.da)}`
         : `da ${tariffaParola(prezzo.da, prezzo.da)}`;
-  return <span className="cifre text-sm text-testo-attenuato">{testo}</span>;
+  return <span className="tabellare text-t-sm text-grafite">{testo}</span>;
 }

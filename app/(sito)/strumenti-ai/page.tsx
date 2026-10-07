@@ -1,17 +1,10 @@
 import type { Metadata } from "next";
-import {
-  Gabbia,
-  Sezione,
-  Impaginato,
-  Folio,
-  NotaMargine,
-  Filetto,
-  Titolo,
-  Scheda,
-} from "@/components/ui/primitivi";
-import { BottoneLink } from "@/components/ui/bottone";
+import { Foglio } from "@/components/sito/foglio";
+import { PulsanteLink } from "@/components/sito/pulsante";
+import { Contenitore, Intestazione, Sezione } from "@/components/sito/sezione";
 import { PianiAi } from "@/components/moduli/piani-ai";
 import { Faq } from "@/components/sezioni/faq";
+import { FasciaCta } from "@/components/marketing/blocchi";
 import { STRUMENTI_AI, AZIONI } from "@/config/copy";
 import { BRAND } from "@/config/brand";
 import { metadatiPagina, JsonLd, faqJsonLd, breadcrumbJsonLd } from "@/lib/seo";
@@ -30,6 +23,7 @@ const DISPONIBILI = [
       "Leggibilità misurata con l'indice Gulpease, ritmo, ripetizioni, cliché, coerenza dei tempi verbali, lettore-tipo e livello di intervento consigliato.",
     stato: "Disponibile ora, gratis",
     href: "/analisi-manoscritto",
+    azione: "Analizza il manoscritto",
   },
   {
     titolo: "Configuratore di preventivo",
@@ -37,6 +31,7 @@ const DISPONIBILI = [
       "Tre percorsi con prezzo calcolato sulle tariffe reali, non su una forbice generica. Con dentro e fuori dichiarati.",
     stato: "Disponibile ora, gratis",
     href: "/preventivo",
+    azione: "Calcola il preventivo",
   },
 ];
 
@@ -81,116 +76,82 @@ export default function StrumentiAiPage() {
         ]}
       />
 
-      <section className="bg-fondo pt-14 pb-12 sm:pt-20">
-        <Gabbia>
-          <Impaginato
-            margine={
-              <>
-                <Folio n="00" etichetta="Strumenti" />
-                <NotaMargine>
-                  La tecnologia accelera il processo. Le decisioni editoriali restano umane.
-                </NotaMargine>
-              </>
-            }
-          >
-            <h1 className="text-[2.4rem] leading-[1.06] font-medium sm:text-[3.2rem]">
-              {STRUMENTI_AI.titolo}
-            </h1>
-            <Filetto className="mt-6" />
-            <p className="text-lg leading-relaxed text-testo-attenuato lettura mt-6">{STRUMENTI_AI.occhiello}</p>
-          </Impaginato>
-        </Gabbia>
-      </section>
-
-      {/* Già disponibili */}
-      <Sezione fondo="bassa">
-        <Impaginato margine={<Folio n={1} etichetta="Attivi" />}>
-          <Titolo as="h2">Quello che puoi usare oggi</Titolo>
-          <Filetto className="mt-5" />
-          <div className="mt-8 grid gap-5 sm:grid-cols-2">
-            {DISPONIBILI.map((d) => (
-              <Scheda key={d.titolo} className="flex flex-col">
-                <p className="etichetta text-viola-chiaro">{d.stato}</p>
-                <h3 className="mt-3 text-xl font-medium">{d.titolo}</h3>
-                <p className="prosa mt-2 flex-1 text-[0.95rem]">{d.testo}</p>
-                <Filetto className="my-4" />
-                <div>
-                  <BottoneLink href={d.href} variante="secondario">
-                    Provalo
-                  </BottoneLink>
-                </div>
-              </Scheda>
-            ))}
-          </div>
-        </Impaginato>
-      </Sezione>
-
-      {/* Piani, sul lato notte: è software */}
-      <section className="bg-fondo-alto text-testo  py-16 sm:py-24">
-        <Gabbia>
-          <div className="mb-10">
-            <p className="etichetta text-lime">§ 02 · Abbonamento</p>
-            <Titolo as="h2" className="mt-5">
-              I piani
-            </Titolo>
-            <Filetto className="mt-5" />
-            <p className="text-lg leading-relaxed text-testo-attenuato text-testo-attenuato mt-6 max-w-2xl">
-              Tre livelli: uno gratuito che resta gratuito, uno per chi pubblica sul serio, uno per
-              chi gestisce più libri. Mensile o annuale, senza vincoli di durata.
+      <Sezione className="pt-10 lg:pt-14">
+        <Contenitore>
+          <div className="max-w-giustezza">
+            <h1 className="font-serif text-t-display text-balance text-inchiostro">{STRUMENTI_AI.titolo}</h1>
+            <p className="mt-4 text-t-md text-grafite">{STRUMENTI_AI.occhiello}</p>
+            <p className="mt-4 text-t-sm text-grafite">
+              La tecnologia accelera il processo. Le decisioni editoriali restano umane.
             </p>
           </div>
-          <PianiAi />
-        </Gabbia>
-      </section>
+        </Contenitore>
+      </Sezione>
 
-      {/* In arrivo */}
+      <Sezione filetto tono="ombra">
+        <Contenitore>
+          <Intestazione titolo="Quello che puoi usare oggi" />
+          <ul className="grid gap-5 sm:grid-cols-2">
+            {DISPONIBILI.map((d) => (
+              <Foglio key={d.titolo} as="li" className="flex flex-col">
+                <p className="maiuscoletto text-t-sm text-esito-ok">{d.stato}</p>
+                <h3 className="mt-2 font-serif text-t-md text-inchiostro">{d.titolo}</h3>
+                <p className="mt-2 flex-1 text-t-sm text-grafite">{d.testo}</p>
+                <div className="mt-5">
+                  <PulsanteLink href={d.href} variante="secondario" freccia>
+                    {d.azione}
+                  </PulsanteLink>
+                </div>
+              </Foglio>
+            ))}
+          </ul>
+        </Contenitore>
+      </Sezione>
+
       <Sezione>
-        <Impaginato margine={<Folio n={3} etichetta="In lavorazione" />}>
-          <Titolo as="h2">Cosa stiamo costruendo</Titolo>
-          <Filetto className="mt-5" />
-          <p className="lettura text-base leading-relaxed text-testo-attenuato mt-6">
-            L&rsquo;ordine di uscita lo decide chi è in lista: costruiamo prima quello che serve di
-            più.
-          </p>
-          <ul className="mt-8 grid gap-x-10 gap-y-1 sm:grid-cols-2">
+        <Contenitore>
+          <Intestazione
+            titolo="I piani"
+            lead="Tre livelli: uno gratuito che resta gratuito, uno per chi pubblica sul serio, uno per chi gestisce più libri. Mensile o annuale, senza vincoli di durata."
+          />
+          <PianiAi />
+        </Contenitore>
+      </Sezione>
+
+      <Sezione filetto>
+        <Contenitore>
+          <Intestazione
+            titolo="Cosa stiamo costruendo"
+            lead="L'ordine di uscita lo decide chi è in lista: costruiamo prima quello che serve di più."
+          />
+          <ul className="grid gap-x-10 sm:grid-cols-2">
             {IN_ARRIVO.map((v) => (
-              <li key={v} className="border-bordo flex items-baseline gap-3 border-b py-3">
-                <span className="cifre text-lime text-xs" aria-hidden>
-                  ○
-                </span>
-                <span className="prosa text-[1rem]">{v}</span>
+              <li key={v} className="border-b border-filetto py-3 text-t-base text-inchiostro">
+                {v}
               </li>
             ))}
           </ul>
-        </Impaginato>
+        </Contenitore>
       </Sezione>
 
-      <Sezione fondo="bassa">
-        <Impaginato margine={<Folio n={4} etichetta="Domande" />}>
-          <Titolo as="h2">Domande ricorrenti</Titolo>
-          <div className="mt-8">
-            <Faq voci={FAQ} />
-          </div>
-          <p className="editoriale text-testo-tenue mt-10 max-w-2xl">{BRAND.aiDisclaimer}</p>
-        </Impaginato>
-      </Sezione>
-
-      <Sezione>
-        <Impaginato margine={<Folio n={5} etichetta="Servizi" />}>
-          <div className="flex flex-col items-start gap-6 sm:flex-row sm:items-center sm:justify-between">
+      <Sezione filetto tono="ombra">
+        <Contenitore>
+          <div className="grid gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:gap-20">
+            <h2 className="font-serif text-t-xl text-inchiostro">Domande ricorrenti</h2>
             <div>
-              <Titolo as="h2">Ti serve il libro, non lo strumento?</Titolo>
-              <p className="prosa mt-3 max-w-xl">
-                Gli abbonamenti servono a chi lavora da sé. Se vuoi che il libro lo facciamo noi, il
-                percorso è un altro.
-              </p>
+              <Faq voci={FAQ} />
+              <p className="mt-8 text-t-sm text-grafite">{BRAND.aiDisclaimer}</p>
             </div>
-            <BottoneLink href="/preventivo" misura="grande" className="shrink-0">
-              {AZIONI.preventivo}
-            </BottoneLink>
           </div>
-        </Impaginato>
+        </Contenitore>
       </Sezione>
+
+      <FasciaCta
+        titolo="Ti serve il libro, non lo strumento?"
+        testo="Gli abbonamenti servono a chi lavora da sé. Se vuoi che il libro lo facciamo noi, il percorso è un altro."
+        ctaPrimaria={{ href: "/preventivo", testo: AZIONI.preventivo }}
+        ctaSecondaria={{ href: "/contatti", testo: "Parla con un editor" }}
+      />
     </>
   );
 }

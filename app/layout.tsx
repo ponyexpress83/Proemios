@@ -8,7 +8,6 @@ import { AttributionCapture } from "@/components/marketing/attribution-capture";
 import { demoAttiva } from "@/lib/demo";
 import { JsonLd, organizationJsonLd } from "@/lib/seo";
 import "./globals.css";
-import "./editorial.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL(BRAND.url),
@@ -74,7 +73,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <AttributionCapture />
         <a
           href="#contenuto"
-          className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-100 focus:rounded-md focus:bg-lime focus:px-4 focus:py-2 focus:font-medium focus:text-fondo"
+          className="sr-only text-t-sm focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-100 focus:rounded-campo focus:bg-inchiostro focus:px-4 focus:py-2 focus:font-medium focus:text-carta"
         >
           {UI.saltaAlContenuto}
         </a>

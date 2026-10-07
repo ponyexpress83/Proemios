@@ -1,41 +1,19 @@
-"use client";
-
-import { motion, useReducedMotion } from "motion/react";
 import type { ReactNode } from "react";
 
 /**
- * Comparsa allo scorrimento. Una sola animazione in tutto il sito, con lo
- * stesso ritardo e la stessa distanza: le micro-animazioni servono a dare
- * ritmo alla lettura, non a farsi notare.
- *
- * Con `prefers-reduced-motion` il contenuto è semplicemente lì, senza opacità
- * iniziale — mai contenuto invisibile in attesa di un'animazione soppressa.
+ * Era la comparsa allo scorrimento (`motion` + IntersectionObserver). Lasciava
+ * intere sezioni bianche sotto la piega finché non entravano nel viewport, e
+ * la misura dell'LCP lo pagava. Ora rende i figli e basta: resta come
+ * componente perché molte pagine lo usano come contenitore, ma non anima più
+ * niente. `ritardo` è accettato e ignorato.
  */
 export function Apparizione({
   children,
-  ritardo = 0,
   className,
 }: {
   children: ReactNode;
-  ritardo?: number;
   className?: string;
+  ritardo?: number;
 }) {
-  const motoRidotto = useReducedMotion();
-  // `h-full` sempre: dentro una griglia questo div è la cella, e senza altezza
-  // piena le schede della stessa riga risultano di altezze diverse.
-  const classi = ["h-full", className].filter(Boolean).join(" ");
-
-  if (motoRidotto) return <div className={classi}>{children}</div>;
-
-  return (
-    <motion.div
-      className={classi}
-      initial={{ opacity: 0, y: 16 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-80px" }}
-      transition={{ duration: 0.5, delay: ritardo, ease: [0.22, 1, 0.36, 1] }}
-    >
-      {children}
-    </motion.div>
-  );
+  return <div className={className}>{children}</div>;
 }

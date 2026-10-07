@@ -62,7 +62,7 @@ export function AreaAutoreDemo({
           </nav>
           {/* contenuto */}
           <div className="p-4 md:p-5">
-            <p className="maiuscoletto text-grafite">Romanzo · {numero(parole)} parole</p>
+            <p className="maiuscoletto text-grafite">Romanzo, {numero(parole)} parole</p>
             <p className="mt-1 font-serif text-t-md leading-tight text-inchiostro">Il ritorno</p>
 
             <ol className="mt-4 flex flex-col gap-2">
@@ -94,7 +94,7 @@ export function AreaAutoreDemo({
             <div className="mt-4 rounded-campo border border-filetto bg-bianco p-3">
               <div className="flex justify-between">
                 <span className="text-grafite">Acconto 40 %</span>
-                <span className="tabellare font-bold text-inchiostro">{euro(acconto)} · pagato</span>
+                <span className="tabellare font-bold text-inchiostro">{euro(acconto)}, pagato</span>
               </div>
               <div className="mt-1.5 flex justify-between">
                 <span className="text-grafite">Saldo alla consegna</span>

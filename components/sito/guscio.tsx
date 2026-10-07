@@ -2,7 +2,6 @@ import type { ReactNode } from "react";
 import { Testata } from "./testata";
 import { Colophon } from "./colophon";
 import { FasciaDemo } from "@/components/layout/fascia-demo";
-import { CorpoTransitorio } from "@/components/editorial/site-chrome";
 
 /**
  * Guscio del sito pubblico. `data-tema="carta"` accende il tema chiaro e i
@@ -18,8 +17,7 @@ export function GuscioSito({ children }: { children: ReactNode }) {
       <FasciaDemo />
       <Testata />
       <main id="contenuto" className="flex-1">
-        {/* TRANSITORIO: applica `.proemios-public` alle pagine non ancora rifatte. Via in C5. */}
-        <CorpoTransitorio>{children}</CorpoTransitorio>
+        {children}
       </main>
       <Colophon />
     </div>
