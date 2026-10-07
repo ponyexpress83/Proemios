@@ -1,0 +1,72 @@
+{
+  "home@375": [
+    {
+      "id": "scrollable-region-focusable",
+      "impatto": "serious",
+      "descrizione": "Scrollable region must have keyboard access",
+      "nodi": 1,
+      "esempi": [
+        ".testimonial-grid"
+      ]
+    }
+  ],
+  "home@1280": [],
+  "preventivo@375": [],
+  "preventivo@1280": [],
+  "analisi-manoscritto@375": [
+    {
+      "id": "color-contrast",
+      "impatto": "serious",
+      "descrizione": "Elements must meet minimum color contrast ratio thresholds",
+      "nodi": 1,
+      "esempi": [
+        ".relative"
+      ]
+    }
+  ],
+  "analisi-manoscritto@1280": [
+    {
+      "id": "color-contrast",
+      "impatto": "serious",
+      "descrizione": "Elements must meet minimum color contrast ratio thresholds",
+      "nodi": 1,
+      "esempi": [
+        ".relative"
+      ]
+    }
+  ],
+  "accedi@375": [],
+  "accedi@1280": [],
+  "servizi@375": [],
+  "servizi@1280": [],
+  "percorsi@375": [],
+  "percorsi@1280": [],
+  "come-funziona@375": [],
+  "come-funziona@1280": [],
+  "per-agenzie@375": [],
+  "per-agenzie@1280": [],
+  "blog@375": [],
+  "blog@1280": [],
+  "contatti@375": [],
+  "contatti@1280": [],
+  "chi-siamo@375": [],
+  "chi-siamo@1280": [],
+  "casi-studio@375": [
+    {
+      "id": "scrollable-region-focusable",
+      "impatto": "serious",
+      "descrizione": "Scrollable region must have keyboard access",
+      "nodi": 1,
+      "esempi": [
+        ".testimonial-grid"
+      ]
+    }
+  ],
+  "casi-studio@1280": [],
+  "servizio@375": [],
+  "servizio@1280": [],
+  "percorso@375": [],
+  "percorso@1280": [],
+  "404@375": [],
+  "404@1280": []
+}
