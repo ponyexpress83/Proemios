@@ -24,8 +24,7 @@ export default function Page() {
       <Sezione className="pt-10 lg:pt-14">
         <Contenitore>
           <div className="max-w-giustezza">
-            <p className="maiuscoletto text-t-sm text-grafite">Agenzie, publisher, partner</p>
-            <h1 className="mt-2 font-serif text-t-display text-balance text-inchiostro">{AGENZIE.titolo}</h1>
+            <h1 className="font-serif text-t-display text-balance text-inchiostro">{AGENZIE.titolo}</h1>
             <p className="mt-4 text-t-md text-grafite">{AGENZIE.occhiello}</p>
           </div>
         </Contenitore>

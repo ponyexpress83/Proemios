@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { IndiceServizi } from "@/components/sito/home/indice-servizi";
 import { Contenitore, Sezione } from "@/components/sito/sezione";
 import { FasciaCta } from "@/components/marketing/blocchi";
-import { SERVIZI } from "@/config/catalogo";
+import { SERVIZI, SERVIZI_PER_AREA } from "@/config/catalogo";
 import { metadatiPagina, JsonLd, breadcrumbJsonLd } from "@/lib/seo";
 
 export const metadata: Metadata = metadatiPagina({
@@ -31,6 +31,20 @@ export default function PaginaServizi() {
               dal preventivo, e c&rsquo;è scritto perché.
             </p>
           </div>
+          <nav aria-label="Parti del catalogo" className="mb-10 border-y border-filetto py-3 lg:mb-14">
+            <ul className="flex flex-wrap gap-x-6 gap-y-1">
+              {SERVIZI_PER_AREA.map((parte) => (
+                <li key={parte.area}>
+                  <a
+                    href={`#indice-${parte.area}`}
+                    className="sottolinea-matita inline-flex min-h-11 min-w-11 items-center text-t-sm text-inchiostro"
+                  >
+                    {parte.nome}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </nav>
           <IndiceServizi tutte />
         </Contenitore>
       </Sezione>

@@ -791,7 +791,94 @@ tocco.
 
 ### C6 — Rifinitura
 
-_(da compilare)_
+**Copy.** «Perimetro» non compare più fuori dalle condizioni di servizio
+(domande di `/come-funziona`, principi di `/chi-siamo`, due testi in
+`lib/editorial-content.ts`): «il lavoro concordato», «cosa serve davvero».
+«White label» resta solo dove è il nome del prodotto nel catalogo
+(`Produzione white label`, `B2B e white label`) e nelle due descrizioni SEO di
+`/servizi` e `/percorsi` che lo elencano: rinominare un servizio è una scelta
+commerciale, non di copy, e i metadati vanno mantenuti. Non c'era nessuno
+«Scopri di più» da togliere. I puntini mediani erano già andati in C5.
+
+**Accessibilità.** Gli anchor del nuovo indice delle parti in `/servizi` sono
+alti e larghi almeno 44 px. L'audit sulle 15 pagine resta a zero violazioni
+axe serious/critical e zero testi sotto i 13 px; i target sotto i 44 px sono
+gli stessi quattro casi legittimi di C5. Il «Vai al contenuto» ora ha i colori
+del sito anche nelle aree riservate: è nel layout radice ed è l'unico elemento
+che le due identità condividono.
+
+**Prestazioni.** Tre interventi, nell'ordine di resa:
+
+1. *Font*: i quattro woff2 sono il sottoinsieme latino (380 codepoint, tutte
+   le feature di layout) dei font interi, 111 KB invece di 255; il comando è
+   nel commento sopra le `@font-face`. Le metriche dei fallback non cambiano.
+2. *Immagine dell'hero*: aveva `priority` e `fetchpriority="high"`, ma sul
+   telefono sta sotto la piega e l'LCP è il testo; adesso non compete con
+   font e CSS per la banda.
+3. *JavaScript*: lo slider del confronto e il carosello dei percorsi passano
+   da `next/dynamic` (reso sul server, caricato a parte), come chiede il
+   budget. Il primo caricamento della home è 136 KiB di script, di cui 103
+   sono React e il runtime di Next condivisi da tutte le pagine: non c'è
+   altro da togliere senza togliere l'interattività.
+
+Misura sulla build di produzione, Lighthouse 13, mobile, `--preset=perf`:
+
+| | Prima (Fase A) | C3 | **C6** simulato | **C6** throttling applicato |
+|---|---|---|---|---|
+| Performance | 52 | 92 | **97** | **98** |
+| FCP | 3,1 s | 1,8 s | **1,1 s** | 1,8 s |
+| LCP | 5,3 s | 1,8 s | 2,6 s | **1,8 s** |
+| TBT | 1 000 ms | 320 ms | **50 ms** | 113 ms |
+| CLS | — | 0 | **0** | **0** |
+| Peso | 656 KiB | 416 KiB | **304 KiB** (32 HTML, 14 CSS, 136 JS, 79 font, 42 immagine) | — |
+| TTFB (locale) | — | — | 30 ms | 27 ms |
+
+Le due colonne C6 sono la stessa pagina misurata nei due modi di Lighthouse.
+Con la simulazione (il metodo predefinito, quello di PageSpeed) l'LCP è a
+2,6 s mentre l'FCP è a 1,1 s: l'elemento LCP è il paragrafo sotto l'H1, e
+nella traccia osservata FCP e LCP coincidono a 183 ms; la differenza la fa il
+modello, che per un LCP di testo mette nel grafo pessimistico tutto ciò che è
+in rete prima dell'istante osservato, e con un server a 30 ms i chunk di
+React sono già partiti. Con il throttling applicato al browser FCP e LCP
+coincidono anche nella misura, a 1,8 s. Lo scrivo perché il budget dice
+LCP < 2,0 s e con il metodo predefinito non ci sono: non è una scusa, è dove
+sta il tempo. Per scendere sotto i 2 s anche simulati bisognerebbe rendere
+le pagine di marketing statiche, e questo apre la decisione qui sotto.
+
+**Pagine statiche: non fatto, e perché.** Il brief chiede che le pagine di
+marketing siano statiche (`○`). Oggi sono tutte dinamiche (`ƒ`) per una
+ragione sola: il layout radice legge `headers()` per prendere il nonce della
+Content-Security-Policy, generato dal middleware a ogni richiesta, e Next
+rende dinamica ogni pagina che lo fa. Renderle statiche vuol dire rinunciare
+al nonce per richiesta sulle pagine pubbliche, cioè passare la CSP da
+`'nonce-…' 'strict-dynamic'` a hash degli script o a `'unsafe-inline'`:
+una scelta di sicurezza, non di design, che non prendo da solo. Le opzioni,
+in ordine di preferenza: (a) tenere il nonce e accettare il rendering
+dinamico — il TTFB locale è 30 ms e su Vercel dipende dal cold start della
+funzione; (b) layout radice senza `headers()` e CSP a hash per le pagine di
+`app/(sito)`, con il nonce solo nelle aree riservate; (c) `'unsafe-inline'`
+sugli script delle pagine pubbliche. Chiedo quale.
+
+**Icone e immagine sociale.** `app/icon.tsx`, `public/favicon.svg` e
+`app/opengraph-image.tsx` usano carta, rosso matita, inchiostro e grafite al
+posto di avorio e corallo; il simbolo resta quello.
+
+**Documentazione.** `DESIGN_PLAN.md` è riscritto come mappa (dove stanno
+token, font, componenti, guscio, contenuti) e rimanda a questo file;
+`README.md` e `docs/DESIGN_SYSTEM.md` non citano più `components/editorial`
+e dicono che il sito pubblico non usa i token delle aree riservate.
+
+**Cosa ho tolto.** L'occhiello «Agenzie, publisher, partner» sopra l'H1 di
+`/per-agenzie`: l'H1 dice già a chi parla. La `priority` sull'immagine
+dell'hero.
+
+**Cosa non mi convince ancora.** `/accedi` senza `DATABASE_URL` risponde 500
+(è così anche prima del redesign: l'adapter di autenticazione si connette
+all'avvio); nel deploy c'è sempre un database, ma un 500 su una pagina
+pubblica andrebbe trasformato in una pagina che dice «accesso non
+disponibile». Non l'ho toccato perché è logica di autenticazione. E la
+decisione sulle pagine statiche sopra: finché non arriva, il budget LCP con
+il metodo simulato resta a 2,6 s.
 
 ---
 

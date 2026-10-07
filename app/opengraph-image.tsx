@@ -7,7 +7,7 @@ export const alt = `${BRAND.name} — ${BRAND.payoff}`;
 
 /**
  * Immagine Open Graph: composta come la copertina di un libro.
- * Avorio, corallo e navy, coerenti con il sito pubblico.
+ * Carta, rosso matita e inchiostro, coerenti con il sito pubblico.
  */
 export default function OgImage() {
   return new ImageResponse(
@@ -18,14 +18,14 @@ export default function OgImage() {
         display: "flex",
         flexDirection: "column",
         justifyContent: "space-between",
-        background: "#FAF8F5",
+        background: "#FAFAF7",
         padding: "72px 80px",
         fontFamily: "Georgia, serif",
       }}
     >
       <div style={{ display: "flex", flexDirection: "column" }}>
         <div style={{ display: "flex", fontSize: 40, fontWeight: 600, color: "#131936" }}>
-          <span style={{ color: "#F16650" }}>P</span>
+          <span style={{ color: "#C8202A" }}>P</span>
           <span>roemios</span>
         </div>
         <div
@@ -57,7 +57,7 @@ export default function OgImage() {
             display: "flex",
             marginTop: 28,
             fontSize: 26,
-            color: "#626477",
+            color: "#565B69",
             maxWidth: 820,
             lineHeight: 1.5,
           }}
@@ -74,12 +74,12 @@ export default function OgImage() {
             fontSize: 18,
             letterSpacing: 4,
             textTransform: "uppercase",
-            color: "#BD4637",
+            color: "#C8202A",
           }}
         >
           {BRAND.payoff}
         </div>
-        <div style={{ display: "flex", fontSize: 18, color: "#626477" }}>{BRAND.domain}</div>
+        <div style={{ display: "flex", fontSize: 18, color: "#565B69" }}>{BRAND.domain}</div>
       </div>
     </div>,
     size,

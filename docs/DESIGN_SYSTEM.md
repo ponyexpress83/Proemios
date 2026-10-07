@@ -4,12 +4,11 @@ Stato: vigente dalla Fase 1 di Complete v1. Sostituisce il precedente sistema
 chiaro (carta/alloro/ottone), rimosso dal repository.
 
 > **Ambito.** Questo sistema vale per le **aree riservate**: back-office
-> (`/admin`), portale cliente (`/area`), redazione (`/redazione`) e accesso
-> (`/accedi`). Il **sito pubblico** ha una propria identità editoriale chiara —
-> avorio, corallo, navy — descritta in `DESIGN_PLAN.md` e applicata dentro
-> `.proemios-public`. Le pagine pubbliche non ancora ridisegnate usano i
-> componenti di questo sistema con i token rimappati sul chiaro: i valori nelle
-> tabelle qui sotto sono quelli delle aree riservate.
+> (`/admin`), portale cliente (`/area`) e redazione (`/redazione`). Il **sito
+> pubblico** e `/accedi` hanno una propria identità — «Matita rossa e blu»,
+> carta e inchiostro — descritta in `DESIGN-NOTES.md` e composta con
+> `components/sito`; non usano i componenti né i token di questo sistema. I
+> valori nelle tabelle qui sotto sono quelli delle aree riservate.
 
 ## 1. Identità
 
@@ -133,15 +132,14 @@ macchina può rilevare; la verifica con tastiera e screen reader resta manuale.
 
 ## 6. Prestazioni
 
-L'oggetto 3D dell'hero (`components/marketing/oggetto-editoriale.tsx`) è fatto
-di `div` con `transform` CSS: nessuna libreria 3D, nessun canvas. L'animazione
-tocca solo `transform`, quindi resta sul compositor e non genera layout né
-paint. Il listener del puntatore non viene registrato con `prefers-reduced-motion`
-né su dispositivi senza puntatore fine. Senza JavaScript l'oggetto esiste
-comunque, nella posa di riposo.
+Il sito pubblico non ha scene 3D né immagini di repertorio: l'unico movimento
+è il tracciamento dei segni di correzione in SVG (`stroke-dashoffset`, sul
+compositor) e le transizioni brevi di pulsanti e fogli, tutte spente con
+`prefers-reduced-motion`.
 
-I font sono self-hosted da `next/font`: nessuna richiesta a runtime, nessun
-layout shift.
+I font sono self-hosted: `next/font` nelle aree riservate; nel sito pubblico
+`@font-face` con fallback metrici e `<link rel="preload">`, perché con il
+layout radice dinamico `next/font` non emette il preload nell'HTML.
 
 ## 7. Screenshot di verifica
 

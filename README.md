@@ -34,7 +34,14 @@ label per le agenzie.
 
 ## Sito pubblico
 
-Il design editoriale avorio/corallo e le pagine multipagina sono in `components/editorial`, `lib/editorial-content.ts` e `app/editorial.css`. I moduli sono collegati alle API del progetto; il preventivo usa le tariffe esistenti. `/accedi` apre il backoffice riservato al team, non un portale clienti. Per riferimenti visivi e limiti dei contenuti dimostrativi, vedere `DESIGN_PLAN.md`.
+Il sito pubblico (`app/(sito)`, `/accedi`, il 404) è composto con i componenti
+di `components/sito` sui token «matita rossa e blu» definiti in
+`app/globals.css` e `app/sito.css`: carta, inchiostro, grafite, rosso e blu
+matita, Editorial e Interface serviti da `public/fonts` in woff2. Le scelte,
+l'audit e l'autocritica sono in `DESIGN-NOTES.md`. I moduli sono collegati
+alle API del progetto; il preventivo usa le tariffe esistenti. `/accedi` è
+l'accesso con link via email: porta all'area autore o, per lo staff, al
+back-office. Il banner DEMO si governa con `NEXT_PUBLIC_DEMO_MODE`.
 
 ## Stack
 

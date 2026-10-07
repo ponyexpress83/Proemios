@@ -5,6 +5,12 @@
    font vero (calcolate da next/font e riportate qui): quando il woff2 arriva,
    il testo non si sposta. Il preload delle due facce sopra la piega sta nel
    layout radice (app/fonts.ts). */
+/* I quattro file sono il sottoinsieme latino dei font licenziati (fontTools:
+   pyftsubset --flavor=woff2 --layout-features='*' --unicodes=U+0000-024F,
+   U+02BC,U+02C6-02DC,U+2000-206F,U+20AC,U+2122,U+2190-2199,U+2212,U+2215,
+   U+FB01-FB04,U+FEFF): 111 KB in tutto invece di 255. Le metriche dei
+   fallback qui sotto sono quelle dei font interi, che il sottoinsieme non
+   cambia. */
 @font-face {
   font-family: "Editorial";
   src: url("/fonts/editorial.woff2") format("woff2");

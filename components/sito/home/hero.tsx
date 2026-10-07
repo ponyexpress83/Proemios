@@ -62,8 +62,6 @@ export function Hero() {
           width={850}
           height={850}
           sizes="(max-width: 1023px) 220px, 460px"
-          priority
-          fetchPriority="high"
           alt="Un libro rilegato, con il manoscritto che spunta dalle pagine"
         />
       </div>

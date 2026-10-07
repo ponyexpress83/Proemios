@@ -22,7 +22,7 @@ const RUOLI: [string, string][] = [
 ];
 
 const PRINCIPI: [string, string][] = [
-  ["Chiarezza", "Perimetro, revisioni e consegne definiti prima di iniziare, per iscritto."],
+  ["Chiarezza", "Lavoro, revisioni e consegne definiti prima di iniziare, per iscritto."],
   ["Accompagnamento", "Feedback comprensibile, confronto, scelte condivise."],
   ["Responsabilità", "Nessuna promessa di vendite, premi o risultati che non possiamo verificare."],
 ];

@@ -56,7 +56,7 @@ export default function CookiePage() {
                 </li>
                 <li>
                   credenziali di accesso all&rsquo;area riservata interna (
-                  <code className="font-mono text-[0.9em]">/admin</code>), impostate solo per gli
+                  <code className="font-mono text-t-sm">/admin</code>), impostate solo per gli
                   operatori autorizzati;
                 </li>
                 <li>

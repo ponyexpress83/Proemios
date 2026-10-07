@@ -1,57 +1,43 @@
 # Proemios — Design del sito pubblico
 
-Il sito pubblico riprende la direzione approvata «Editorial technology with depth»: una presenza editoriale calda, con profondità tattile e interazioni leggere.
+Il sito pubblico segue la direzione «Matita rossa e blu»: carta, inchiostro,
+due segni di correzione come unico colore. Il documento di lavoro — audit di
+partenza, token, wireframe, componenti, autocritica per passaggio e verifica
+finale — è `DESIGN-NOTES.md`; questo file dice solo dove stanno le cose.
 
-> **Ambito.** Questo documento riguarda il **sito pubblico**, cioè tutto ciò che
-> sta dentro il route group `app/(sito)` e quindi dentro `.proemios-public`.
-> Le aree riservate — back-office, portale cliente, redazione, accesso — hanno
-> un sistema proprio, scuro, descritto in `docs/DESIGN_SYSTEM.md`. I due
+> **Ambito.** Tutto ciò che sta dentro il route group `app/(sito)`, più
+> `/accedi` e il 404. Le aree riservate — back-office, area autore, redazione —
+> hanno un sistema proprio, scuro, descritto in `docs/DESIGN_SYSTEM.md`. I due
 > convivono di proposito: chi compra legge una presenza editoriale, chi lavora
-> usa un'interfaccia da strumento.
+> usa un'interfaccia da strumento. Una pagina pubblica non importa `ui/*`.
 
-## Identità condivisa
+## Dove stanno le cose
 
-- Avorio #FAF8F5, corallo #F16650, navy #131936, prugna #382138.
-- Stati lilla, salvia e pesca; card bianche arrotondate, ombre morbide.
-- Titoli serif P052 e interfaccia Nimbus Sans, serviti localmente.
-- Logo libro aperto, CTA corallo, focus visibile e link accessibili.
+- **Token**: `app/globals.css` (blocco `@theme`: colori, corpi tipografici,
+  spaziature, raggi, ombre, curva) e `app/sito.css` (regole del sito che non
+  sono utilità: maiuscoletto, sottolineatura a matita, segni, indice, tappe).
+- **Font**: `public/fonts/*.woff2`, Editorial (serif) e Interface (sans),
+  sottoinsieme latino, dichiarati in `@font-face` con fallback metrici e
+  precaricati dal layout radice.
+- **Componenti**: `components/sito` — `Pulsante`, `Collegamento`, `Foglio`,
+  `Campo`, `Sezione`/`Contenitore`/`Intestazione`, `Testata`, `Colophon`,
+  `Carosello`, i segni di correzione in `segni.tsx`, le sezioni della home in
+  `home/`. I blocchi di pagina riusati stanno in `components/marketing`,
+  `components/sezioni`, `components/moduli`.
+- **Guscio**: `app/(sito)/layout.tsx` monta `GuscioSito` (banner DEMO,
+  testata, `<main id="contenuto">`, colophon). `/accedi` ha un layout proprio
+  con solo il logo.
+- **Contenuti**: il catalogo (`config/catalogo.ts`) e i percorsi
+  (`config/percorsi.ts`) sono la fonte di verità, con le tariffe di
+  `config/pricing.ts`. `lib/editorial-content.ts` conserva le pagine di
+  atterraggio che esistono solo lì, rese da
+  `components/sito/contenuti-editoriali.tsx`. **Resta una decisione
+  commerciale aperta**: se consolidare i due insiemi in uno.
 
-## Componenti e pagine
+## Regole che restano
 
-Il guscio pubblico è montato da `app/(sito)/layout.tsx` tramite `SiteChrome`,
-non dal layout radice: le aree riservate non devono portarsi dietro il menu
-commerciale.
-
-`components/editorial` contiene il sistema condiviso: navigazione, footer, scene a livelli, timeline, slider prima/dopo, percorsi e sezioni riusabili. `lib/editorial-content.ts` contiene i testi pubblici; `app/editorial.css` applica il tema dentro `.proemios-public`.
-
-Le pagine operative usano il configuratore, il caricamento manoscritto e i moduli originali. Tariffe e calcoli restano in `config/pricing.ts` e `lib/pricing.ts`; API, database, pagamenti, attribution e protezione del backoffice rimangono quelli del progetto.
-
-`/accedi` è l'accesso reale: autenticazione con sessione in database, e dopo
-l'accesso porta all'area che spetta alla persona — `/area` per gli autori,
-`/admin` o `/redazione` per lo staff. Vive fuori da `app/(sito)`, con un layout
-proprio, perché non è una pagina commerciale. Il portale cliente e il
-back-office esistono e conservano la propria interfaccia.
-
-## Mobile e movimento
-
-Hero impilata, percorsi a scorrimento orizzontale, timeline verticale, servizi a fisarmonica. Scene in CSS 3D e immagini WebP ottimizzate, senza WebGL o video in hero. Le animazioni rispettano `prefers-reduced-motion`.
-
-## Contenuti verificabili
-
-Le schede del team e le testimonianze restano segnaposto dichiarati fino a disponibilità di profili e contenuti verificati. Nessun cliente, premio, risultato o prezzo inventato. Le pagine legali usano la configurazione societaria esistente.
-
-## Pagine non ancora portate nella nuova identità
-
-Catalogo servizi, percorsi, note legali e strumenti usano ancora i componenti
-del design system applicativo. Dentro `.proemios-public` ricevono la classe
-`legacy-content` e i token di quel sistema sono rimappati sul chiaro in
-`app/editorial.css`: restano leggibili e coerenti con l'avorio, senza essere
-ancora ridisegnati. Il rimappaggio è necessario, non cosmetico — `--color-testo`
-è un bianco caldo, e su avorio dava 1,02:1, cioè testo invisibile.
-
-Due insiemi di contenuti convivono su `/servizi` e `/percorsi`: il catalogo di
-progetto (`config/catalogo.ts`, `config/percorsi.ts`, con le tariffe) e le
-pagine di atterraggio editoriali (`lib/editorial-content.ts`). Entrambe sono
-servite, perché testata e piè di pagina puntano alle seconde; dove gli slug si
-sovrappongono vince il catalogo, che ha il prezzo. **Resta una decisione
-commerciale aperta**: se consolidare i due insiemi in uno.
+- Nessun prezzo fuori da `config/pricing.ts`; nessun cliente, premio o
+  risultato inventato; le schede del team arrivano solo verificate.
+- Movimento solo sui segni di correzione e sulle transizioni brevi, e sempre
+  dentro `prefers-reduced-motion`.
+- Il banner DEMO resta finché `NEXT_PUBLIC_DEMO_MODE` non lo spegne.

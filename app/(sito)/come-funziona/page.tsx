@@ -23,7 +23,7 @@ const FAQ = [
     a: "Dipende da lunghezza, interventi richiesti e tempi di feedback. Il calendario viene condiviso nel piano di lavoro e aggiornato nell'area autore.",
   },
   {
-    q: "Posso cambiare il perimetro a lavoro iniziato?",
+    q: "Posso cambiare il lavoro concordato dopo l'inizio?",
     a: "Sì. Valutiamo insieme l'effetto della modifica su tempi e costi prima di procedere, e lo mettiamo per iscritto.",
   },
   {

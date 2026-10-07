@@ -1,7 +1,11 @@
 import type { Metadata } from "next";
 import { Hero } from "@/components/sito/home/hero";
 import { PercorsiHome } from "@/components/sito/home/percorsi";
-import { Confronto } from "@/components/sito/home/confronto";
+import dynamic from "next/dynamic";
+
+// Lo slider è sotto la piega e porta con sé il suo JavaScript: lo si carica a
+// parte, ma resta reso sul server, così l'HTML e il layout non cambiano.
+const Confronto = dynamic(() => import("@/components/sito/home/confronto").then((m) => m.Confronto));
 import { Tappe } from "@/components/sito/home/tappe";
 import { AreaAutoreDemo } from "@/components/sito/home/area-autore";
 import { IndiceServizi } from "@/components/sito/home/indice-servizi";

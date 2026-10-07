@@ -1,4 +1,8 @@
-import { Carosello } from "@/components/sito/carosello";
+import dynamic from "next/dynamic";
+
+// Il carosello è interattivo solo sul telefono: il suo JavaScript va in un
+// pezzo a parte, l'HTML resta reso sul server.
+const Carosello = dynamic(() => import("@/components/sito/carosello").then((m) => m.Carosello));
 import { Foglio } from "@/components/sito/foglio";
 import { ILLUSTRAZIONI, type NomeIllustrazione } from "./illustrazioni";
 import { PERCORSI } from "@/config/percorsi";
