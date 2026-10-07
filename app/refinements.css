@@ -1,41 +1,4 @@
 /* Proemios: una pagina editoriale che prende forma, con controlli sempre leggibili. */
-.proemios-public .header,
-.proemios-public .header.scrolled {
-  background: #eee8ffed;
-  border-bottom: 1px solid #dcd4ec;
-  backdrop-filter: blur(14px);
-}
-.proemios-public .nav-wrap {
-  height: 88px;
-  gap: 20px;
-}
-.proemios-public .desktop-nav {
-  gap: 4px;
-  font-size: 14px;
-}
-.proemios-public .desktop-nav a {
-  padding: 10px 11px;
-  border-radius: 10px;
-  transition:
-    transform 220ms,
-    background 220ms,
-    box-shadow 220ms;
-}
-.proemios-public .desktop-nav a:hover,
-.proemios-public .desktop-nav a:focus-visible {
-  background: #fff9;
-  color: #382138;
-  transform: perspective(400px) translateY(-3px) rotateX(6deg) scale(1.04);
-  box-shadow: 0 7px 18px #38213810;
-  text-decoration: underline;
-  text-underline-offset: 6px;
-}
-.proemios-public .login-link {
-  font-size: 14px;
-}
-.proemios-public .mobile-nav {
-  background: #eee8ff;
-}
 .proemios-public .hero-grid {
   grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
   gap: 34px;
@@ -822,16 +785,6 @@
   font-size: 14px;
 }
 @media (max-width: 1250px) {
-  .proemios-public .nav-wrap {
-    width: calc(100% - 40px);
-    gap: 14px;
-  }
-  .proemios-public .desktop-nav a {
-    padding-inline: 7px;
-  }
-  .proemios-public .nav-actions {
-    gap: 12px;
-  }
   .proemios-public .hero-grid {
     gap: 24px;
   }
@@ -856,16 +809,6 @@
   }
 }
 @media (max-width: 1100px) {
-  .proemios-public .desktop-nav {
-    display: none;
-  }
-  .proemios-public .menu-toggle {
-    display: grid;
-    place-items: center;
-  }
-  .proemios-public .mobile-nav {
-    display: grid;
-  }
   .proemios-public .container {
     width: calc(100% - 56px);
   }
@@ -968,20 +911,6 @@
 @media (max-width: 600px) {
   .proemios-public .container {
     width: calc(100% - 36px);
-  }
-  .proemios-public .nav-wrap {
-    height: 78px;
-    width: calc(100% - 32px);
-  }
-  .proemios-public .nav-actions > .button {
-    display: none;
-  }
-  .proemios-public .logo > span {
-    font-size: 30px;
-  }
-  .proemios-public .logo svg {
-    width: 33px;
-    height: 33px;
   }
   .proemios-public .hero-actions {
     flex-direction: column;
@@ -1146,7 +1075,6 @@
 @media (prefers-reduced-motion: reduce) {
   .proemios-public .hero-scene-inner,
   .proemios-public .hero-scene-studio .hero-book-trigger:hover,
-  .proemios-public .desktop-nav a:hover,
   .proemios-public .path-card:hover,
   .proemios-public .platform-visual .dashboard-wrap {
     transform: none;
