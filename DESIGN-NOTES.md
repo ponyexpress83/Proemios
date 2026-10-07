@@ -450,6 +450,15 @@ Scelte tenute, con il motivo:
 
 ## Punti di logica trovati — da verificare, **non corretti**
 
+> **Aggiornamento del 7 ottobre, sera.** Sul ramo base è stata unita la PR #13
+> (6 ottobre), che corregge proprio il primo punto qui sotto: in
+> `lib/pricing.ts` i servizi richiesti entrano ora in **tutti** i pacchetti,
+> non solo nell'Essenziale, e un test fissa il caso del brief a
+> 2 210 / 2 710 / 4 260 €. La correzione arriverà in questo ramo con il merge
+> della base, che è in sospeso per una decisione descritta in «Fase D — Merge
+> con la base». Le tabelle qui sotto descrivono il comportamento *prima* di
+> quella correzione.
+
 Il brief è chiaro: la grafica non tocca il calcolo dei prezzi. Questi punti
 vanno guardati da chi decide il listino.
 
@@ -974,3 +983,28 @@ da 44 px, link in linea nel testo del consenso).
 5. **Rinominare «white label»** nel nome dei servizi: è il prodotto.
 6. **Schede del team e testimonianze**: non esistono contenuti verificati; il
    sito dice che arriveranno, non li finge.
+
+### Merge con la base — in sospeso
+
+Dopo la verifica ho trovato la base spostata di otto commit (PR #13,
+«Rinnova homepage, libro interattivo e anteprima area autore», unita il 6
+ottobre): un libro 3D animato nell'hero, un «brief vocale» con dettatura e
+assistente che precompila il configuratore, una demo dell'area autore in
+`/area-autore` con login simulato in `localStorage`, 4 000 righe di CSS
+proprie, più alcune correzioni di comportamento — i servizi richiesti in
+tutti i pacchetti, limite dei file a 4 MB, `noindex` in anteprima,
+JSON-LD con `<` escapato, attribution spenta in demo, risposte «simulate»
+dei moduli, parametri `stato`/`tempi`/`servizi` in `/preventivo`, verifica
+Stripe nella pagina «grazie» — e il monogramma «P» (`lib/brand-mark.ts`) che
+il brief chiede di tenere.
+
+Il merge tocca 70 file con 38 conflitti. La linea che proponevo è la stessa
+del merge precedente: **la presentazione nuova vince, il comportamento della
+base vince**. Cioè: tenere tutte le correzioni e le funzioni (dettatura e
+assistente compresi, ridisegnati sui componenti del sito; monogramma «P» su
+icona, favicon, logo e immagine sociale), e non portare dentro il libro 3D,
+i 4 000 righe di CSS e la demo `/area-autore` — questa PR ha l'area autore
+vera in `/area`, e la home ha già il mockup «Il tuo spazio» chiesto dal
+brief. Togliere `/area-autore` è però una scelta di prodotto, e la
+cancellazione dei file della base è stata fermata dal controllo di sicurezza
+della sessione: mi fermo e chiedo.
