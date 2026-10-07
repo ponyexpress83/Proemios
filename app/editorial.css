@@ -25,7 +25,6 @@ html:has(.proemios-public) {
   scroll-behavior: smooth;
   scroll-padding-top: 110px;
 }
-body:has(.proemios-public),
 .proemios-public {
   margin: 0;
   background: var(--background);
@@ -2979,7 +2978,6 @@ body:has(.proemios-public),
   --color-bordo-forte: rgb(19 25 54 / 0.24);
   --color-bordo-viola: rgb(56 33 56 / 0.4);
 
-  min-height: 100vh;
   width: 100%;
   box-sizing: border-box;
 }

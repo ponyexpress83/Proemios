@@ -1,0 +1,76 @@
+/*
+ * Sito pubblico: ciò che le utility non sanno esprimere. Poche regole, tutte
+ * sui token. Le animazioni rispondono a un'azione (150–250 ms) o tracciano
+ * un segno di correzione (700 ms, una volta); con `prefers-reduced-motion`
+ * lo stato finale appare subito.
+ */
+
+/* Maiuscoletto vero, senza trattino. */
+.maiuscoletto {
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.06em;
+}
+
+/* Sottolineatura a matita: si traccia da sinistra al passaggio e al fuoco. */
+.sottolinea-matita {
+  background-image: linear-gradient(currentColor, currentColor);
+  background-repeat: no-repeat;
+  background-position: 0 calc(100% - 0.12em);
+  background-size: 0% 2px;
+  text-decoration: none;
+  transition: background-size 220ms var(--ease-matita);
+}
+.sottolinea-matita:hover,
+.sottolinea-matita:focus-visible,
+.sottolinea-matita-attiva {
+  background-size: 100% 2px;
+}
+.sottolinea-matita-attiva {
+  background-image: linear-gradient(var(--color-rosso-matita), var(--color-rosso-matita));
+}
+
+/* I segni di correzione si tracciano una volta sola. */
+.segno-traccia {
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  animation: traccia 700ms var(--ease-matita) forwards;
+}
+@keyframes traccia {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Numeri tabellari dove allineano colonne e prezzi. */
+.tabellare {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Carosello a scorrimento con aggancio. */
+.carosello {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: 1rem;
+  padding-inline: 1rem;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.carosello::-webkit-scrollbar {
+  display: none;
+}
+.carosello > * {
+  scroll-snap-align: start;
+  flex: 0 0 min(82vw, 20rem);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sottolinea-matita {
+    transition: none;
+  }
+  .segno-traccia {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+}

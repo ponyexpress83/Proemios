@@ -244,10 +244,15 @@ p {
 /* ── Sito pubblico: tema chiaro ─────────────────────────────────────────
    Si attiva con `data-tema="carta"` sul contenitore del route group (sito).
    Il resto dell'app resta scuro. */
+/* Il colore della tela (canvas) lo decide la radice: senza, la zona fuori dal
+   body resta scura perché `:root` dichiara `color-scheme: dark`. */
+html:has([data-tema="carta"]) {
+  color-scheme: light;
+  background-color: var(--color-carta);
+}
 body:has([data-tema="carta"]) {
   background-color: var(--color-carta);
   color: var(--color-inchiostro);
-  color-scheme: light;
 }
 [data-tema="carta"] {
   font-family: var(--font-sans);

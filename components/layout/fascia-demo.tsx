@@ -14,14 +14,14 @@ export function FasciaDemo() {
   if (!visibile) return null;
 
   return (
-    <div className="fascia-demo border-b border-viola/35 bg-viola/12">
-      <div className="gabbia flex flex-wrap items-center gap-x-3 gap-y-1 py-2">
-        <span className="etichetta text-viola-chiaro">Demo</span>
-        <p className="text-xs leading-relaxed text-testo-attenuato">
+    <div className="border-b border-filetto bg-carta-ombra">
+      <p className="mx-auto flex w-full max-w-pagina flex-wrap items-baseline gap-x-3 gap-y-1 px-4 py-2 text-t-xs text-grafite md:px-6">
+        <span className="maiuscoletto font-bold text-rosso-matita">Demo</span>
+        <span>
           Il sito è navigabile per intero. I dati che inserisci non vengono salvati né inviati,
           nessun pagamento viene addebitato e l&rsquo;analisi del manoscritto è simulata.
-        </p>
-      </div>
+        </span>
+      </p>
     </div>
   );
 }

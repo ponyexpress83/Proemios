@@ -2,18 +2,16 @@
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { services, articles } from "@/lib/editorial-content";
-import { Header, Footer } from "./proemios";
-import { FasciaDemo } from "@/components/layout/fascia-demo";
 
 /**
- * Montato dal layout del route group `(sito)`: le aree riservate hanno i propri
- * layout e non passano da qui, quindi non serve più distinguere `/admin`.
+ * TRANSITORIO — da eliminare con `editorial.css` quando l'ultima pagina
+ * abbandona i componenti editoriali (passaggio C5 del redesign).
  *
- * Le pagine portate nella nuova identità editoriale ricevono
- * `editorial-content`; quelle non ancora ridisegnate — note legali, strumenti —
- * restano su `legacy-content`, leggibili invece che mezze ristilizzate.
+ * Testata e colophon sono già quelli nuovi (`components/sito`); questo
+ * involucro applica soltanto `.proemios-public` al corpo della pagina, così
+ * le pagine non ancora rifatte restano stilate dal foglio editoriale.
  */
-export function SiteChrome({ children }: { children: ReactNode }) {
+export function CorpoTransitorio({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const modern =
     [
@@ -34,14 +32,7 @@ export function SiteChrome({ children }: { children: ReactNode }) {
     articles.some((a) => pathname === "/blog/" + a.slug);
   return (
     <div className="proemios-public">
-      {/* Dentro il contenitore, non fuori: i suoi colori vengono dal tema
-          rimappato e su fondo avorio il tema scuro era illeggibile. */}
-      <FasciaDemo />
-      <Header />
-      <main id="contenuto">
-        <div className={modern ? "editorial-content" : "legacy-content"}>{children}</div>
-      </main>
-      <Footer />
+      <div className={modern ? "editorial-content" : "legacy-content"}>{children}</div>
     </div>
   );
 }

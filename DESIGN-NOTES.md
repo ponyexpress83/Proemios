@@ -545,7 +545,55 @@ esattamente quattro facce (Editorial 400 normale e corsivo, Interface 400 e
 
 ### C2 — Componenti condivisi
 
-_(da compilare)_
+**Cosa è cambiato.** Nasce `components/sito/`: `Pulsante` e `PulsanteLink`
+(primario rosso, secondario con bordo, testuale blu; 48 px, freccia → solo
+verso un'altra pagina, mai ↗), `Collegamento` (sottolineatura a matita che si
+traccia, 44 px di altezza cliccabile), `Foglio` (l'unica card, intera
+cliccabile con un solo link), `Campo`/`Input`/`AreaTesto`/`Selezione`/
+`Consenso`/`RiepilogoErrori` (stessa API dei campi delle aree riservate, token
+della carta, errore con icona e testo, riepilogo focalizzato all'invio),
+`Sezione`/`Contenitore`/`Etichetta`/`Intestazione`/`Filetto`, i cinque
+`Segni` di correzione in SVG a tratto di matita, `Testata`, `Colophon` e
+`GuscioSito`. `app/sito.css` tiene le poche regole che le utility non sanno
+scrivere: maiuscoletto, sottolineatura a matita, tracciamento dei segni,
+carosello con aggancio. Tutte sui token.
+
+La testata ha cinque voci, «Area autori» e il pulsante primario; il menu a
+scomparsa compare sotto i 1 024 px (prima: 1 050), copre tutto lo schermo
+con la propria barra di chiusura, mette il primario in fondo e tiene il fuoco
+dentro: Tab gira sulle sette voci e torna alla prima, Esc chiude e riporta il
+fuoco sul pulsante che l'ha aperto. Il colophon è composto come il colophon
+di un libro, con l'anagrafica da `config/legal.ts`, la nota vincolante
+sull'AI e «Composto in Editorial e Interface».
+
+**Tre difetti trovati provando, non leggendo.**
+
+1. Il pulsante primario in testata aveva il testo *inchiostro* su rosso:
+   3,02:1. `cn()` usa tailwind-merge, che non conosce la scala `text-t-*` e
+   trattava `text-t-sm` come un colore, cancellando `text-bianco`. Il mobile,
+   che non passa quella classe, era giusto: per questo axe lo segnalava solo
+   a 1 280. Corretto dichiarando la scala a tailwind-merge in `lib/cn.ts`.
+2. Il menu a scomparsa era alto cento pixel. `backdrop-filter` sulla testata
+   la rende *containing block* dei discendenti `position: fixed`, quindi
+   `bottom: 0` era il fondo della testata. Via il blur, menu a schermo intero.
+3. Sopra la testata, scorrendo, compariva una banda nera: `editorial.css`
+   dava al `body` `background: var(--background)`, una variabile definita solo
+   su `.proemios-public`, quindi il body era trasparente e sotto c'era la
+   tela scura di `:root { color-scheme: dark }`. Finché `.proemios-public`
+   copriva tutta la pagina non si vedeva. Ora la tela la decide
+   `html:has([data-tema="carta"])`.
+
+**Cosa ho tolto.** L'eyebrow con il trattino (sostituita da un'`Etichetta` in
+maiuscoletto, usata solo dove orienta), la freccia ↗ dai pulsanti, il blur
+della testata, la griglia a cinque colonne del piè di pagina.
+
+**Cosa non mi convince ancora.** Il corpo delle pagine è ancora quello
+editoriale, dentro un involucro dichiarato *transitorio*: testata e colophon
+nuovi sopra e sotto una pagina vecchia. È il prezzo di un commit per
+passaggio. E la sottolineatura a matita è un gradiente CSS, non un tratto
+disegnato: è onesto, leggero e rispetta `prefers-reduced-motion`, ma non ha
+la grana del segno. Da rivedere se, a fine lavoro, i segni SVG reggono bene
+e vale la pena allinearla.
 
 ### C3 — Home
 
