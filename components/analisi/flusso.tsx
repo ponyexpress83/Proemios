@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import type { Route } from "next";
 import { Bottone } from "@/components/ui/bottone";
 import { Campo, Input, Consenso } from "@/components/ui/campi";
 import { Filetto, cx } from "@/components/ui/primitivi";
+import { FileNotice } from "./file-notice";
 import { Report } from "./report";
 import { ANALISI, UI } from "@/config/copy";
 import type { ReportCompleto } from "@/lib/ai";
@@ -15,10 +16,24 @@ type Stato = "attesa" | "analisi" | "fatto" | "errore";
 export function FlussoAnalisi({
   giorniConservazione,
   demoMode = false,
+  onComplete,
+  onContinue,
+  onBusyChange,
 }: {
   giorniConservazione: number;
   demoMode?: boolean;
+  onComplete?: (report: ReportCompleto) => void;
+  onContinue?: () => void;
+  onBusyChange?: (busy: boolean) => void;
 }) {
+  const controller = useRef<AbortController | null>(null);
+  useEffect(
+    () => () => {
+      controller.current?.abort();
+      onBusyChange?.(false);
+    },
+    [onBusyChange],
+  );
   const [stato, setStato] = useState<Stato>("attesa");
   const [errore, setErrore] = useState("");
   const [report, setReport] = useState<ReportCompleto | null>(null);
@@ -44,6 +59,10 @@ export function FlussoAnalisi({
       setErrore("Il file supera 4 MB. Carica un estratto più breve del testo.");
       return;
     }
+    if (!/\.(docx|pdf|txt)$/i.test(file.name)) {
+      setErrore("Formato non supportato. Usa DOCX, PDF o TXT.");
+      return;
+    }
     fd.set("file", file);
     if (!consenso) {
       setErrore(UI.consensoRichiesto);
@@ -54,8 +73,14 @@ export function FlussoAnalisi({
     fd.set("consensoMarketing", String(marketing));
 
     setStato("analisi");
+    onBusyChange?.(true);
+    controller.current = new AbortController();
     try {
-      const res = await fetch("/api/analisi", { method: "POST", body: fd });
+      const res = await fetch("/api/analisi", {
+        method: "POST",
+        body: fd,
+        signal: controller.current.signal,
+      });
       if (res.status === 413)
         throw new Error("Il file è troppo grande. Usa un estratto fino a 4 MB.");
       if (!res.headers.get("content-type")?.includes("application/json"))
@@ -67,22 +92,27 @@ export function FlussoAnalisi({
       };
       if (!res.ok || !dati.report) throw new Error(dati.errore ?? UI.erroreGenerico);
       setReport(dati.report);
+      onComplete?.(dati.report);
       setDemo(dati.demo === true);
       setStato("fatto");
     } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") return;
       setStato("errore");
       setErrore(err instanceof Error ? err.message : UI.erroreGenerico);
+    } finally {
+      onBusyChange?.(false);
     }
   }
 
   if (stato === "fatto" && report) {
-    return <Report report={report} demo={demo} />;
+    return <Report report={report} demo={demo} onContinue={onContinue} />;
   }
 
   const inCorso = stato === "analisi";
 
   return (
     <div className="mx-auto max-w-2xl">
+      <FileNotice demo={demoMode} retention={giorniConservazione} />
       <form
         onSubmit={invia}
         className="rounded-scheda border-filetto bg-carta-alta border p-6 sm:p-8"
@@ -90,6 +120,7 @@ export function FlussoAnalisi({
       >
         {/* Caricamento */}
         <label
+          htmlFor="an-file"
           onDragOver={(e) => e.preventDefault()}
           onDrop={(e) => {
             e.preventDefault();
@@ -128,6 +159,9 @@ export function FlussoAnalisi({
           </span>
           <span className="apparato text-stampa mt-2">{ANALISI.formati}</span>
           <input
+            id="an-file"
+            aria-label="File del manoscritto"
+            disabled={inCorso}
             type="file"
             name="file"
             accept=".docx,.pdf,.txt"
@@ -208,11 +242,22 @@ export function FlussoAnalisi({
         </Bottone>
 
         <p className="glossa text-stampa mt-5">
-          {demoMode
-            ? "L’analisi è simulata. Non caricare testi o dati personali. Il file non viene archiviato dalla demo."
-            : ANALISI.conservazione(giorniConservazione)}
+          Solo DOCX, PDF o TXT, fino a 4 MB e almeno 100 parole. Il report non sostituisce una
+          lettura professionale.
         </p>
       </form>
+      {inCorso && (
+        <Bottone
+          variante="secondario"
+          onClick={() => {
+            controller.current?.abort();
+            onBusyChange?.(false);
+            setStato("attesa");
+          }}
+        >
+          Annulla l’analisi
+        </Bottone>
+      )}
     </div>
   );
 }

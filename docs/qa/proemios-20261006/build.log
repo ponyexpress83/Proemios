@@ -1,0 +1,84 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> proemios@0.1.0 build
+> next build
+
+   ▲ Next.js 15.5.22
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully in 8.2s
+   Linting and checking validity of types ...
+   Collecting page data ...
+   Generating static pages (0/68) ...
+   Generating static pages (17/68) 
+   Generating static pages (34/68) 
+   Generating static pages (51/68) 
+ ✓ Generating static pages (68/68)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                                                       Size  First Load JS
+┌ ○ /                                                            180 B         144 kB
+├ ○ /_not-found                                                  169 B         103 kB
+├ ○ /accedi                                                    2.73 kB         111 kB
+├ ƒ /admin                                                       171 B         106 kB
+├ ○ /analisi-manoscritto                                         144 B         145 kB
+├ ƒ /api/agenzie                                                 169 B         103 kB
+├ ƒ /api/analisi                                                 169 B         103 kB
+├ ƒ /api/checkout                                                169 B         103 kB
+├ ƒ /api/contatto                                                169 B         103 kB
+├ ƒ /api/lista-attesa                                            169 B         103 kB
+├ ƒ /api/preventivo                                              169 B         103 kB
+├ ƒ /api/webhooks/stripe                                         169 B         103 kB
+├ ○ /area-autore                                               17.4 kB         141 kB
+├ ○ /blog                                                        203 B         150 kB
+├ ● /blog/[slug]                                                 194 B         150 kB
+├   ├ /blog/come-impaginare-un-libro
+├   ├ /blog/come-ottenere-un-isbn
+├   ├ /blog/come-pubblicare-su-amazon-kdp
+├   └ [+11 more paths]
+├ ○ /casi-studio                                                 203 B         150 kB
+├ ● /casi-studio/[slug]                                          165 B         106 kB
+├   ├ /casi-studio/dal-diario-di-una-vita-a-un-romanzo
+├   ├ /casi-studio/revisione-e-pubblicazione-con-isbn-proprio
+├   └ /casi-studio/manuale-di-un-professionista
+├ ○ /chi-siamo                                                   203 B         150 kB
+├ ○ /come-funziona                                               203 B         150 kB
+├ ƒ /contatti                                                    144 B         145 kB
+├ ○ /cookie                                                      169 B         103 kB
+├ ○ /dal-diario-al-libro                                       1.12 kB         107 kB
+├ ○ /icon                                                        169 B         103 kB
+├ ○ /libro-per-professionisti                                  1.12 kB         107 kB
+├ ○ /opengraph-image                                             169 B         103 kB
+├ ○ /per-agenzie                                                 231 B         184 kB
+├ ○ /percorsi                                                    203 B         150 kB
+├ ● /percorsi/[slug]                                             203 B         150 kB
+├   ├ /percorsi/libro-gia-scritto
+├   ├ /percorsi/idea-da-sviluppare
+├   ├ /percorsi/memoir
+├   └ [+2 more paths]
+├ ƒ /preventivo                                                  144 B         145 kB
+├ ƒ /preventivo/grazie                                           171 B         106 kB
+├ ○ /privacy                                                     169 B         103 kB
+├ ƒ /robots.txt                                                  169 B         103 kB
+├ ○ /servizi                                                     203 B         150 kB
+├ ● /servizi/[slug]                                            1.15 kB         151 kB
+├   ├ /servizi/valutazione-editoriale
+├   ├ /servizi/revisione-e-pubblicazione
+├   ├ /servizi/dal-diario-al-libro
+├   └ [+10 more paths]
+├ ○ /sitemap.xml                                                 169 B         103 kB
+├ ○ /strumenti-ai                                              3.25 kB         113 kB
+└ ○ /termini                                                     169 B         103 kB
++ First Load JS shared by all                                   103 kB
+  ├ chunks/1255-31f47ebe9b12c7e5.js                            46.3 kB
+  ├ chunks/4bd1b696-f785427dddbba9fb.js                        54.2 kB
+  └ other shared chunks (total)                                2.05 kB
+
+
+ƒ Middleware                                                   34.4 kB
+
+○  (Static)   prerendered as static content
+●  (SSG)      prerendered as static HTML (uses generateStaticParams)
+ƒ  (Dynamic)  server-rendered on demand
+

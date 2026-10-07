@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
 import { Dialog } from "radix-ui";
 import { ArrowRight, Mic, MicOff, X, RotateCcw, Check, Send } from "lucide-react";
 import Link from "./link";
@@ -29,9 +29,11 @@ const questions = [
 export default function QuoteAssistant({
   open,
   onOpenChange,
+  returnFocusRef,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  returnFocusRef: RefObject<HTMLButtonElement | null>;
 }) {
   const [step, setStep] = useState(0);
   const [input, setInput] = useState<Partial<PricingInput>>({
@@ -42,6 +44,7 @@ export default function QuoteAssistant({
   const [draft, setDraft] = useState("");
   const [error, setError] = useState("");
   const [history, setHistory] = useState<string[]>([]);
+  const dialog = useRef<HTMLDivElement>(null);
   const field = useRef<HTMLInputElement>(null);
   const {
     supported: voice,
@@ -99,10 +102,15 @@ export default function QuoteAssistant({
       <Dialog.Portal>
         <Dialog.Overlay className="assistant-overlay" />
         <Dialog.Content
+          ref={dialog}
           className="proemios-public quote-dialog"
+          onCloseAutoFocus={(e) => {
+            e.preventDefault();
+            returnFocusRef.current?.focus();
+          }}
           onOpenAutoFocus={(e) => {
             e.preventDefault();
-            field.current?.focus();
+            (field.current ?? dialog.current?.querySelector<HTMLButtonElement>("button"))?.focus();
           }}
         >
           <div className="assistant-header">

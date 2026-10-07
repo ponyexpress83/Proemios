@@ -161,7 +161,7 @@ export async function POST(req: Request) {
     to: gate.data.email,
     subject: `La tua analisi del manoscritto — ${BRAND.name}`,
     html: impaginaEmail(
-      "Abbiamo letto il tuo testo",
+      "Il tuo report automatico è pronto",
       `<p>Ciao ${esc(gate.data.nome)},</p>
        <p>ecco la sintesi della prima diagnosi su <em>${esc(file.name)}</em>
        (${numero(metriche.parole)} parole, circa ${numero(metriche.pagineStimate)} pagine):</p>
@@ -169,7 +169,7 @@ export async function POST(req: Request) {
        <p><strong>Intervento consigliato:</strong> ${esc(report.livelloIntervento)}<br/>
        <strong>Fascia di costo indicativa:</strong> ${euro(report.fasciaCosto.min)} – ${euro(report.fasciaCosto.max)}<br/>
        <strong>Leggibilità (Gulpease):</strong> ${metriche.gulpease}/100</p>
-       <p><a href="${assoluto("/preventivo")}?parole=${metriche.parole}" style="color:#22483b;">Calcola il preventivo esatto</a></p>
+       <p><a href="${assoluto("/preventivo")}?parole=${metriche.parole}" style="color:#22483b;">Calcola una prima stima</a></p>
        <p style="font-size:13px;color:#6c6f67;">${BRAND.aiAnalysisNotice}</p>
        <p>A presto,<br/>${BRAND.name}</p>`,
     ),

@@ -1,0 +1,203 @@
+{
+  "date": "2026-10-06T21:17:13.073Z",
+  "mode": "DEMO_MODE=on, integration variables absent",
+  "getRoutes": 32,
+  "requests": [
+    {
+      "method": "GET",
+      "route": "/",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "route": "/servizi",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "route": "/percorsi",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "route": "/blog",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "route": "/come-funziona",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "route": "/contatti?motivo=editor",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "route": "/per-agenzie",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "route": "/analisi-manoscritto",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "route": "/preventivo",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "route": "/accedi",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "route": "/area-autore",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "route": "/privacy",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "route": "/termini",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "route": "/cookie",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "route": "/sitemap.xml",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "route": "/percorsi/libro-professionale",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "route": "/contatti",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "route": "/percorsi/libro-gia-scritto",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "route": "/percorsi/idea-da-sviluppare",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "route": "/percorsi/memoir",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "route": "/percorsi/storia-impresa",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "route": "/servizi/correzione-bozze",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "route": "/servizi/editing",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "route": "/servizi/ghostwriting",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "route": "/servizi/impaginazione",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "route": "/servizi/copertina",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "route": "/servizi/pubblicazione",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "route": "/servizi/promozione",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "route": "/chi-siamo",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "route": "/blog/editing-o-correzione-bozze",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "route": "/blog/preparare-il-manoscritto",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "route": "/blog/dalla-bozza-ai-file-finali",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "route": "/api/contatto",
+      "status": 200,
+      "demo": true
+    },
+    {
+      "method": "POST",
+      "route": "/api/contatto",
+      "status": 422,
+      "demo": false
+    },
+    {
+      "method": "POST",
+      "route": "/api/agenzie",
+      "status": 200,
+      "demo": true
+    },
+    {
+      "method": "POST",
+      "route": "/api/agenzie",
+      "status": 422,
+      "demo": false
+    },
+    {
+      "method": "POST",
+      "route": "/api/preventivo",
+      "status": 200,
+      "demo": true
+    },
+    {
+      "method": "POST",
+      "route": "/api/preventivo",
+      "status": 422,
+      "demo": false
+    }
+  ]
+}
