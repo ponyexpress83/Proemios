@@ -1,0 +1,245 @@
+/*
+ * Sito pubblico: ciò che le utility non sanno esprimere. Poche regole, tutte
+ * sui token. Le animazioni rispondono a un'azione (150–250 ms) o tracciano
+ * un segno di correzione (700 ms, una volta); con `prefers-reduced-motion`
+ * lo stato finale appare subito.
+ */
+
+/* Maiuscoletto vero, senza trattino. */
+.maiuscoletto {
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.06em;
+}
+
+/* Sottolineatura a matita: si traccia da sinistra al passaggio e al fuoco. */
+.sottolinea-matita {
+  background-image: linear-gradient(currentColor, currentColor);
+  background-repeat: no-repeat;
+  background-position: 0 calc(100% - 0.12em);
+  background-size: 0% 2px;
+  text-decoration: none;
+  transition: background-size 220ms var(--ease-matita);
+}
+.sottolinea-matita:hover,
+.sottolinea-matita:focus-visible,
+.sottolinea-matita-attiva {
+  background-size: 100% 2px;
+}
+.sottolinea-matita-attiva {
+  background-image: linear-gradient(var(--color-rosso-matita), var(--color-rosso-matita));
+}
+
+/* I segni di correzione si tracciano una volta sola. */
+.segno-traccia {
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  animation: traccia 700ms var(--ease-matita) forwards;
+}
+@keyframes traccia {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Numeri tabellari dove allineano colonne e prezzi. */
+.tabellare {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Carosello a scorrimento con aggancio. */
+.carosello {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: 1rem;
+  padding-inline: 1rem;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.carosello::-webkit-scrollbar {
+  display: none;
+}
+.carosello > * {
+  scroll-snap-align: start;
+  flex: 0 0 min(82vw, 20rem);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sottolinea-matita {
+    transition: none;
+  }
+  .segno-traccia {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+}
+
+/* ── Home ──────────────────────────────────────────────────────────────── */
+
+/* Il segno di inserimento nell'H1: il titolo è leggibile da subito, si
+   anima solo il tratto; la parola sale al suo posto quando il tratto finisce. */
+.inserzione {
+  position: relative;
+  display: inline-block;
+  white-space: nowrap;
+}
+.inserzione-parola {
+  display: inline-block;
+  color: var(--color-rosso-matita);
+  animation: inserzione-parola 320ms var(--ease-matita) 560ms both;
+}
+.inserzione-segno {
+  position: absolute;
+  left: 50%;
+  bottom: -0.32em;
+  width: 0.5em;
+  height: 0.42em;
+  transform: translateX(-50%);
+}
+@keyframes inserzione-parola {
+  from {
+    transform: translateY(0.18em);
+    opacity: 0.4;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Il cursore del confronto: un `<input type="range">` con il pomello a matita. */
+.cursore-confronto {
+  appearance: none;
+  height: 44px;
+  background: transparent;
+  cursor: ew-resize;
+}
+.cursore-confronto::-webkit-slider-runnable-track {
+  height: 2px;
+  background: var(--color-filetto);
+}
+.cursore-confronto::-moz-range-track {
+  height: 2px;
+  background: var(--color-filetto);
+}
+.cursore-confronto::-webkit-slider-thumb {
+  appearance: none;
+  width: 28px;
+  height: 28px;
+  margin-top: -13px;
+  border-radius: var(--radius-pillola);
+  background: var(--color-bianco);
+  border: 2px solid var(--color-rosso-matita);
+  box-shadow: var(--shadow-foglio);
+}
+.cursore-confronto::-moz-range-thumb {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-pillola);
+  background: var(--color-bianco);
+  border: 2px solid var(--color-rosso-matita);
+  box-shadow: var(--shadow-foglio);
+}
+.cursore-confronto:focus-visible {
+  outline: 2px solid var(--color-blu-matita);
+  outline-offset: 2px;
+  border-radius: var(--radius-campo);
+}
+
+/* Puntini di guida dell'indice, come in un sommario stampato. */
+.indice-guida {
+  flex: 1 1 auto;
+  min-width: 1.5rem;
+  border-bottom: 1px dotted var(--color-grafite);
+  transform: translateY(-0.3em);
+}
+
+/* La linea che unisce i cinque passaggi, da `lg` in su. */
+@media (min-width: 1024px) {
+  .tappe {
+    position: relative;
+  }
+  .tappe::before {
+    content: "";
+    position: absolute;
+    top: 1.125rem; /* a metà del numero (36 px) */
+    left: 2.25rem;
+    right: 2.25rem;
+    border-top: 1px solid var(--color-filetto);
+  }
+  .tappa-numero {
+    position: relative;
+    background: var(--color-carta);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .inserzione-parola {
+    animation: none;
+  }
+}
+
+/* ── Flussi di conversione ───────────────────────────────────────────────── */
+
+/* Un importo che cambia: breve transizione del numero, non un lampeggio. */
+.prezzo-aggiornato {
+  animation: prezzo-aggiornato 220ms var(--ease-matita);
+}
+@keyframes prezzo-aggiornato {
+  from {
+    opacity: 0.35;
+    transform: translateY(0.2em);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Barra di avanzamento indeterminata: il server non dice a che punto è. */
+.barra-indeterminata {
+  animation: barra-indeterminata 1.2s var(--ease-matita) infinite;
+}
+@keyframes barra-indeterminata {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(300%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .prezzo-aggiornato {
+    animation: none;
+  }
+  .barra-indeterminata {
+    animation: none;
+    width: 100%;
+    transform: none;
+  }
+}
+
+/* ── Documenti legali: prosa da leggere ──────────────────────────────────── */
+.documento p + p,
+.documento ul,
+.documento ol {
+  margin-top: 0.75rem;
+}
+.documento ul {
+  list-style: disc;
+  padding-left: 1.25rem;
+}
+.documento ol {
+  list-style: decimal;
+  padding-left: 1.25rem;
+}
+.documento strong {
+  color: var(--color-inchiostro);
+}
+.documento a {
+  color: var(--color-blu-matita);
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}

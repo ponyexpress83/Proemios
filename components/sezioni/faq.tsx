@@ -1,65 +1,51 @@
 "use client";
 
-import { useState } from "react";
-import { Filetto, cx } from "@/components/ui/primitivi";
-import type { ServiceFaq } from "@/config/services";
+import * as Accordion from "@radix-ui/react-accordion";
+import { cn } from "@/lib/cn";
+
+export type VoceFaq = { domanda: string; risposta: string };
+/** Forma storica usata da config/services.ts. Normalizzata qui, non nelle pagine. */
+export type VoceFaqBreve = { q: string; a: string };
+
+function normalizza(v: VoceFaq | VoceFaqBreve): VoceFaq {
+  return "q" in v ? { domanda: v.q, risposta: v.a } : v;
+}
 
 /**
- * FAQ come apparato di note: filetti, niente riquadri.
- * Il JSON-LD FAQPage è renderizzato a parte dalla pagina.
+ * FAQ su Radix Accordion: gestisce da solo aria-expanded, aria-controls e la
+ * navigazione da tastiera. Il JSON-LD FAQPage lo emette la pagina, non questo
+ * componente, perché dipende dall'URL. Aprire e chiudere dura 200 ms.
  */
-export function Faq({ voci }: { voci: readonly ServiceFaq[] }) {
-  const [aperta, setAperta] = useState<number | null>(0);
-
+export function Faq({
+  voci,
+  className,
+}: {
+  voci: ReadonlyArray<VoceFaq | VoceFaqBreve>;
+  className?: string;
+}) {
+  const domande = voci.map(normalizza);
   return (
-    <div>
-      <Filetto />
-      {voci.map((voce, i) => {
-        const isAperta = aperta === i;
-        return (
-          <div key={i}>
-            <h3>
-              <button
-                type="button"
-                onClick={() => setAperta(isAperta ? null : i)}
-                aria-expanded={isAperta}
-                className="flex w-full items-start justify-between gap-6 py-5 text-left"
+    <Accordion.Root type="single" collapsible defaultValue="faq-0" className={cn("border-t border-filetto", className)}>
+      {domande.map((voce, i) => (
+        <Accordion.Item key={i} value={`faq-${i}`} className="border-b border-filetto">
+          <Accordion.Header>
+            <Accordion.Trigger className="group flex min-h-14 w-full items-start justify-between gap-6 rounded-campo py-4 text-left">
+              <span className="font-serif text-t-md text-inchiostro">{voce.domanda}</span>
+              <span
+                aria-hidden="true"
+                className="mt-1 grid size-7 shrink-0 place-items-center rounded-pillola border border-filetto text-inchiostro transition-transform duration-200 ease-matita group-data-[state=open]:rotate-45 group-data-[state=open]:border-rosso-matita group-data-[state=open]:text-rosso-matita"
               >
-                <span className="font-display text-inchiostro text-lg font-medium">{voce.q}</span>
-                <span
-                  className={cx(
-                    "garbo mt-1 grid size-6 shrink-0 place-items-center rounded-full border",
-                    isAperta
-                      ? "border-alloro text-alloro rotate-45"
-                      : "border-filetto-forte text-stampa",
-                  )}
-                  aria-hidden
-                >
-                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                    <path
-                      d="M6 1v10M1 6h10"
-                      stroke="currentColor"
-                      strokeWidth="1.3"
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                </span>
-              </button>
-            </h3>
-            <div
-              className={cx(
-                "grid overflow-hidden transition-all duration-300",
-                isAperta ? "grid-rows-[1fr] pb-6" : "grid-rows-[0fr]",
-              )}
-            >
-              <div className="min-h-0">
-                <p className="prosa specchio">{voce.a}</p>
-              </div>
-            </div>
-            <Filetto />
-          </div>
-        );
-      })}
-    </div>
+                <svg viewBox="0 0 12 12" className="size-3">
+                  <path d="M6 1v10M1 6h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                </svg>
+              </span>
+            </Accordion.Trigger>
+          </Accordion.Header>
+          <Accordion.Content className="overflow-hidden">
+            <p className="max-w-giustezza pb-6 text-t-base text-grafite">{voce.risposta}</p>
+          </Accordion.Content>
+        </Accordion.Item>
+      ))}
+    </Accordion.Root>
   );
 }

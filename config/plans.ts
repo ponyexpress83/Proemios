@@ -35,7 +35,7 @@ export const AI_PLANS: AiPlan[] = [
     name: "Free",
     claim: "Per iniziare: la prima diagnosi del tuo manoscritto.",
     monthly: 0,
-    limits: "1 analisi manoscritto / mese · strumenti base",
+    limits: "1 analisi del manoscritto al mese, strumenti base",
     features: [
       "Analisi manoscritto (prima diagnosi)",
       "Preventivo esatto illimitato",
@@ -49,7 +49,7 @@ export const AI_PLANS: AiPlan[] = [
     claim: "Per l'autore che pubblica sul serio su Amazon.",
     monthly: 19,
     highlighted: true,
-    limits: "Analisi illimitate · strumenti Amazon inclusi",
+    limits: "Analisi illimitate, strumenti Amazon inclusi",
     features: [
       "Tutto del piano Free",
       "Analisi manoscritto illimitate",
@@ -65,7 +65,7 @@ export const AI_PLANS: AiPlan[] = [
     name: "Premium",
     claim: "Per chi pubblica più libri e vuole tutto a portata.",
     monthly: 39,
-    limits: "Tutto illimitato · priorità · più progetti",
+    limits: "Tutto illimitato, priorità, più progetti",
     features: [
       "Tutto del piano Pro",
       "Gestione di più progetti in parallelo",

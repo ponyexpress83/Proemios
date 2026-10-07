@@ -11,14 +11,13 @@ export default function Icon() {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: "#FAF8F5",
+        background: "#FAFAF7",
         borderRadius: 8,
       }}
     >
       <svg width="28" height="28" viewBox="0 0 52 52">
-        <path d={BRAND_MARK.body} fill="#131936" />
-        <path d={BRAND_MARK.counter} fill="#FAF8F5" />
-        <path d={BRAND_MARK.fold} fill="#F16650" />
+        <path d={`${BRAND_MARK.body} ${BRAND_MARK.counter}`} fill="#131936" fillRule="evenodd" />
+        <path d={BRAND_MARK.fold} fill="#C8202A" />
       </svg>
     </div>,
     size,

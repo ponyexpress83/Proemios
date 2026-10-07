@@ -1,109 +1,31 @@
-import type { Route } from "next";
-import Link from "next/link";
 import type { ReactNode } from "react";
-import { Filetto, Titolo, Gabbia, cx } from "@/components/ui/primitivi";
-import { BottoneLink } from "@/components/ui/bottone";
+import { FasciaCta, Passi } from "@/components/marketing/blocchi";
 import { AZIONI } from "@/config/copy";
-import { fascia } from "@/lib/format";
-import type { ServicePackage } from "@/config/services";
 
-/* ── Processo: passaggi numerati come una sequenza di segnature ─────────── */
+/**
+ * I passaggi arrivano da tre fonti con nomi di campo diversi (config/services.ts
+ * in inglese, le pagine di contenuto in italiano). Normalizzarli qui evita di
+ * riscrivere ogni sorgente e di avere tre componenti quasi identici.
+ */
+type Passo =
+  | { title: string; desc: string }
+  | { titolo: string; descrizione: string }
+  | { titolo: string; testo: string };
 
-export function Processo({
-  passi,
-  tono = "carta",
-}: {
-  passi: readonly { titolo: string; testo: string }[] | readonly string[];
-  tono?: "carta" | "notte";
-}) {
-  const normalizzati = passi.map((p) => (typeof p === "string" ? { titolo: p, testo: "" } : p));
-
-  return (
-    <ol className="mt-2">
-      {normalizzati.map((passo, i) => (
-        <li key={i}>
-          <Filetto tono={tono === "notte" ? "notte" : "carta"} />
-          <div className="grid gap-x-8 gap-y-2 py-7 sm:grid-cols-[4rem_minmax(0,1fr)]">
-            <p
-              className={cx(
-                "cifre text-2xl font-medium",
-                tono === "notte" ? "text-ottone" : "text-alloro",
-              )}
-            >
-              {String(i + 1).padStart(2, "0")}
-            </p>
-            <div>
-              <h3
-                className={cx(
-                  "font-display text-xl font-medium",
-                  tono === "notte" ? "text-carta" : "text-inchiostro",
-                )}
-              >
-                {passo.titolo}
-              </h3>
-              {passo.testo && (
-                <p className={cx("prosa specchio mt-2", tono === "notte" && "text-carta/70")}>
-                  {passo.testo}
-                </p>
-              )}
-            </div>
-          </div>
-        </li>
-      ))}
-      <Filetto tono={tono === "notte" ? "notte" : "carta"} />
-    </ol>
-  );
+function normalizzaPasso(p: Passo): { titolo: string; descrizione: string } {
+  if ("title" in p) return { titolo: p.title, descrizione: p.desc };
+  if ("descrizione" in p) return p;
+  return { titolo: p.titolo, descrizione: p.testo };
 }
 
-/* ── Elenco di cose incluse ─────────────────────────────────────────────── */
+export { ElencoIncluso, ElencoEscluso } from "./elenchi";
 
-export function ElencoIncluso({
-  voci,
-  tono = "carta",
-}: {
-  voci: readonly string[];
-  tono?: "carta" | "notte";
-}) {
-  return (
-    <ul className="space-y-3">
-      {voci.map((v, i) => (
-        <li key={i} className="flex gap-3">
-          <span
-            className={cx("mt-2 h-px w-4 shrink-0", tono === "notte" ? "bg-ottone" : "bg-alloro")}
-            aria-hidden
-          />
-          <span className={cx("prosa", tono === "notte" && "text-carta/80")}>{v}</span>
-        </li>
-      ))}
-    </ul>
-  );
+/** Processo in passaggi numerati, per le pagine di contenuto. */
+export function Processo({ passi, className }: { passi: ReadonlyArray<Passo>; className?: string }) {
+  return <Passi passi={passi.map(normalizzaPasso)} className={className} />;
 }
 
-/* ── Scheda di servizio (griglia /servizi) ──────────────────────────────── */
-
-export function SchedaServizio({ servizio }: { servizio: ServicePackage }) {
-  const prezzo = servizio.priceRange
-    ? fascia(servizio.priceRange.min, servizio.priceRange.max)
-    : "Listino riservato";
-
-  return (
-    <Link
-      href={`/servizi/${servizio.slug}` as Route}
-      className="garbo group rounded-scheda border-filetto bg-carta-alta hover:border-alloro flex flex-col border p-6 hover:-translate-y-0.5"
-    >
-      <h3 className="font-display text-inchiostro text-xl font-medium">{servizio.name}</h3>
-      <p className="prosa mt-2 flex-1 text-[1rem]">{servizio.claim}</p>
-      <Filetto className="mt-5" />
-      <div className="mt-4 flex items-baseline justify-between gap-4">
-        <span className="cifre text-inchiostro text-sm">{prezzo}</span>
-        <span className="garbo apparato text-alloro group-hover:translate-x-0.5">Apri</span>
-      </div>
-    </Link>
-  );
-}
-
-/* ── Chiusa: la doppia CTA ricorrente ───────────────────────────────────── */
-
+/** Chiusura di pagina con doppia CTA: self service oppure una persona. */
 export function Chiusa({
   titolo = "Da dove vuoi cominciare?",
   testo = "Puoi avere il prezzo in due minuti, oppure far leggere il testo e capire prima a che punto sei. Nessuna delle due strade ti impegna a nulla.",
@@ -120,25 +42,11 @@ export function Chiusa({
   labelSecondaria?: string;
 }) {
   return (
-    <section className="bg-notte text-carta su-notte py-16 sm:py-20">
-      <Gabbia>
-        <div className="grid items-end gap-8 lg:grid-cols-[1.4fr_auto]">
-          <div>
-            <Titolo as="h2" tono="notte">
-              {titolo}
-            </Titolo>
-            <p className="prosa text-carta/70 mt-4 max-w-xl">{testo}</p>
-          </div>
-          <div className="flex shrink-0 flex-col gap-3 sm:flex-row">
-            <BottoneLink href={hrefPreventivo} variante="chiaro" misura="grande">
-              {labelPrimaria}
-            </BottoneLink>
-            <BottoneLink href={hrefSecondario} misura="grande" variante="secondarioNotte">
-              {labelSecondaria}
-            </BottoneLink>
-          </div>
-        </div>
-      </Gabbia>
-    </section>
+    <FasciaCta
+      titolo={titolo}
+      testo={typeof testo === "string" ? testo : undefined}
+      ctaPrimaria={{ href: hrefPreventivo, testo: labelPrimaria }}
+      ctaSecondaria={{ href: hrefSecondario, testo: labelSecondaria }}
+    />
   );
 }

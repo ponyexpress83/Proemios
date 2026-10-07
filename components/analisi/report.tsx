@@ -1,9 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import type { Route } from "next";
-import { Filetto, Etichetta, cx } from "@/components/ui/primitivi";
-import { BottoneLink } from "@/components/ui/bottone";
+import { Collegamento } from "@/components/sito/collegamento";
+import { PulsanteLink } from "@/components/sito/pulsante";
+import { Filetto } from "@/components/sito/sezione";
+import { cn } from "@/lib/cn";
 import { euro, numero } from "@/lib/format";
 import { etichettaGulpease } from "@/lib/metrics";
 import { ANALISI } from "@/config/copy";
@@ -16,7 +17,7 @@ const LIVELLO: Record<ReportCompleto["livelloIntervento"], string> = {
   "editing-profondo": "Editing profondo",
 };
 
-/** Metrica in registro da apparato: numero grande, etichetta piccola, filetto. */
+/** Metrica: numero grande, etichetta in maiuscoletto, filetto che misura. */
 function Metrica({
   etichetta,
   valore,
@@ -29,21 +30,21 @@ function Metrica({
   barra?: number;
 }) {
   return (
-    <div className="rounded-scheda border-filetto bg-carta-alta border p-5">
-      <p className="apparato text-stampa">{etichetta}</p>
-      <p className="cifre text-inchiostro mt-2 text-3xl font-medium">{valore}</p>
+    <div className="rounded-foglio bg-bianco p-5 shadow-foglio">
+      <p className="maiuscoletto text-t-sm text-grafite">{etichetta}</p>
+      <p className="tabellare mt-2 font-serif text-t-xl text-inchiostro">{valore}</p>
       {barra !== undefined && (
-        <div className="bg-filetto-notte mt-3 h-px w-full">
+        <div className="mt-3 h-1 w-full rounded-pillola bg-filetto" aria-hidden="true">
           <div
-            className={cx(
-              "h-px",
-              barra >= 60 ? "bg-esito-positivo" : barra >= 40 ? "bg-ottone" : "bg-esito-critico",
+            className={cn(
+              "h-1 rounded-pillola",
+              barra >= 60 ? "bg-esito-ok" : barra >= 40 ? "bg-grafite" : "bg-rosso-matita",
             )}
             style={{ width: `${Math.max(2, Math.min(100, barra))}%` }}
           />
         </div>
       )}
-      {nota && <p className="font-lettura text-stampa mt-3 text-sm leading-relaxed">{nota}</p>}
+      {nota && <p className="mt-3 text-t-sm text-grafite">{nota}</p>}
     </div>
   );
 }
@@ -59,20 +60,19 @@ function Elenco({
   vuoto: string;
   tono?: "forza" | "intervento" | "neutro";
 }) {
-  const segno =
-    tono === "forza" ? "bg-esito-positivo" : tono === "intervento" ? "bg-ottone" : "bg-carta/30";
+  const segno = tono === "forza" ? "bg-esito-ok" : tono === "intervento" ? "bg-rosso-matita" : "bg-grafite";
   return (
-    <div className="rounded-scheda border-filetto bg-carta-alta border p-6">
-      <h3 className="font-display text-inchiostro text-lg font-medium">{titolo}</h3>
-      <Filetto className="my-4" tono="carta" />
+    <div className="rounded-foglio bg-bianco p-6 shadow-foglio">
+      <h3 className="font-serif text-t-md text-inchiostro">{titolo}</h3>
+      <Filetto className="my-4" />
       {voci.length === 0 ? (
-        <p className="font-lettura text-stampa text-sm">{vuoto}</p>
+        <p className="text-t-sm text-grafite">{vuoto}</p>
       ) : (
         <ul className="space-y-3">
           {voci.map((v, i) => (
             <li key={i} className="flex gap-3">
-              <span className={cx("mt-2.5 h-px w-3 shrink-0", segno)} aria-hidden />
-              <span className="font-lettura text-stampa text-sm leading-relaxed">{v}</span>
+              <span className={cn("mt-2.5 h-0.5 w-3 shrink-0 rounded-pillola", segno)} aria-hidden="true" />
+              <span className="text-t-sm text-inchiostro">{v}</span>
             </li>
           ))}
         </ul>
@@ -88,11 +88,11 @@ export function Report({ report, demo = false }: { report: ReportCompleto; demo?
     `/preventivo?parole=${m.parole}${report.livelloIntervento === "correzione-bozze" ? "" : ""}` as Route;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" aria-live="polite">
       {demo && (
-        <div className="rounded-scheda border-ottone/50 bg-carta-alta border border-dashed p-5">
-          <p className="apparato text-ottone">Report dimostrativo</p>
-          <p className="font-lettura text-stampa mt-2 text-sm leading-relaxed">
+        <div className="rounded-foglio border border-dashed border-grafite bg-carta-ombra p-5">
+          <p className="maiuscoletto text-t-sm text-rosso-matita">Report dimostrativo</p>
+          <p className="mt-2 text-t-sm text-grafite">
             Le misure qui sotto — parole, pagine, leggibilità, periodare — sono calcolate davvero
             sul file che hai caricato. Le osservazioni editoriali, invece, sono di esempio: in
             questa versione il giudizio non viene prodotto, si vede solo come si presenta.
@@ -101,27 +101,25 @@ export function Report({ report, demo = false }: { report: ReportCompleto; demo?
       )}
 
       {/* Sintesi */}
-      <div className="rounded-scheda border-ottone/50 bg-carta-alta border p-6 sm:p-8">
-        <div className="flex flex-wrap items-center gap-3">
-          <Etichetta tono="ottone">Prima diagnosi</Etichetta>
-          <span className="apparato text-stampa">
-            {numero(m.parole)} parole · {numero(m.pagineStimate)} pagine stimate
+      <div className="rounded-foglio border-t-4 border-rosso-matita bg-bianco p-6 shadow-foglio sm:p-8">
+        <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+          <h2 className="font-serif text-t-lg text-inchiostro">Prima diagnosi</h2>
+          <span className="tabellare text-t-sm text-grafite">
+            {numero(m.parole)} parole, {numero(m.pagineStimate)} pagine stimate
           </span>
         </div>
-        <p className="prosa-grande text-stampa mt-5">{report.sintesi}</p>
+        <p className="mt-5 max-w-giustezza font-serif text-t-md text-inchiostro">{report.sintesi}</p>
 
-        <Filetto className="my-6" tono="carta" />
+        <Filetto className="my-6" />
 
         <div className="grid gap-5 sm:grid-cols-2">
           <div>
-            <p className="apparato text-stampa">Intervento consigliato</p>
-            <p className="font-display text-inchiostro mt-2 text-xl font-medium">
-              {LIVELLO[report.livelloIntervento]}
-            </p>
+            <p className="maiuscoletto text-t-sm text-grafite">Intervento consigliato</p>
+            <p className="mt-1 text-t-md text-inchiostro">{LIVELLO[report.livelloIntervento]}</p>
           </div>
           <div>
-            <p className="apparato text-stampa">Fascia di costo indicativa</p>
-            <p className="cifre text-inchiostro mt-2 text-xl font-medium">
+            <p className="maiuscoletto text-t-sm text-grafite">Fascia di costo indicativa</p>
+            <p className="tabellare mt-1 text-t-md text-inchiostro">
               {euro(report.fasciaCosto.min)} – {euro(report.fasciaCosto.max)}
             </p>
           </div>
@@ -130,7 +128,7 @@ export function Report({ report, demo = false }: { report: ReportCompleto; demo?
 
       {/* Metriche misurate */}
       <div>
-        <p className="apparato text-ottone mb-3">Misurato sul file</p>
+        <p className="maiuscoletto mb-3 text-t-sm text-grafite">Misurato sul file</p>
         <div className="grid gap-4 sm:grid-cols-3">
           <Metrica
             etichetta="Leggibilità (Gulpease)"
@@ -149,7 +147,7 @@ export function Report({ report, demo = false }: { report: ReportCompleto; demo?
           />
           <Metrica
             etichetta="Frasi oltre 35 parole"
-            valore={`${m.quotaFrasiLunghe}%`}
+            valore={`${m.quotaFrasiLunghe} %`}
             barra={100 - m.quotaFrasiLunghe}
             nota={
               m.quotaFrasiLunghe > 20
@@ -158,19 +156,14 @@ export function Report({ report, demo = false }: { report: ReportCompleto; demo?
             }
           />
         </div>
-        <p className="glossa text-stampa mt-3">
+        <p className="mt-3 text-t-xs text-grafite">
           Queste metriche sono calcolate direttamente sul testo, non stimate.
         </p>
       </div>
 
       {/* Giudizio editoriale */}
       <div className="grid gap-4 lg:grid-cols-2">
-        <Elenco
-          titolo="Punti di forza"
-          voci={report.puntiForza}
-          vuoto="Nessuno rilevato nell'estratto."
-          tono="forza"
-        />
+        <Elenco titolo="Punti di forza" voci={report.puntiForza} vuoto="Nessuno rilevato nell'estratto." tono="forza" />
         <Elenco
           titolo="Aree di intervento"
           voci={report.areeIntervento}
@@ -185,64 +178,51 @@ export function Report({ report, demo = false }: { report: ReportCompleto; demo?
           voci={report.ripetizioni}
           vuoto="Nessuna ripetizione significativa nell'estratto."
         />
-        <Elenco
-          titolo="Cliché rilevati"
-          voci={report.cliche}
-          vuoto="Nessun cliché evidente. Buon segno."
-        />
+        <Elenco titolo="Cliché rilevati" voci={report.cliche} vuoto="Nessun cliché evidente. Buon segno." />
       </div>
 
       {/* Inquadramento */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-scheda border-filetto bg-carta-alta border p-5">
-          <p className="apparato text-stampa">Ritmo</p>
-          <p className="font-lettura text-stampa mt-2 text-sm leading-relaxed">
-            {report.ritmo.giudizio}
-          </p>
-        </div>
-        <div className="rounded-scheda border-filetto bg-carta-alta border p-5">
-          <p className="apparato text-stampa">Tempi verbali</p>
-          <p className="font-lettura text-stampa mt-2 text-sm leading-relaxed">
-            {report.coerenza.tempiVerbali}
-          </p>
-        </div>
-        <div className="rounded-scheda border-filetto bg-carta-alta border p-5">
-          <p className="apparato text-stampa">Punto di vista</p>
-          <p className="font-lettura text-stampa mt-2 text-sm leading-relaxed">
-            {report.coerenza.puntoDiVista}
-          </p>
-        </div>
-        <div className="rounded-scheda border-filetto bg-carta-alta border p-5">
-          <p className="apparato text-stampa">Genere e lettore</p>
-          <p className="font-display text-inchiostro mt-2 text-base">{report.genere}</p>
-          <p className="font-lettura text-stampa mt-1 text-sm leading-relaxed">
-            {report.lettoreTipo}
-          </p>
+        {[
+          ["Ritmo", report.ritmo.giudizio],
+          ["Tempi verbali", report.coerenza.tempiVerbali],
+          ["Punto di vista", report.coerenza.puntoDiVista],
+        ].map(([titolo, testo]) => (
+          <div key={titolo} className="rounded-foglio bg-bianco p-5 shadow-foglio">
+            <p className="maiuscoletto text-t-sm text-grafite">{titolo}</p>
+            <p className="mt-2 text-t-sm text-inchiostro">{testo}</p>
+          </div>
+        ))}
+        <div className="rounded-foglio bg-bianco p-5 shadow-foglio">
+          <p className="maiuscoletto text-t-sm text-grafite">Genere e lettore</p>
+          <p className="mt-2 text-t-base text-inchiostro">{report.genere}</p>
+          <p className="mt-1 text-t-sm text-grafite">{report.lettoreTipo}</p>
         </div>
       </div>
 
       {/* Nota legale */}
-      <div className="rounded-scheda border-filetto border border-dashed p-5">
-        <p className="font-lettura text-stampa text-sm leading-relaxed">
+      <div className="rounded-foglio border border-dashed border-grafite p-5">
+        <p className="text-t-sm text-grafite">
           {BRAND.aiAnalysisNotice} {BRAND.aiDisclaimer}
         </p>
       </div>
 
-      {/* CTA */}
-      <div className="rounded-scheda bg-carta text-inchiostro flex flex-col items-start gap-5 p-8 sm:flex-row sm:items-center sm:justify-between">
+      {/* Passo successivo */}
+      <div
+        data-tema="inchiostro"
+        className="flex flex-col items-start gap-5 rounded-foglio bg-inchiostro p-8 text-carta-su-inchiostro sm:flex-row sm:items-center sm:justify-between"
+      >
         <div>
-          <h3 className="font-display text-2xl font-medium">{ANALISI.ctaPreventivo}</h3>
-          <p className="prosa mt-2 max-w-md">{ANALISI.ctaPreventivoTesto}</p>
+          <h3 className="font-serif text-t-lg">{ANALISI.ctaPreventivo}</h3>
+          <p className="mt-2 max-w-md text-t-sm text-grafite-su-inchiostro">{ANALISI.ctaPreventivoTesto}</p>
         </div>
-        <BottoneLink href={hrefPreventivo} misura="grande" className="shrink-0">
+        <PulsanteLink href={hrefPreventivo} variante="primario" freccia className="shrink-0">
           Calcola il preventivo
-        </BottoneLink>
+        </PulsanteLink>
       </div>
 
       <p className="text-center">
-        <Link href={"/contatti" as Route} className="apparato text-stampa hover:text-ottone">
-          Preferisci parlarne con una persona? →
-        </Link>
+        <Collegamento href="/contatti">Preferisci parlarne con una persona?</Collegamento>
       </p>
     </div>
   );

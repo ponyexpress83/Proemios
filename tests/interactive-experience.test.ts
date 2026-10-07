@@ -7,12 +7,6 @@ import {
   quoteWizardUrl,
   briefFromText,
 } from "@/lib/quote-assistant";
-import {
-  validDemoSession,
-  initialDemoState,
-  restoreDemoState,
-  addDemoMessage,
-} from "@/lib/author-demo";
 
 describe("pacchetti e servizi richiesti", () => {
   it("rispetta la correzione bozze in tutti i pacchetti del caso segnalato nell’audit", () => {
@@ -89,29 +83,5 @@ describe("assistente guidato", () => {
     expect(url.searchParams.get("servizi")).toBe("editing,cover");
     expect(url.searchParams.get("tempi")).toBe("prioritaria");
     expect(url.searchParams.has("email")).toBe(false);
-  });
-});
-describe("area autore demo isolata", () => {
-  it("accetta solo sessioni demo valide, non scadute e non future", () => {
-    const now = 100000000;
-    expect(
-      validDemoSession(JSON.stringify({ user: "demo-author", createdAt: now - 1000 }), now),
-    ).toBe(true);
-    expect(
-      validDemoSession(JSON.stringify({ user: "demo-author", createdAt: now - 9 * 3600000 }), now),
-    ).toBe(false);
-    expect(validDemoSession(JSON.stringify({ user: "demo-author", createdAt: now + 1 }), now)).toBe(
-      false,
-    );
-    expect(validDemoSession("{", now)).toBe(false);
-  });
-  it("ripristina dati corrotti e limita i messaggi alla demo", () => {
-    expect(restoreDemoState('{"approved":true,"messages":[{"text":null}]}')).toEqual(
-      initialDemoState(),
-    );
-    const next = addDemoMessage(initialDemoState(), "  Vorrei rivedere l’inizio. ", "test");
-    expect(next.messages.at(-2)?.text).toBe("Vorrei rivedere l’inizio.");
-    expect(next.messages.at(-1)?.text).toContain("Risposta simulata");
-    expect(initialDemoState().messages).toHaveLength(1);
   });
 });

@@ -1,94 +1,302 @@
 @import "tailwindcss";
 
+/* ── Font ──────────────────────────────────────────────────────────────────
+   Due famiglie, in locale. Le facce di fallback replicano le metriche del
+   font vero (calcolate da next/font e riportate qui): quando il woff2 arriva,
+   il testo non si sposta. Il preload delle due facce sopra la piega sta nel
+   layout radice (app/fonts.ts). */
+/* I quattro file sono il sottoinsieme latino dei font licenziati (fontTools:
+   pyftsubset --flavor=woff2 --layout-features='*' --unicodes=U+0000-024F,
+   U+02BC,U+02C6-02DC,U+2000-206F,U+20AC,U+2122,U+2190-2199,U+2212,U+2215,
+   U+FB01-FB04,U+FEFF): 111 KB in tutto invece di 255. Le metriche dei
+   fallback qui sotto sono quelle dei font interi, che il sottoinsieme non
+   cambia. */
+@font-face {
+  font-family: "Editorial";
+  src: url("/fonts/editorial.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Editorial";
+  src: url("/fonts/editorial-italic.woff2") format("woff2");
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Editorial Fallback";
+  src: local("Times New Roman");
+  font-style: normal;
+  ascent-override: 65.7%;
+  descent-override: 24.8%;
+  line-gap-override: 18.1%;
+  size-adjust: 110.5%;
+}
+@font-face {
+  font-family: "Editorial Fallback";
+  src: local("Times New Roman Italic"), local("Times New Roman");
+  font-style: italic;
+  ascent-override: 73.97%;
+  descent-override: 26.94%;
+  line-gap-override: 20.18%;
+  size-adjust: 99.1%;
+}
+@font-face {
+  font-family: "Interface";
+  src: url("/fonts/interface.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Interface";
+  src: url("/fonts/interface-bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Interface Fallback";
+  src: local("Arial");
+  ascent-override: 72.91%;
+  descent-override: 27.1%;
+  line-gap-override: 20%;
+  size-adjust: 99.99%;
+}
+:root {
+  --font-editorial: "Editorial", "Editorial Fallback";
+  --font-interface: "Interface", "Interface Fallback";
+}
+
 /* ─────────────────────────────────────────────────────────────────────────
    Proemios — design system
-   Il sito è una pagina di libro composta: gabbia, margini, filetti, folî,
-   versali, colophon. Il lato software (configuratore, report) ribalta la
-   stessa gabbia su Notte tipografica, in registro da apparato critico.
-   Vedi DESIGN_PLAN.md.
+   Piattaforma editoriale premium: midnight + antracite, viola elettrico come
+   identità, lime acido solo per CTA e indicatori. Nessuna carta, nessun ottone.
+   Tutti i valori vivono qui: i componenti non hanno colori letterali.
+   Contrasti verificati WCAG AA (vedi docs/ARCHITECTURE.md §Design).
    ───────────────────────────────────────────────────────────────────────── */
 
 @theme {
-  /* ── Palette (6 valori nominati) ── */
-  --color-carta: #f4f4f0; /* sfondo principale, bianco carta neutro-freddo */
-  --color-carta-alta: #fbfbf9; /* superfici sollevate (schede) */
-  --color-carta-bassa: #eae9e2; /* fondi tenui, righe alterne */
-  --color-inchiostro: #1b1a17; /* testo e titoli, nero caldo di stampa */
-  --color-alloro: #22483b; /* accento primario, verde bottiglia */
-  --color-alloro-chiaro: #3a6b58; /* stati hover su fondo scuro */
-  --color-ottone: #9c7a3d; /* accento secondario, stampa a caldo */
-  --color-stampa: #6c6f67; /* testo secondario, note a margine */
-  --color-notte: #14201b; /* superfici del lato software */
-  --color-notte-alta: #1c2c25; /* schede dentro il lato software */
+  /* ── Fondali ── */
+  --color-fondo: #08080d; /* pagina */
+  --color-fondo-alto: #0d0d14; /* sezioni sollevate dalla pagina */
 
-  /* Semantici */
-  --color-esito-positivo: #2f6b4f;
-  --color-esito-critico: #8c3a26;
+  /* ── Superfici (card, pannelli, righe) ── */
+  --color-superficie: #14141d;
+  --color-superficie-alta: #191923;
+  --color-superficie-viva: #20202c; /* hover / riga selezionata */
 
-  /* Filetti */
-  --color-filetto: rgb(27 26 23 / 0.14);
-  --color-filetto-forte: rgb(27 26 23 / 0.28);
-  --color-filetto-notte: rgb(244 244 240 / 0.16);
+  /* ── Testo ── */
+  --color-testo: #f6f4fa; /* bianco caldo */
+  --color-testo-attenuato: #a9a3be; /* secondario — AA su superficie */
+  --color-testo-tenue: #8c87a0; /* meta, etichette — AA su superficie */
+
+  /* ── Identità ── */
+  --color-viola: #6c4bff; /* primario: fondi, bordi attivi */
+  --color-viola-chiaro: #8b72ff; /* viola come TESTO (AA su fondo) */
+  --color-viola-scuro: #4b2fd8; /* pressed */
+  --color-lime: #b7ff3c; /* CTA, indicatori, accenti puntuali */
+  --color-lime-scuro: #8fce1f;
+
+  /* ── Semantici ── */
+  --color-successo: #4ade80;
+  --color-attenzione: #ffb84d;
+  --color-errore: #ff6b6b;
+  --color-informazione: #8b72ff;
+
+  /* ── Bordi ── */
+  --color-bordo: rgb(246 244 250 / 0.09);
+  --color-bordo-forte: rgb(246 244 250 / 0.18);
+  --color-bordo-viola: rgb(108 75 255 / 0.45);
 
   /* ── Tipografia ── */
-  --font-display: Editorial, Georgia, serif;
-  --font-lettura: Editorial, Georgia, serif;
-  --font-ui: Interface, Arial, sans-serif;
-  --font-mono: Interface, Arial, sans-serif;
+  /* Due sole famiglie nel progetto, servite in locale (app/fonts.ts).
+     `--font-mono` non è più una monospace: i numeri tabellari li dà
+     `font-variant-numeric` nelle utility `cifre` ed `etichetta`. */
+  --font-sans: var(--font-interface), "Helvetica Neue", Arial, sans-serif;
+  --font-serif: var(--font-editorial), Georgia, "Times New Roman", serif;
+  --font-mono: var(--font-interface), "Helvetica Neue", Arial, sans-serif;
 
   /* ── Gabbia ── */
-  --spacing-gabbia: 78rem; /* larghezza totale con colonna margine */
-  --spacing-specchio: 44rem; /* specchio di stampa: misura di lettura */
+  --spacing-gabbia: 82rem;
+  --spacing-lettura: 42rem;
 
-  /* Raggi: minimi. La carta non ha angoli molto arrotondati. */
-  --radius-scheda: 3px;
-  --radius-campo: 3px;
+  /* ── Raggi ── */
+  --radius-xs: 6px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 22px;
+  --radius-2xl: 30px;
+
+  /* ── Ombre: profondità reale, non decorazione ── */
+  --shadow-sollevata: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px -12px rgb(0 0 0 / 0.6);
+  --shadow-fluttuante: 0 2px 4px rgb(0 0 0 / 0.4), 0 24px 56px -20px rgb(0 0 0 / 0.75);
+  --shadow-viola: 0 0 0 1px rgb(108 75 255 / 0.35), 0 18px 48px -20px rgb(108 75 255 / 0.55);
+  --shadow-lime: 0 12px 40px -18px rgb(183 255 60 / 0.5);
+
+  /* ── Motion ── */
+  --ease-garbo: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* ════════════════════════════════════════════════════════════════════
+     Sito pubblico — «Matita rossa e blu»
+     Nomi diversi da quelli delle aree riservate, di proposito: un
+     componente pubblico non può prendere per sbaglio un token del tema
+     scuro, e viceversa. Il registro delle scelte sta in DESIGN-NOTES.md.
+     ════════════════════════════════════════════════════════════════════ */
+
+  /* Colore */
+  --color-carta: #fafaf7; /* sfondo principale: neutro, non crema */
+  --color-carta-ombra: #f0f0eb; /* sezioni alternate, campi dei form */
+  --color-bianco: #ffffff; /* i fogli (card) sopra la carta */
+  --color-inchiostro: #131936; /* testo, testata, fondo delle sezioni scure */
+  --color-grafite: #565b69; /* testo secondario — 6,49:1 su carta */
+  --color-rosso-matita: #c8202a; /* azione primaria, segni di correzione, stato attivo */
+  --color-blu-matita: #24408e; /* link, evidenze di sostanza, anello di focus — 9,13:1 su carta */
+  --color-filetto: #dedfe3; /* bordi e filetti */
+  /* Sulle sezioni scure: grafite e blu non reggono sull'inchiostro (2,54:1 e 1,80:1). */
+  --color-carta-su-inchiostro: #fafaf7;
+  --color-grafite-su-inchiostro: #b9bdca; /* 7,8:1 */
+  --color-rosso-su-inchiostro: #e8656d; /* 4,6:1 — per i tratti sottili */
+  --color-esito-ok: #1f6b45;
+  --color-esito-errore: #c8202a; /* un errore è una correzione: lo stesso rosso */
+
+  /* Tipografia: scala modulare 1,25 da 17 px, sette dimensioni e basta */
+  --text-t-xs: 0.84375rem; /* 13,5 px — mai sotto i 13 */
+  --text-t-xs--line-height: 1.5;
+  --text-t-sm: 0.9375rem; /* 15 px */
+  --text-t-sm--line-height: 1.5;
+  --text-t-base: 1.0625rem; /* 17 px */
+  --text-t-base--line-height: 1.6;
+  --text-t-md: 1.3125rem; /* 21 px */
+  --text-t-md--line-height: 1.45;
+  --text-t-lg: 1.6875rem; /* 27 px */
+  --text-t-lg--line-height: 1.2;
+  --text-t-xl: 2.25rem; /* 36 px */
+  --text-t-xl--line-height: 1.1;
+  --text-t-display: clamp(2.75rem, 6vw, 4.5rem); /* 44 → 72 px */
+  --text-t-display--line-height: 1.05;
+
+  /* Misure: 12 colonne, contenuto 1200, giustezza 60–72 caratteri */
+  --spacing-pagina: 75rem; /* 1200 px */
+  --spacing-giustezza: 68ch;
+  /* Spazio verticale fra le sezioni */
+  --spacing-sezione: 7rem; /* 112 px */
+  --spacing-sezione-mobile: 4.5rem; /* 72 px */
+
+  /* Tre raggi in tutto */
+  --radius-campo: 4px; /* campi, chip */
+  --radius-foglio: 12px; /* card */
+  --radius-pillola: 999px; /* pillole, avatar */
+
+  /* Due ombre in tutto */
+  --shadow-foglio: 0 1px 0 var(--color-filetto), 0 12px 24px -12px rgb(19 25 54 / 0.18);
+  --shadow-sollevata-sito: 0 1px 0 var(--color-filetto), 0 16px 40px -16px rgb(19 25 54 / 0.28);
+
+  /* Motion: una risposta a un'azione dura 150–250 ms */
+  --ease-matita: cubic-bezier(0.3, 0, 0.2, 1);
 }
 
 /* ── Base ─────────────────────────────────────────────────────────────── */
 :root {
-  color-scheme: light;
+  color-scheme: dark;
 }
 
 html {
   -webkit-text-size-adjust: 100%;
-  text-rendering: optimizeLegibility;
   scroll-behavior: smooth;
 }
 
 body {
-  background-color: var(--color-carta);
-  color: var(--color-inchiostro);
-  font-family: var(--font-ui);
+  background-color: var(--color-fondo);
+  color: var(--color-testo);
+  font-family: var(--font-sans);
+  font-feature-settings: "cv11" 1, "ss01" 1;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
-/* Titoli: display con legature e crenatura tipografica. */
 h1,
 h2,
 h3,
 h4 {
-  font-family: var(--font-display);
-  font-feature-settings: "liga" 1, "calt" 1, "kern" 1;
-  letter-spacing: -0.015em;
+  letter-spacing: -0.022em;
   text-wrap: balance;
+  font-weight: 600;
 }
 
-/* Selezione in tinta alloro. */
+h1 {
+  letter-spacing: -0.034em;
+}
+
+p {
+  text-wrap: pretty;
+}
+
 ::selection {
-  background-color: rgb(34 72 59 / 0.2);
+  background-color: rgb(108 75 255 / 0.4);
+  color: var(--color-testo);
 }
 
-/* Focus visibile e coerente (accessibilità AA). */
-:where(a, button, input, textarea, select, summary, [tabindex]):focus-visible {
-  outline: 2px solid var(--color-alloro);
+/* Focus visibile ovunque, mai rimosso (AA 2.4.7). */
+:where(a, button, input, textarea, select, summary, [tabindex], [role="button"]):focus-visible {
+  outline: 2px solid var(--color-lime);
   outline-offset: 2px;
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
 }
 
-/* Su fondo notte il focus deve restare visibile. */
-.su-notte :where(a, button, input, textarea, select, summary, [tabindex]):focus-visible {
-  outline-color: var(--color-ottone);
+/* ── Sito pubblico: tema chiaro ─────────────────────────────────────────
+   Si attiva con `data-tema="carta"` sul contenitore del route group (sito).
+   Il resto dell'app resta scuro. */
+/* Il colore della tela (canvas) lo decide la radice: senza, la zona fuori dal
+   body resta scura perché `:root` dichiara `color-scheme: dark`. */
+html:has([data-tema="carta"]) {
+  color-scheme: light;
+  background-color: var(--color-carta);
+}
+body:has([data-tema="carta"]) {
+  background-color: var(--color-carta);
+  color: var(--color-inchiostro);
+}
+[data-tema="carta"] {
+  font-family: var(--font-sans);
+  font-size: var(--text-t-base);
+  line-height: var(--text-t-base--line-height);
+  font-feature-settings: normal;
+}
+[data-tema="carta"] :where(h1, h2, h3, h4) {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+[data-tema="carta"] h1 {
+  letter-spacing: -0.02em;
+}
+[data-tema="carta"] ::selection {
+  background-color: rgb(36 64 142 / 0.18);
+  color: var(--color-inchiostro);
+}
+/* Focus visibile: anello blu matita con offset; sulle sezioni scure, carta. */
+[data-tema="carta"]
+  :where(a, button, input, textarea, select, summary, [tabindex], [role="button"]):focus-visible {
+  outline: 2px solid var(--color-blu-matita);
+  outline-offset: 2px;
+  border-radius: var(--radius-campo);
+}
+[data-tema="inchiostro"]
+  :where(a, button, input, textarea, select, summary, [tabindex], [role="button"]):focus-visible {
+  outline-color: var(--color-carta-su-inchiostro);
+}
+[data-tema="carta"] * {
+  scrollbar-color: var(--color-filetto) transparent;
+}
+
+/* Scrollbar coerente col fondale (progressive enhancement). */
+* {
+  scrollbar-color: var(--color-superficie-viva) transparent;
+  scrollbar-width: thin;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -102,72 +310,79 @@ h4 {
   }
 }
 
-/* ── Utility di composizione ───────────────────────────────────────────── */
+/* ── Utility di composizione ──────────────────────────────────────────── */
 
-/** Gabbia: contenitore esterno con i suoi margini. */
+/** Contenitore principale del sito e delle dashboard. */
 @utility gabbia {
   width: 100%;
   max-width: var(--spacing-gabbia);
   margin-inline: auto;
-  padding-inline: 1.5rem;
+  padding-inline: 1.25rem;
 }
 
-/** Specchio di stampa: misura di lettura da libro (62-70 caratteri). */
-@utility specchio {
-  max-width: var(--spacing-specchio);
+@media (min-width: 768px) {
+  .gabbia {
+    padding-inline: 2rem;
+  }
 }
 
-/** Testo di lettura: Spectral, interlinea generosa, come una pagina composta. */
-@utility prosa {
-  font-family: var(--font-lettura);
-  font-size: 1.0625rem;
-  line-height: 1.75;
-  color: rgb(27 26 23 / 0.88);
+/** Misura di lettura per testi lunghi. */
+@utility lettura {
+  max-width: var(--spacing-lettura);
 }
 
-@utility prosa-grande {
-  font-family: var(--font-lettura);
-  font-size: 1.1875rem;
-  line-height: 1.7;
-  color: rgb(27 26 23 / 0.88);
-}
-
-/** Apparato: la voce "software" — monospazio, maiuscoletto spaziato. */
-@utility apparato {
-  font-family: var(--font-mono);
+/** Etichetta tecnica: maiuscoletto spaziato, mono. Usata per meta e stati. */
+@utility etichetta {
+  font-family: var(--font-sans);
+  font-variant-numeric: tabular-nums;
   font-size: 0.6875rem;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
+  font-weight: 500;
 }
 
-/** Numerici tabellari: prezzi, metriche, conteggi. */
+/** Numeri: tabellari, per prezzi, conteggi, progressi. */
 @utility cifre {
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum" 1;
 }
 
-/** Filetto orizzontale: la riga della pagina composta. */
-@utility filetto {
-  height: 1px;
-  background-color: var(--color-filetto);
-  border: 0;
+/** Serif editoriale: solo citazioni e occhielli. Mai per l'interfaccia. */
+@utility editoriale {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  letter-spacing: -0.01em;
 }
 
-/** Glossa a margine: corsivo vero, in grigio stampa. */
-@utility glossa {
-  font-family: var(--font-lettura);
-  font-style: italic;
-  font-size: 0.9375rem;
-  line-height: 1.6;
-  color: var(--color-stampa);
-}
-
-/** Transizione sobria condivisa. */
+/** Transizione condivisa: una sola curva in tutto il prodotto. */
 @utility garbo {
-  transition:
-    color 0.18s ease,
-    background-color 0.18s ease,
-    border-color 0.18s ease,
-    transform 0.18s ease;
+  transition-property: color, background-color, border-color, box-shadow, transform, opacity;
+  transition-duration: 180ms;
+  transition-timing-function: var(--ease-garbo);
+}
+
+/** Testo con gradiente viola→lime. Solo per un accento per pagina. */
+@utility testo-identita {
+  /*
+   * L'interpolazione va forzata in oklab: in sRGB il punto medio fra viola e
+   * lime cade su un grigio-verde spento e il gradiente sembra sbiadito
+   * proprio al centro della parola, mentre in oklch la rotazione di tinta
+   * passa dal ciano e introduce un colore che non è in palette. I browser che
+   * non capiscono `in oklab` ignorano la regola e ricevono il colore pieno
+   * dichiarato nella riga precedente.
+   */
+  color: var(--color-lime);
+  background-image: linear-gradient(96deg in oklab, var(--color-viola-chiaro), var(--color-lime));
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/** Bagliore ambientale dietro l'hero. Puramente decorativo. */
+@utility alone {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(90px);
+  pointer-events: none;
+  opacity: 0.5;
 }

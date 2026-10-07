@@ -1,40 +1,44 @@
 import type { Route } from "next";
 import Link from "next/link";
 import { Marchio } from "./marchio";
-import { Filetto } from "@/components/ui/primitivi";
 import { BRAND } from "@/config/brand";
-import { NAV_COLOPHON } from "@/config/copy";
+import { NAV_COLOPHON } from "@/config/navigazione";
 import { MARCHIO, TITOLARE } from "@/config/legal";
 
+const COLONNE = [
+  { titolo: "Offerta", voci: NAV_COLOPHON.offerta },
+  { titolo: "Studio", voci: NAV_COLOPHON.studio },
+  { titolo: "Legale", voci: NAV_COLOPHON.legale },
+] as const;
+
 /**
- * Colophon: in un libro è la pagina che dichiara come è stato prodotto.
- * Qui ospita la navigazione, i metadati e — per obbligo — la formula sull'AI.
+ * Piè di pagina. Ospita navigazione, anagrafica societaria (obbligo di legge)
+ * e la formula sull'uso della tecnologia, che deve comparire dove il cliente
+ * possa sempre ritrovarla.
  */
 export function Colophon() {
   return (
-    <footer className="bg-notte text-carta su-notte">
+    <footer className="mt-auto border-t border-bordo bg-fondo-alto">
       <div className="gabbia py-16">
-        <div className="grid gap-12 lg:grid-cols-[1.2fr_2fr]">
-          <div className="max-w-xs">
-            <Marchio tono="notte" />
-            <p className="glossa text-carta/60 mt-4">{BRAND.payoff}</p>
-            <p className="font-lettura text-carta/70 mt-4 text-sm leading-relaxed">
-              {BRAND.tagline}
-            </p>
+        <div className="grid gap-12 lg:grid-cols-[1.4fr_2fr]">
+          <div className="flex max-w-sm flex-col gap-4">
+            <Marchio />
+            <p className="editoriale text-xl text-testo-attenuato">{BRAND.payoff}.</p>
+            <p className="text-sm leading-relaxed text-testo-tenue">{BRAND.tagline}</p>
           </div>
 
-          <div className="grid grid-cols-2 gap-8 sm:grid-cols-4">
-            {NAV_COLOPHON.map((colonna) => (
+          <div className="grid grid-cols-2 gap-8 sm:grid-cols-3">
+            {COLONNE.map((colonna) => (
               <div key={colonna.titolo}>
-                <h2 className="apparato text-ottone mb-3">{colonna.titolo}</h2>
-                <ul className="space-y-2">
+                <h2 className="etichetta mb-4 text-testo-tenue">{colonna.titolo}</h2>
+                <ul className="flex flex-col gap-2.5">
                   {colonna.voci.map((voce) => (
                     <li key={voce.href}>
                       <Link
                         href={voce.href as Route}
-                        className="garbo font-ui text-carta/70 hover:text-carta text-sm"
+                        className="garbo text-sm text-testo-attenuato hover:text-testo"
                       >
-                        {voce.label}
+                        {voce.titolo}
                       </Link>
                     </li>
                   ))}
@@ -44,37 +48,13 @@ export function Colophon() {
           </div>
         </div>
 
-        {/* Formula vincolante sull'AI (brief §3.9) */}
-        <div className="border-ottone/60 mt-14 border-l-2 pl-5">
-          <p className="font-lettura text-carta/70 text-sm leading-relaxed">{BRAND.aiDisclaimer}</p>
-        </div>
-
-        <Filetto className="mt-10" tono="notte" />
-
-        <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-baseline sm:justify-between">
-          {/* Il marchio è Proemios, la controparte contrattuale è la società.
-              La dichiarazione in maiuscoletto, i dati di registro in tondo:
-              quattro righe tutte spaziate non si leggerebbero. */}
-          <div className="max-w-md">
-            <p className="apparato text-carta/45">{MARCHIO.attribuzione}</p>
-            <p className="font-ui text-carta/40 mt-2 text-xs leading-relaxed">
-              {TITOLARE.sedeLegale} · P. IVA {TITOLARE.partitaIva} · {TITOLARE.registroImprese} ·
-              PEC {TITOLARE.pec}
+        <div className="mt-14 flex flex-col gap-6 border-t border-bordo pt-8">
+          <p className="lettura text-xs leading-relaxed text-testo-tenue">{BRAND.aiDisclaimer}</p>
+          <div className="flex flex-col gap-2 text-xs text-testo-tenue sm:flex-row sm:items-center sm:justify-between">
+            <p>
+              {MARCHIO.attribuzione} · P. IVA {TITOLARE.partitaIva} · {TITOLARE.sedeLegale}
             </p>
-          </div>
-          <div className="flex flex-wrap gap-x-6 gap-y-2">
-            <a
-              href={`mailto:${BRAND.email.general}`}
-              className="garbo font-ui text-carta/60 hover:text-carta text-sm"
-            >
-              {BRAND.email.general}
-            </a>
-            <Link
-              href={"/contatti" as Route}
-              className="garbo font-ui text-carta/60 hover:text-carta text-sm"
-            >
-              Contatti
-            </Link>
+            <p className="cifre">© {new Date().getFullYear()} {TITOLARE.ragioneSociale}</p>
           </div>
         </div>
       </div>

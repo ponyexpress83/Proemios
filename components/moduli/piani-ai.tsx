@@ -3,9 +3,10 @@
 import type { Route } from "next";
 import { useState } from "react";
 import Link from "next/link";
-import { Bottone } from "@/components/ui/bottone";
-import { Campo, Input, Consenso } from "@/components/ui/campi";
-import { Filetto, Scheda, Etichetta, cx } from "@/components/ui/primitivi";
+import { Pulsante } from "@/components/sito/pulsante";
+import { Campo, Input, Consenso } from "@/components/sito/campo";
+import { Filetto } from "@/components/sito/sezione";
+import { cn } from "@/lib/cn";
 import {
   AI_PLANS,
   planPrice,
@@ -19,11 +20,10 @@ import { euro } from "@/lib/format";
 type Stato = "idle" | "invio" | "iscritto" | "errore";
 
 /**
- * Piani in abbonamento degli Strumenti AI.
- *
- * In Fase 1 la CTA raccoglie la lista d'attesa: `SUBSCRIPTIONS_LIVE` (config/plans.ts)
- * commuta l'interfaccia al checkout ricorrente quando Stripe subscription si accende,
- * senza toccare questo componente.
+ * Piani in abbonamento degli Strumenti AI. In Fase 1 la CTA raccoglie la
+ * lista d'attesa: `SUBSCRIPTIONS_LIVE` (config/plans.ts) commuta l'interfaccia
+ * al checkout ricorrente quando Stripe subscription si accende, senza toccare
+ * questo componente. Logica di invio invariata.
  */
 export function PianiAi() {
   const [periodo, setPeriodo] = useState<BillingPeriod>("monthly");
@@ -68,20 +68,16 @@ export function PianiAi() {
     <div>
       {/* Commutatore periodo */}
       <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
-        <div
-          className="rounded-campo border-filetto-notte inline-flex border p-1"
-          role="group"
-          aria-label="Periodo di fatturazione"
-        >
+        <div className="inline-flex rounded-campo border border-filetto bg-bianco p-1" role="group" aria-label="Periodo di fatturazione">
           {(["monthly", "annual"] as const).map((p) => (
             <button
               key={p}
               type="button"
               onClick={() => setPeriodo(p)}
               aria-pressed={periodo === p}
-              className={cx(
-                "garbo font-ui rounded-[2px] px-4 py-2 text-sm",
-                periodo === p ? "bg-carta text-notte" : "text-carta/70 hover:text-carta",
+              className={cn(
+                "min-h-10 rounded-campo px-4 text-t-sm transition-colors duration-200 ease-matita",
+                periodo === p ? "bg-inchiostro text-carta" : "text-grafite hover:text-inchiostro",
               )}
             >
               {p === "monthly" ? STRUMENTI_AI.mensile : STRUMENTI_AI.annuale}
@@ -89,53 +85,52 @@ export function PianiAi() {
           ))}
         </div>
         {periodo === "annual" && (
-          <span className="apparato text-ottone">
-            −{sconto}% · {STRUMENTI_AI.scontoAnnuale}
+          <span className="text-t-sm text-rosso-matita">
+            −{sconto} %, {STRUMENTI_AI.scontoAnnuale}
           </span>
         )}
       </div>
 
       {/* Piani */}
-      <div className="mt-8 grid gap-5 lg:grid-cols-3">
+      <ul className="mt-8 grid gap-5 lg:grid-cols-3">
         {AI_PLANS.map((piano) => {
           const prezzo = planPrice(piano, periodo);
           const gratis = prezzo === 0 || prezzo === null;
           return (
-            <Scheda
+            <li
               key={piano.slug}
-              tono="notte"
-              rilievo={piano.highlighted}
-              className="flex flex-col"
+              className={cn(
+                "flex flex-col rounded-foglio bg-bianco p-6 shadow-foglio",
+                piano.highlighted && "border-t-4 border-rosso-matita",
+              )}
             >
               <div className="flex items-baseline justify-between gap-3">
-                <h3 className="font-display text-carta text-2xl font-medium">{piano.name}</h3>
-                {piano.highlighted && <Etichetta tono="ottone">Più scelto</Etichetta>}
+                <h3 className="font-serif text-t-lg text-inchiostro">{piano.name}</h3>
+                {piano.highlighted && <span className="maiuscoletto text-t-sm text-rosso-matita">Più scelto</span>}
               </div>
-              <p className="prosa text-carta/70 mt-2 text-[0.95rem]">{piano.claim}</p>
+              <p className="mt-2 text-t-sm text-grafite">{piano.claim}</p>
 
-              <Filetto className="my-5" tono="notte" />
+              <Filetto className="my-5" />
 
-              <p className="cifre text-carta text-3xl font-medium">
+              <p className="tabellare font-serif text-t-xl text-inchiostro">
                 {gratis ? "Gratis" : euro(prezzo!)}
                 {!gratis && (
-                  <span className="font-ui text-carta/50 ml-1 text-sm font-normal">
-                    {periodo === "monthly" ? "/mese" : "/anno"}
-                  </span>
+                  <span className="ml-1 font-sans text-t-sm text-grafite">{periodo === "monthly" ? "al mese" : "all'anno"}</span>
                 )}
               </p>
-              <p className="apparato text-carta/45 mt-2">{piano.limits}</p>
+              <p className="mt-1 text-t-sm text-grafite">{piano.limits}</p>
 
               <ul className="mt-6 flex-1 space-y-2.5">
                 {piano.features.map((f, i) => (
-                  <li key={i} className="flex gap-2.5">
-                    <span className="bg-ottone mt-2 h-px w-3 shrink-0" aria-hidden />
-                    <span className="font-lettura text-carta/80 text-sm leading-relaxed">{f}</span>
+                  <li key={i} className="flex gap-3">
+                    <span className="mt-3 h-0.5 w-3 shrink-0 rounded-pillola bg-rosso-matita" aria-hidden="true" />
+                    <span className="text-t-sm text-inchiostro">{f}</span>
                   </li>
                 ))}
               </ul>
 
-              <Bottone
-                variante={piano.highlighted ? "chiaro" : "secondarioNotte"}
+              <Pulsante
+                variante={piano.highlighted ? "primario" : "secondario"}
                 className="mt-6 w-full"
                 onClick={() => {
                   setPianoScelto(piano.slug);
@@ -143,86 +138,60 @@ export function PianiAi() {
                 }}
               >
                 {SUBSCRIPTIONS_LIVE ? "Attiva il piano" : piano.waitlistCta}
-              </Bottone>
-            </Scheda>
+              </Pulsante>
+            </li>
           );
         })}
-      </div>
+      </ul>
 
       {/* Lista d'attesa */}
-      <div
-        id="lista-attesa"
-        className="rounded-scheda border-filetto-notte bg-notte-alta mt-12 scroll-mt-24 border p-6 sm:p-8"
-      >
+      <div id="lista-attesa" className="mt-12 scroll-mt-24 rounded-foglio bg-bianco p-6 shadow-foglio sm:p-8">
         {stato === "iscritto" ? (
-          <div>
-            <p className="apparato text-ottone">Sei in lista</p>
-            <h3 className="font-display text-carta mt-3 text-xl font-medium">
-              Ti scriviamo quando apriamo
-            </h3>
-            <p className="prosa text-carta/70 mt-3">
-              Nel frattempo l&rsquo;analisi del manoscritto e il configuratore restano gratuiti e
-              senza registrazione.
+          <div role="status">
+            <h3 className="font-serif text-t-lg text-inchiostro">Sei in lista.</h3>
+            <p className="mt-3 text-t-base text-grafite">
+              Ti scriviamo quando apriamo. Nel frattempo l&rsquo;analisi del manoscritto e il
+              configuratore restano gratuiti e senza registrazione.
             </p>
           </div>
         ) : (
-          <form onSubmit={iscrivi} className="grid gap-5 lg:grid-cols-[1.2fr_1fr]" noValidate>
+          <form onSubmit={iscrivi} className="grid gap-6 lg:grid-cols-[1.2fr_1fr]" noValidate>
             <div>
-              <h3 className="font-display text-carta text-xl font-medium">
+              <h3 className="font-serif text-t-lg text-inchiostro">
                 {pianoScelto
-                  ? `Lista d'attesa · piano ${AI_PLANS.find((p) => p.slug === pianoScelto)?.name ?? ""}`
+                  ? `Lista d'attesa, piano ${AI_PLANS.find((p) => p.slug === pianoScelto)?.name ?? ""}`
                   : "Lista d'attesa"}
               </h3>
-              <p className="prosa text-carta/70 mt-2 text-[0.95rem]">{STRUMENTI_AI.notaFase}</p>
+              <p className="mt-2 text-t-sm text-grafite">{STRUMENTI_AI.notaFase}</p>
             </div>
 
             <div className="space-y-4">
               <Campo id="wl-email" label="Email" obbligatorio>
-                {(p) => (
-                  <Input
-                    {...p}
-                    tono="notte"
-                    name="email"
-                    type="email"
-                    required
-                    autoComplete="email"
-                  />
-                )}
+                {(p) => <Input {...p} name="email" type="email" inputMode="email" autoComplete="email" />}
               </Campo>
 
-              <div className="hidden" aria-hidden>
+              <div className="hidden" aria-hidden="true">
                 <label htmlFor="wl-sito">Non compilare</label>
                 <input id="wl-sito" name="sito" tabIndex={-1} autoComplete="off" />
               </div>
 
-              <Consenso
-                id="wl-consenso"
-                name="consensoPrivacy"
-                checked={consenso}
-                onChange={setConsenso}
-                tono="notte"
-              >
+              <Consenso id="wl-consenso" name="consensoPrivacy" checked={consenso} onChange={setConsenso}>
                 Acconsento al trattamento dei dati per essere avvisato all&rsquo;apertura (
-                <Link href={"/privacy" as Route} className="hover:text-ottone underline">
+                <Link href={"/privacy" as Route} className="sottolinea-matita text-blu-matita">
                   privacy
                 </Link>
                 ).
               </Consenso>
 
               {errore && (
-                <p className="text-ottone text-sm" role="alert">
+                <p className="text-t-sm text-rosso-matita" role="alert">
                   {errore}
                 </p>
               )}
 
-              <Bottone
-                type="submit"
-                variante="chiaro"
-                disabled={stato === "invio"}
-                className="w-full"
-              >
+              <Pulsante type="submit" variante="primario" disabled={stato === "invio"} className="w-full">
                 {stato === "invio" ? UI.caricamento : "Avvisami all'apertura"}
-              </Bottone>
+              </Pulsante>
             </div>
           </form>
         )}

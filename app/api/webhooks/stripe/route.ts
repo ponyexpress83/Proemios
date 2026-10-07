@@ -4,6 +4,7 @@ import type Stripe from "stripe";
 import { db } from "@/db";
 import { quotes, leads } from "@/db/schema";
 import { stripe } from "@/lib/stripe";
+import { applicaEventoStripe } from "@/lib/pagamenti/webhook";
 import { env } from "@/lib/env";
 import { inviaEmail, impaginaEmail, esc, destinatarioInterno } from "@/lib/email";
 import { euro } from "@/lib/format";
@@ -34,6 +35,33 @@ export async function POST(req: Request) {
   } catch (err) {
     console.error(JSON.stringify({ evt: "webhook.firma-non-valida", err: String(err) }));
     return NextResponse.json({ errore: "Firma non valida." }, { status: 400 });
+  }
+
+  /*
+   * Due flussi convivono su questo endpoint.
+   *
+   * Il primo è il piano di pagamento degli ordini: rate, saldi, rimborsi. Lo
+   * interpreta `applicaEventoStripe`, che riconosce le proprie sessioni dai
+   * metadati.
+   *
+   * Il secondo è l'acconto pagato dalla pagina pubblica del preventivo, che
+   * esisteva prima e continua a funzionare. Si riconosce da `quoteId`.
+   *
+   * Distinguerli dai metadati invece che dal tipo di evento è ciò che permette
+   * di aggiungerne o toglierne uno senza toccare l'altro.
+   */
+  try {
+    const esito = await applicaEventoStripe(evento);
+    if (esito.azione !== "ignorato") {
+      console.info(
+        JSON.stringify({ evt: "webhook.ordine", azione: esito.azione, tipo: evento.type }),
+      );
+      return NextResponse.json({ ricevuto: true, azione: esito.azione });
+    }
+  } catch (err) {
+    console.error(JSON.stringify({ evt: "webhook.ordine-errore", err: String(err) }));
+    // 500: Stripe riproverà, e le operazioni sono idempotenti.
+    return NextResponse.json({ errore: "Errore interno." }, { status: 500 });
   }
 
   if (evento.type !== "checkout.session.completed") {
@@ -92,7 +120,7 @@ export async function POST(req: Request) {
          Pacchetto: ${esc(preventivo.pacchettoScelto ?? "—")}<br/>
          Acconto: ${preventivo.acconto ? euro(preventivo.acconto) : "—"} ·
          Totale: ${preventivo.prezzoTotale ? euro(preventivo.prezzoTotale) : "—"}</p>
-         <p style="font-size:13px;color:#6c6f67;">Sessione Stripe: ${esc(sessione.id)}</p>`,
+         <p style="font-size:13px;color:#5f5b72;">Sessione Stripe: ${esc(sessione.id)}</p>`,
       ),
     }).catch((e) =>
       console.error(JSON.stringify({ evt: "webhook.email-interna", err: String(e) })),

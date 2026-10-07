@@ -1,12 +1,12 @@
 "use client";
 
-import { contattoPreventivoSchema } from "@/lib/validation";
 import type { Route } from "next";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { Bottone } from "@/components/ui/bottone";
-import { Campo, Input, AreaTesto, Consenso } from "@/components/ui/campi";
-import { Filetto, cx } from "@/components/ui/primitivi";
+import { Pulsante } from "@/components/sito/pulsante";
+import { Campo, Input, AreaTesto, Consenso, RiepilogoErrori } from "@/components/sito/campo";
+import { Filetto } from "@/components/sito/sezione";
+import { cn } from "@/lib/cn";
 import { RisultatoPreventivo } from "./risultato";
 import { VoiceBrief } from "./voice-brief";
 import {
@@ -28,6 +28,15 @@ import type { MaterialAmount } from "@/config/pricing";
 import { PREVENTIVO, UI } from "@/config/copy";
 import { euro, numero } from "@/lib/format";
 
+/*
+ * Il calcolo del prezzo, la validazione e l'invio sono quelli di sempre: questo
+ * file cambia solo il modo in cui le sei domande si presentano. Le scelte
+ * singole portano al passo dopo da sole; l'indicatore ha i nomi dei passi e
+ * si può tornare indietro cliccandoli; l'anteprima dei prezzi resta visibile
+ * — di lato da `lg` in su, in una barra fissa in basso sul telefono; il
+ * pulsante finale non è mai disabilitato senza spiegare perché.
+ */
+
 interface Stato {
   tipo: ProjectType | null;
   statoTesto: TextState | null;
@@ -44,12 +53,12 @@ interface Stato {
 }
 
 const TOTALE_PASSI = 6;
+/** Dopo una scelta singola si passa oltre, ma non prima che la scelta si veda. */
+const RITARDO_AVANZAMENTO = 250;
 
 export function Configuratore({
   precompilato,
-  demoMode = false,
 }: {
-  demoMode?: boolean;
   precompilato?: {
     tipo?: ProjectType;
     servizi?: ServiceKey[];
@@ -59,28 +68,14 @@ export function Configuratore({
   };
 }) {
   const [passo, setPasso] = useState(0);
-  const question = useRef<HTMLHeadingElement>(null);
-  const previousStep = useRef(0);
-  useEffect(() => {
-    if (previousStep.current === passo) return;
-    previousStep.current = passo;
-    question.current?.focus({ preventScroll: true });
-    question.current?.scrollIntoView({
-      block: "start",
-      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
-        ? "instant"
-        : "smooth",
-    });
-  }, [passo]);
+  const [raggiunto, setRaggiunto] = useState(0);
   const [invio, setInvio] = useState(false);
   const [errore, setErrore] = useState("");
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-  const [trap, setTrap] = useState("");
-  const [risultato, setRisultato] = useState<{
-    esito: QuoteResult;
-    quoteId: string;
-    demo: boolean;
-  } | null>(null);
+  const [erroriCampi, setErroriCampi] = useState<Partial<Record<"parole" | "nome" | "email" | "privacy", string>>>({});
+  const [risultato, setRisultato] = useState<{ esito: QuoteResult; quoteId: string; demo: boolean } | null>(null);
+  // Honeypot: un campo che una persona non vede e non compila.
+  const [trappola, setTrappola] = useState("");
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [s, setS] = useState<Stato>({
     tipo: precompilato?.tipo ?? null,
@@ -100,7 +95,25 @@ export function Configuratore({
 
   function agg<K extends keyof Stato>(k: K, v: Stato[K]) {
     setS((prec) => ({ ...prec, [k]: v }));
-    setFieldErrors((e) => ({ ...e, [k]: "" }));
+  }
+
+  useEffect(() => () => {
+    if (timer.current) clearTimeout(timer.current);
+  }, []);
+
+  function vaiA(p: number) {
+    const dest = Math.max(0, Math.min(TOTALE_PASSI - 1, p));
+    setPasso(dest);
+    setRaggiunto((r) => Math.max(r, dest));
+    setErroriCampi({});
+    setErrore("");
+  }
+
+  /** Scelta singola: registra e, dopo un attimo, passa al passo successivo. */
+  function scegliEAvanza(applica: () => void) {
+    applica();
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => vaiA(passo + 1), RITARDO_AVANZAMENTO);
   }
 
   const soloMateriali = s.statoTesto === "solo-materiali";
@@ -141,23 +154,27 @@ export function Configuratore({
     }
   }, [passo, s]);
 
+  /** Spiega cosa manca invece di spegnere il pulsante, e porta il fuoco lì. */
+  function validaEMostra(): boolean {
+    const e: typeof erroriCampi = {};
+    if (passo === 2 && !(s.parole > 0)) e.parole = "Indica quante parole ha il testo, anche a occhio.";
+    if (passo === 5) {
+      if (s.nome.trim().length < 2) e.nome = "Scrivi il tuo nome.";
+      if (!/.+@.+\..+/.test(s.email)) e.email = "Inserisci la tua email per ricevere il preventivo.";
+      if (!s.consensoPrivacy) e.privacy = "Serve il consenso al trattamento per ricevere il preventivo.";
+    }
+    setErroriCampi(e);
+    const primo = Object.keys(e)[0];
+    if (primo) {
+      const id = { parole: "pv-parole", nome: "pv-nome", email: "pv-email", privacy: "pv-privacy" }[primo as keyof typeof e];
+      requestAnimationFrame(() => document.getElementById(id ?? "")?.focus());
+      return false;
+    }
+    return true;
+  }
+
   async function calcola() {
     if (!s.tipo || !s.statoTesto) return;
-    const validation = contattoPreventivoSchema.safeParse(s);
-    if (!validation.success) {
-      const errors: Record<string, string> = {};
-      for (const issue of validation.error.issues) errors[String(issue.path[0])] = issue.message;
-      setFieldErrors(errors);
-      setErrore("Controlla i campi evidenziati: nome, email e consenso privacy sono necessari.");
-      const first = validation.error.issues[0]?.path[0];
-      document
-        .getElementById(
-          first === "nome" ? "pv-nome" : first === "email" ? "pv-email" : "pv-privacy",
-        )
-        ?.focus();
-      return;
-    }
-    setFieldErrors({});
     setInvio(true);
     setErrore("");
     try {
@@ -165,7 +182,7 @@ export function Configuratore({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          sito: trap,
+          sito: trappola,
           input: {
             projectType: s.tipo,
             textState: s.statoTesto,
@@ -205,15 +222,12 @@ export function Configuratore({
   if (risultato) {
     return (
       <div>
-        <div className="mb-10">
-          <p className="apparato text-ottone">Preventivo</p>
-          <h2 className="font-display text-inchiostro mt-3 text-3xl font-medium">
-            Tre modi di fare questo libro
-          </h2>
-          <p className="prosa text-stampa mt-3 max-w-2xl">
+        <div className="mb-10 max-w-giustezza">
+          <h2 className="font-serif text-t-xl text-inchiostro">Tre modi di fare questo libro</h2>
+          <p className="mt-3 text-t-md text-grafite">
             {risultato.demo
               ? "Questo è un preventivo dimostrativo: nessuna email è stata inviata e nessun pagamento viene addebitato."
-              : "Ecco le proposte per il tuo progetto. Puoi confrontarle o chiedere un confronto con un editor prima di scegliere."}
+              : "Te li abbiamo mandati anche via email. Se vuoi partire, l’acconto blocca la data; se prima vuoi parlarne, rispondi a quella email."}
           </p>
         </div>
         <RisultatoPreventivo esito={risultato.esito} quoteId={risultato.quoteId} />
@@ -221,10 +235,17 @@ export function Configuratore({
     );
   }
 
+  const erroriElenco = Object.entries(erroriCampi).map(([k, messaggio]) => ({
+    id: { parole: "pv-parole", nome: "pv-nome", email: "pv-email", privacy: "pv-privacy" }[k as keyof typeof erroriCampi]!,
+    messaggio: messaggio!,
+  }));
+
   // ── Wizard ─────────────────────────────────────────────────────────────
   return (
-    <div className="quote-wizard grid gap-10 lg:grid-cols-[1.7fr_1fr]">
+    <div className="grid gap-8 pb-28 lg:grid-cols-[1.6fr_1fr] lg:gap-12 lg:pb-0">
       <div>
+        <Indicatore passo={passo} raggiunto={raggiunto} vaiA={vaiA} />
+
         {passo === 0 && (
           <VoiceBrief
             initialText={s.note}
@@ -240,94 +261,74 @@ export function Configuratore({
             }}
           />
         )}
-        {/* Avanzamento */}
-        <div className="mb-8">
-          <div className="flex items-baseline justify-between">
-            <span className="apparato text-ottone">
-              {UI.passo} {passo + 1} {UI.di} {TOTALE_PASSI}
-            </span>
-            <span className="apparato text-stampa">{PREVENTIVO.passi[passo]}</span>
-          </div>
-          <div className="bg-filetto-notte mt-3 h-px w-full">
-            <div
-              className="bg-ottone h-px transition-all duration-300"
-              style={{ width: `${((passo + 1) / TOTALE_PASSI) * 100}%` }}
-            />
-          </div>
-        </div>
 
-        <div className="min-h-[22rem]">
-          <h2 ref={question} tabIndex={-1} className="wizard-question">
-            {
-              [
-                "Che tipo di libro vuoi realizzare?",
-                "A che punto è il testo?",
-                "Quanto sarà lungo il libro?",
-                "Di quali servizi hai bisogno?",
-                "Hai una scadenza?",
-                "Dove possiamo ricontattarti?",
-              ][passo]
-            }
-          </h2>
+        <div className="mt-8 min-h-[20rem]">
           {/* 1 — Tipo di progetto */}
           {passo === 0 && (
-            <Griglia>
-              {TIPI_PROGETTO.map((o) => (
-                <Opzione
-                  key={o.valore}
-                  scelta={s.tipo === o.valore}
-                  label={o.label}
-                  nota={o.nota}
-                  onClick={() => {
-                    agg("tipo", o.valore);
-                    if (o.valore === "memoir" && !s.statoTesto) agg("statoTesto", "solo-materiali");
-                    if (o.valore === "solo-grafica") agg("statoTesto", "finito-revisionato");
-                  }}
-                />
-              ))}
-            </Griglia>
+            <Domanda titolo="Che libro è?">
+              <Griglia>
+                {TIPI_PROGETTO.map((o) => (
+                  <Opzione
+                    key={o.valore}
+                    scelta={s.tipo === o.valore}
+                    label={o.label}
+                    nota={o.nota}
+                    onClick={() =>
+                      scegliEAvanza(() => {
+                        agg("tipo", o.valore);
+                        if (o.valore === "memoir" && !s.statoTesto) agg("statoTesto", "solo-materiali");
+                        if (o.valore === "solo-grafica") agg("statoTesto", "finito-revisionato");
+                      })
+                    }
+                  />
+                ))}
+              </Griglia>
+            </Domanda>
           )}
 
           {/* 2 — Stato del testo */}
           {passo === 1 && (
-            <Griglia>
-              {STATI_TESTO.map((o) => (
-                <Opzione
-                  key={o.valore}
-                  scelta={s.statoTesto === o.valore}
-                  label={o.label}
-                  nota={o.nota}
-                  onClick={() => agg("statoTesto", o.valore)}
-                />
-              ))}
-            </Griglia>
+            <Domanda titolo="A che punto è il testo?">
+              <Griglia>
+                {STATI_TESTO.map((o) => (
+                  <Opzione
+                    key={o.valore}
+                    scelta={s.statoTesto === o.valore}
+                    label={o.label}
+                    nota={o.nota}
+                    onClick={() => scegliEAvanza(() => agg("statoTesto", o.valore))}
+                  />
+                ))}
+              </Griglia>
+            </Domanda>
           )}
 
           {/* 3 — Dimensione */}
           {passo === 2 && (
-            <div>
-              <p className="font-display text-inchiostro text-xl">
-                {soloMateriali
+            <Domanda
+              titolo={
+                soloMateriali
                   ? "Quanto lungo pensi debba essere il libro finito?"
-                  : "Quante parole ha il testo?"}
-              </p>
-              <p className="glossa text-stampa mt-2">
-                {soloMateriali
+                  : "Quante parole ha il testo?"
+              }
+              nota={
+                soloMateriali
                   ? "Una stima basta: la definiamo insieme guardando il materiale."
-                  : "Il conteggio esatto lo trovi in fondo al documento Word."}
-              </p>
-
-              <div className="mt-6 flex flex-wrap gap-2">
+                  : "Il conteggio esatto lo trovi in fondo al documento Word."
+              }
+            >
+              <div className="flex flex-wrap gap-2" role="group" aria-label="Lunghezze frequenti">
                 {PRESET_PAROLE.map((p) => (
                   <button
                     key={p}
                     type="button"
                     onClick={() => agg("parole", p)}
-                    className={cx(
-                      "garbo cifre rounded-campo border px-4 py-2 text-sm",
+                    aria-pressed={s.parole === p}
+                    className={cn(
+                      "tabellare min-h-11 rounded-campo border px-4 text-t-sm transition-colors duration-200 ease-matita",
                       s.parole === p
-                        ? "border-ottone bg-ottone/15 text-inchiostro"
-                        : "border-filetto text-stampa hover:border-ottone",
+                        ? "border-inchiostro bg-inchiostro text-carta"
+                        : "border-filetto bg-bianco text-inchiostro hover:border-grafite",
                     )}
                   >
                     {numero(p)}
@@ -336,17 +337,16 @@ export function Configuratore({
               </div>
 
               <div className="mt-5 max-w-xs">
-                <Campo id="parole" label="Oppure indica il numero preciso">
+                <Campo id="pv-parole" label="Oppure il numero preciso" errore={erroriCampi.parole}>
                   {(p) => (
                     <Input
                       {...p}
-                      tono="carta"
                       type="number"
                       inputMode="numeric"
                       min={1}
                       value={s.parole || ""}
                       onChange={(e) => agg("parole", Number(e.target.value))}
-                      className="cifre text-lg"
+                      className="tabellare text-t-md"
                     />
                   )}
                 </Campo>
@@ -354,7 +354,7 @@ export function Configuratore({
 
               {soloMateriali && (
                 <div className="mt-8">
-                  <p className="font-display text-inchiostro text-lg">Quanto materiale hai già?</p>
+                  <p className="text-t-md text-inchiostro">Quanto materiale hai già?</p>
                   <div className="mt-4 grid gap-3 sm:grid-cols-3">
                     {QUANTITA_MATERIALE.map((o) => (
                       <Opzione
@@ -368,17 +368,19 @@ export function Configuratore({
                   </div>
                 </div>
               )}
-            </div>
+            </Domanda>
           )}
 
           {/* 4 — Servizi */}
           {passo === 3 && (
-            <div>
-              <p className="glossa text-stampa mb-5">
-                {soloGrafica
+            <Domanda
+              titolo="Cosa ti serve?"
+              nota={
+                soloGrafica
                   ? "Per la sola grafica contano copertina, impaginazione ed EPUB."
-                  : "Seleziona quello che ti serve. Se non sei sicuro, lascia stare: i tre pacchetti propongono comunque una composizione sensata."}
-              </p>
+                  : "Seleziona quello che ti serve. Se non sei sicuro, lascia stare: i tre pacchetti propongono comunque una composizione sensata."
+              }
+            >
               <Griglia>
                 {SERVIZI.map((o) => (
                   <Opzione
@@ -398,230 +400,246 @@ export function Configuratore({
                   />
                 ))}
               </Griglia>
-            </div>
+            </Domanda>
           )}
 
           {/* 5 — Tempi */}
           {passo === 4 && (
-            <Griglia>
-              {TEMPI.map((o) => (
-                <Opzione
-                  key={o.valore}
-                  scelta={s.tempi === o.valore}
-                  label={o.label}
-                  nota={o.nota}
-                  onClick={() => agg("tempi", o.valore)}
-                />
-              ))}
-            </Griglia>
+            <Domanda titolo="Che tempi hai?">
+              <Griglia>
+                {TEMPI.map((o) => (
+                  <Opzione
+                    key={o.valore}
+                    scelta={s.tempi === o.valore}
+                    label={o.label}
+                    nota={o.nota}
+                    onClick={() => scegliEAvanza(() => agg("tempi", o.valore))}
+                  />
+                ))}
+              </Griglia>
+            </Domanda>
           )}
 
           {/* 6 — Contatto */}
           {passo === 5 && (
-            <div className="space-y-5">
-              <div className="grid gap-5 sm:grid-cols-2">
-                <Campo id="pv-nome" label="Nome" obbligatorio errore={fieldErrors.nome}>
+            <Domanda
+              titolo="Dove mandiamo il preventivo?"
+              nota="Il preventivo compare qui e ti arriva anche via email, così lo ritrovi quando ti serve."
+            >
+              <div className="space-y-5">
+                {erroriElenco.length > 0 && <RiepilogoErrori errori={erroriElenco} />}
+                <div className="grid gap-5 sm:grid-cols-2">
+                  <Campo id="pv-nome" label="Nome" obbligatorio errore={erroriCampi.nome}>
+                    {(p) => (
+                      <Input
+                        {...p}
+                        name="nome"
+                        value={s.nome}
+                        onChange={(e) => agg("nome", e.target.value)}
+                        autoComplete="name"
+                      />
+                    )}
+                  </Campo>
+                  <Campo id="pv-email" label="Email" obbligatorio errore={erroriCampi.email}>
+                    {(p) => (
+                      <Input
+                        {...p}
+                        name="email"
+                        type="email"
+                        inputMode="email"
+                        value={s.email}
+                        onChange={(e) => agg("email", e.target.value)}
+                        autoComplete="email"
+                      />
+                    )}
+                  </Campo>
+                </div>
+
+                <Campo id="pv-tel" label="Telefono">
                   {(p) => (
                     <Input
                       {...p}
-                      tono="carta"
-                      value={s.nome}
-                      onChange={(e) => agg("nome", e.target.value)}
-                      autoComplete="name"
+                      name="telefono"
+                      type="tel"
+                      inputMode="tel"
+                      value={s.telefono}
+                      onChange={(e) => agg("telefono", e.target.value)}
+                      autoComplete="tel"
                     />
                   )}
                 </Campo>
-                <Campo id="pv-email" label="Email" obbligatorio errore={fieldErrors.email}>
+
+                <Campo id="pv-note" label="Qualcosa che dovremmo sapere">
                   {(p) => (
-                    <Input
+                    <AreaTesto
                       {...p}
-                      tono="carta"
-                      type="email"
-                      value={s.email}
-                      onChange={(e) => agg("email", e.target.value)}
-                      autoComplete="email"
+                      name="note"
+                      rows={3}
+                      value={s.note}
+                      onChange={(e) => agg("note", e.target.value)}
                     />
                   )}
                 </Campo>
-              </div>
 
-              <Campo id="pv-tel" label="Telefono" hint="Facoltativo" errore={fieldErrors.telefono}>
-                {(p) => (
-                  <Input
-                    {...p}
-                    tono="carta"
-                    type="tel"
-                    value={s.telefono}
-                    onChange={(e) => agg("telefono", e.target.value)}
-                    autoComplete="tel"
+                <Filetto />
+
+                <div className="hidden" aria-hidden="true">
+                  <label htmlFor="pv-sito">Non compilare</label>
+                  <input
+                    id="pv-sito"
+                    name="sito"
+                    tabIndex={-1}
+                    autoComplete="off"
+                    value={trappola}
+                    onChange={(e) => setTrappola(e.target.value)}
                   />
-                )}
-              </Campo>
+                </div>
+                <Consenso
+                  id="pv-privacy"
+                  name="consensoPrivacy"
+                  checked={s.consensoPrivacy}
+                  onChange={(v) => agg("consensoPrivacy", v)}
+                  errore={erroriCampi.privacy}
+                >
+                  Ho letto la{" "}
+                  <Link href={"/privacy" as Route} className="sottolinea-matita text-blu-matita">
+                    privacy policy
+                  </Link>{" "}
+                  e acconsento al trattamento dei dati per ricevere il preventivo.
+                </Consenso>
 
-              <Campo id="pv-note" label="Qualcosa che dovremmo sapere" hint="Facoltativo">
-                {(p) => (
-                  <AreaTesto
-                    {...p}
-                    tono="carta"
-                    rows={3}
-                    value={s.note}
-                    onChange={(e) => agg("note", e.target.value)}
-                  />
-                )}
-              </Campo>
+                <Consenso
+                  id="pv-marketing"
+                  name="consensoMarketing"
+                  checked={s.consensoMarketing}
+                  onChange={(v) => agg("consensoMarketing", v)}
+                >
+                  Voglio ricevere anche le guide sull&rsquo;autopubblicazione. Facoltativo, niente
+                  spam.
+                </Consenso>
 
-              <div className="hidden" aria-hidden="true">
-                <label htmlFor="pv-sito">Non compilare</label>
-                <input
-                  id="pv-sito"
-                  tabIndex={-1}
-                  autoComplete="off"
-                  value={trap}
-                  onChange={(e) => setTrap(e.target.value)}
-                />
+                {errore && (
+                  <p className="text-t-sm text-rosso-matita" role="alert">
+                    {errore}
+                  </p>
+                )}
               </div>
-              <Filetto tono="carta" />
-
-              <Consenso
-                id="pv-privacy"
-                name="consensoPrivacy"
-                checked={s.consensoPrivacy}
-                onChange={(v) => agg("consensoPrivacy", v)}
-                tono="carta"
-              >
-                Ho letto la{" "}
-                <Link href={"/privacy" as Route} className="hover:text-ottone underline">
-                  privacy policy
-                </Link>{" "}
-                e acconsento al trattamento dei dati per ricevere il preventivo. *
-              </Consenso>
-
-              {fieldErrors.consensoPrivacy && (
-                <p className="field-error" role="alert">
-                  {fieldErrors.consensoPrivacy}
-                </p>
-              )}
-              <Consenso
-                id="pv-marketing"
-                name="consensoMarketing"
-                checked={s.consensoMarketing}
-                onChange={(v) => agg("consensoMarketing", v)}
-                tono="carta"
-              >
-                Voglio ricevere anche le guide sull&rsquo;autopubblicazione. Facoltativo, niente
-                spam.
-              </Consenso>
-
-              {errore && (
-                <p className="text-ottone text-sm" role="alert">
-                  {errore}
-                </p>
-              )}
-            </div>
+            </Domanda>
           )}
         </div>
 
         {/* Navigazione */}
-        <div className="border-filetto mt-10 flex items-center justify-between border-t pt-6">
-          <Bottone
-            variante="secondario"
-            misura="grande"
-            onClick={() => setPasso((p) => Math.max(0, p - 1))}
+        <div className="mt-10 flex items-center justify-between gap-4 border-t border-filetto pt-6">
+          <Pulsante
+            variante="testuale"
+            onClick={() => vaiA(passo - 1)}
             disabled={passo === 0 || invio}
+            className={passo === 0 ? "invisible" : undefined}
           >
             ← {UI.indietro}
-          </Bottone>
+          </Pulsante>
 
           {passo < TOTALE_PASSI - 1 ? (
-            <Bottone
-              variante="primario"
-              misura="grande"
-              onClick={() => setPasso((p) => p + 1)}
-              disabled={!puoAvanzare}
+            <Pulsante
+              variante={puoAvanzare ? "primario" : "secondario"}
+              freccia
+              onClick={() => {
+                if (!validaEMostra()) return;
+                if (puoAvanzare) vaiA(passo + 1);
+              }}
             >
-              {UI.avanti} →
-            </Bottone>
+              {UI.avanti}
+            </Pulsante>
           ) : (
-            <Bottone variante="primario" misura="grande" onClick={calcola} disabled={invio}>
-              {invio ? UI.caricamento : PREVENTIVO.passi[5] && "Calcola il preventivo"}
-            </Bottone>
+            <Pulsante
+              variante="primario"
+              onClick={() => {
+                if (!validaEMostra()) return;
+                void calcola();
+              }}
+              disabled={invio}
+            >
+              {invio ? UI.caricamento : "Calcola il preventivo"}
+            </Pulsante>
           )}
         </div>
       </div>
 
-      {/* Anteprima live */}
-      <aside className="lg:sticky lg:top-24 lg:self-start">
-        <div className="rounded-scheda border-filetto bg-carta-alta border p-6">
-          <p className="apparato text-ottone">Anteprima</p>
-          {anteprima ? (
-            <>
-              <div className="mt-4 space-y-2">
-                {anteprima.packages.map((p) => (
-                  <div
-                    key={p.tier}
-                    className={cx(
-                      "flex items-baseline justify-between gap-3 rounded-[2px] px-3 py-2.5",
-                      p.recommended ? "bg-ottone/15" : "bg-carta",
-                    )}
-                  >
-                    <span
-                      className={cx(
-                        "font-ui text-sm",
-                        p.recommended ? "text-inchiostro" : "text-stampa",
-                      )}
-                    >
-                      {p.name}
-                    </span>
-                    <span className="cifre text-inchiostro text-sm">{euro(p.total)}</span>
-                  </div>
-                ))}
-              </div>
-              <button
-                type="button"
-                className="text-link"
-                onClick={() => {
-                  const text =
-                    `PROEMIOS — STIMA INDICATIVA${demoMode ? " DEMO" : ""}\n${anteprima.wordCount} parole\n\n` +
-                    anteprima.packages
-                      .map((p) => `${p.name}: ${euro(p.total)}\n${p.includes.join(", ")}`)
-                      .join("\n\n") +
-                    "\n\n" +
-                    anteprima.disclaimer;
-                  const url = URL.createObjectURL(
-                    new Blob([text], { type: "text/plain;charset=utf-8" }),
-                  );
-                  const a = document.createElement("a");
-                  a.href = url;
-                  a.download = "proemios-riepilogo-stima.txt";
-                  a.click();
-                  URL.revokeObjectURL(url);
-                }}
-              >
-                Scarica la stima, senza dati personali →
-              </button>
-              <Filetto className="my-4" tono="carta" />
-              <dl className="flex justify-between text-xs">
-                <dt className="apparato text-stampa">Pagine stimate</dt>
-                <dd className="cifre text-stampa">{numero(anteprima.estimatedPages)}</dd>
-              </dl>
-              <p className="glossa text-stampa mt-4">
-                {demoMode
-                  ? "Stima dimostrativa: nessuna email sarà inviata. Usa dati di prova per completare il percorso."
-                  : "Si aggiorna mentre rispondi. Le proposte saranno verificate con il team prima di definire il lavoro."}
-              </p>
-            </>
-          ) : (
-            <p className="prosa text-stampa mt-4 text-sm">
-              Rispondi alle prime domande e qui compaiono i tre percorsi con il prezzo.
-            </p>
-          )}
-        </div>
-      </aside>
+      {/* Anteprima: di lato da lg, barra fissa in basso sul telefono */}
+      <Anteprima anteprima={anteprima} />
     </div>
   );
 }
 
 // ── Sotto-componenti ──────────────────────────────────────────────────────
+
+function Indicatore({
+  passo,
+  raggiunto,
+  vaiA,
+}: {
+  passo: number;
+  raggiunto: number;
+  vaiA: (p: number) => void;
+}) {
+  return (
+    <nav aria-label="Passi del preventivo">
+      <p className="text-t-sm text-grafite">
+        {UI.passo} {passo + 1} {UI.di} {TOTALE_PASSI}
+        <span className="sr-only">: {PREVENTIVO.passi[passo]}</span>
+      </p>
+      <ol className="mt-3 grid grid-cols-6 gap-1">
+        {PREVENTIVO.passi.map((nome, i) => {
+          const fatto = i < passo || i <= raggiunto;
+          const corrente = i === passo;
+          const cliccabile = fatto && !corrente;
+          const Tag = cliccabile ? "button" : "span";
+          return (
+            <li key={nome} className="min-w-0">
+              <Tag
+                type={cliccabile ? "button" : undefined}
+                onClick={cliccabile ? () => vaiA(i) : undefined}
+                aria-current={corrente ? "step" : undefined}
+                className={cn(
+                  "block w-full rounded-campo pt-2 text-left",
+                  cliccabile && "cursor-pointer",
+                )}
+              >
+                <span
+                  className={cn(
+                    "block h-1 rounded-pillola transition-colors duration-200 ease-matita",
+                    corrente ? "bg-rosso-matita" : fatto ? "bg-inchiostro" : "bg-filetto",
+                  )}
+                />
+                <span
+                  className={cn(
+                    "mt-2 hidden truncate text-t-xs sm:block",
+                    corrente ? "font-bold text-inchiostro" : fatto ? "text-inchiostro underline-offset-2 hover:underline" : "text-grafite",
+                  )}
+                >
+                  {nome}
+                </span>
+              </Tag>
+            </li>
+          );
+        })}
+      </ol>
+      <p className="mt-2 text-t-sm font-bold text-inchiostro sm:hidden" aria-hidden="true">
+        {PREVENTIVO.passi[passo]}
+      </p>
+    </nav>
+  );
+}
+
+function Domanda({ titolo, nota, children }: { titolo: string; nota?: string; children: React.ReactNode }) {
+  return (
+    <fieldset>
+      <legend className="font-serif text-t-lg text-inchiostro">{titolo}</legend>
+      {nota && <p className="mt-2 mb-5 max-w-giustezza text-t-sm text-grafite">{nota}</p>}
+      <div className={nota ? undefined : "mt-5"}>{children}</div>
+    </fieldset>
+  );
+}
 
 function Griglia({ children }: { children: React.ReactNode }) {
   return <div className="grid gap-3 sm:grid-cols-2">{children}</div>;
@@ -645,27 +663,25 @@ function Opzione({
       type="button"
       onClick={onClick}
       aria-pressed={scelta}
-      className={cx(
-        "garbo rounded-scheda flex items-start gap-3 border p-4 text-left",
-        scelta
-          ? "border-ottone bg-ottone/10"
-          : "border-filetto bg-carta-alta hover:border-ottone/50",
+      className={cn(
+        "flex min-h-14 items-start gap-3 rounded-foglio border bg-bianco p-4 text-left transition-[border-color,box-shadow] duration-200 ease-matita",
+        scelta ? "border-2 border-rosso-matita" : "border-filetto hover:border-grafite",
       )}
     >
       <span
-        className={cx(
-          "text-notte mt-0.5 grid size-4 shrink-0 place-items-center border",
-          casella ? "rounded-[2px]" : "rounded-full",
-          scelta ? "border-ottone bg-ottone" : "border-filetto-forte",
+        className={cn(
+          "mt-0.5 grid size-5 shrink-0 place-items-center border text-bianco",
+          casella ? "rounded-campo" : "rounded-pillola",
+          scelta ? "border-rosso-matita bg-rosso-matita" : "border-grafite",
         )}
-        aria-hidden
+        aria-hidden="true"
       >
         {scelta && (
-          <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+          <svg width="11" height="11" viewBox="0 0 10 10" fill="none">
             <path
               d="M2 5.2 4 7.2l4-4.4"
               stroke="currentColor"
-              strokeWidth="1.5"
+              strokeWidth="1.6"
               strokeLinecap="round"
               strokeLinejoin="round"
             />
@@ -673,9 +689,107 @@ function Opzione({
         )}
       </span>
       <span>
-        <span className="font-ui text-inchiostro block text-[0.95rem] font-medium">{label}</span>
-        {nota && <span className="font-lettura text-stampa mt-0.5 block text-sm">{nota}</span>}
+        <span className="block text-t-base font-bold text-inchiostro">{label}</span>
+        {nota && <span className="mt-0.5 block text-t-sm text-grafite">{nota}</span>}
       </span>
     </button>
+  );
+}
+
+/** Un numero che si aggiorna con una breve transizione: la chiave cambia, l'animazione riparte. */
+function Importo({ valore, className }: { valore: number; className?: string }) {
+  return (
+    <span key={valore} className={cn("prezzo-aggiornato tabellare inline-block", className)}>
+      {euro(valore)}
+    </span>
+  );
+}
+
+function Anteprima({ anteprima }: { anteprima: QuoteResult | null }) {
+  const [aperta, setAperta] = useState(false);
+  const consigliato = anteprima?.packages.find((p) => p.recommended);
+  return (
+    <>
+      {/* da lg: di lato, fissa allo scorrimento */}
+      <aside className="hidden lg:sticky lg:top-24 lg:block lg:self-start" aria-label="Anteprima dei prezzi">
+        <div className="rounded-foglio bg-bianco p-6 shadow-foglio">
+          <p className="maiuscoletto text-t-sm text-grafite">Anteprima</p>
+          {anteprima ? (
+            <>
+              <ul className="mt-4 space-y-2" aria-live="polite">
+                {anteprima.packages.map((p) => (
+                  <li
+                    key={p.tier}
+                    className={cn(
+                      "flex items-baseline justify-between gap-3 rounded-campo px-3 py-2.5",
+                      p.recommended ? "bg-carta-ombra" : undefined,
+                    )}
+                  >
+                    <span className={cn("text-t-sm", p.recommended ? "font-bold text-inchiostro" : "text-grafite")}>
+                      {p.name}
+                    </span>
+                    <Importo valore={p.total} className="text-t-sm text-inchiostro" />
+                  </li>
+                ))}
+              </ul>
+              <Filetto className="my-4" />
+              <dl className="flex justify-between text-t-sm">
+                <dt className="text-grafite">Pagine stimate</dt>
+                <dd className="tabellare text-inchiostro">{numero(anteprima.estimatedPages)}</dd>
+              </dl>
+              <p className="mt-4 text-t-xs text-grafite">
+                Si aggiorna mentre rispondi. Il preventivo definitivo arriva anche via email.
+              </p>
+            </>
+          ) : (
+            <p className="mt-4 text-t-sm text-grafite">
+              Rispondi alle prime due domande e qui compaiono i tre percorsi con il prezzo.
+            </p>
+          )}
+        </div>
+      </aside>
+
+      {/* sul telefono: barra fissa in basso */}
+      <div
+        className="fixed inset-x-0 bottom-0 z-30 border-t border-filetto bg-bianco shadow-sollevata-sito lg:hidden"
+        aria-label="Anteprima dei prezzi"
+        role="region"
+      >
+        <button
+          type="button"
+          className="flex min-h-14 w-full items-center justify-between gap-3 px-4"
+          aria-expanded={aperta}
+          aria-controls="anteprima-dettagli"
+          onClick={() => setAperta((a) => !a)}
+        >
+          {anteprima && consigliato ? (
+            <span className="flex flex-col items-start text-left">
+              <span className="text-t-xs text-grafite">Consigliato</span>
+              <Importo valore={consigliato.total} className="text-t-md font-bold text-inchiostro" />
+            </span>
+          ) : (
+            <span className="text-t-sm text-grafite">Rispondi alle prime domande: il prezzo compare qui.</span>
+          )}
+          <span className="text-t-sm text-blu-matita">
+            {aperta ? "Chiudi" : "Dettagli"}
+          </span>
+        </button>
+        {aperta && anteprima && (
+          <div id="anteprima-dettagli" className="border-t border-filetto px-4 py-3">
+            <ul className="space-y-1.5">
+              {anteprima.packages.map((p) => (
+                <li key={p.tier} className="flex justify-between text-t-sm">
+                  <span className={p.recommended ? "font-bold text-inchiostro" : "text-grafite"}>{p.name}</span>
+                  <Importo valore={p.total} className="text-inchiostro" />
+                </li>
+              ))}
+            </ul>
+            <p className="mt-2 text-t-xs text-grafite">
+              {numero(anteprima.estimatedPages)} pagine stimate. Si aggiorna mentre rispondi.
+            </p>
+          </div>
+        )}
+      </div>
+    </>
   );
 }

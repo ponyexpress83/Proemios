@@ -46,7 +46,7 @@ export const services = [
     ],
     needs:
       "L’idea del libro, l’obiettivo, i materiali disponibili e il tempo che puoi dedicare al confronto.",
-    result: "Un manoscritto originale sviluppato insieme a te, secondo il perimetro concordato.",
+    result: "Un manoscritto originale sviluppato insieme a te, secondo quanto concordato.",
     note: "Attribuzione, riservatezza e diritti d’utilizzo sono definiti per iscritto nel contratto.",
   },
   {
@@ -211,7 +211,7 @@ export const articles = [
     paragraphs: [
       "L’editing guarda il testo nel suo insieme: struttura, voce, ritmo e coerenza. Può riguardare l’ordine dei capitoli, la leggibilità di un passaggio o il modo in cui un personaggio cambia nel corso della storia.",
       "La correzione bozze arriva su un testo già stabilizzato. Cerca refusi, errori grammaticali, punteggiatura incoerente e difformità nelle convenzioni editoriali. Non sostituisce il lavoro sulla struttura.",
-      "Se non sai quale intervento scegliere, il punto di partenza è una valutazione. Una lettura professionale permette di definire il perimetro senza acquistare servizi che non ti servono.",
+      "Se non sai quale intervento scegliere, il punto di partenza è una valutazione. Una lettura professionale permette di capire cosa serve davvero senza acquistare servizi che non ti servono.",
     ],
   },
   {
