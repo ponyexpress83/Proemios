@@ -1,5 +1,7 @@
 # Proemios — intervento e verifica, 6 ottobre 2026
 
+Aggiornamento del 7 ottobre: su richiesta dell’utente è stato ripristinato l’aspetto precedente della navigazione superiore. L’accesso temporaneo alle preview è stato autorizzato e verificato. Vedere il [nuovo controllo e screenshot](../proemios-20261007/README.md); il blocco di accesso descritto sotto è storico.
+
 ## Base e consegna
 
 La base pubblica verificata è `16fe6960d8871b10141f251cfc9c55a2305b43a5`, sul branch `claude/kalamos-studio-phase-1-6z6xyw`. È più recente del commit `338d368` citato nel prompt: conteneva già cinque percorsi, le sette voci condivise della dashboard, header lavanda, footer scuro e piattaforma prima del processo. Questi elementi sono stati conservati e affinati, senza tornare alla versione precedente.
