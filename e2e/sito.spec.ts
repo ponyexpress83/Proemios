@@ -14,11 +14,11 @@ test.describe("configuratore", () => {
 
     // 1 — tipo di libro: una scelta singola avanza da sola.
     await expect(legenda).toHaveText("Che libro è?");
-    await page.locator("button[aria-pressed]").first().click();
+    await page.locator("fieldset button[aria-pressed]").first().click();
 
     // 2 — stato del testo.
     await expect(legenda).toHaveText("A che punto è il testo?");
-    await page.locator("button[aria-pressed]").first().click();
+    await page.locator("fieldset button[aria-pressed]").first().click();
 
     // 3 — lunghezza: scelta rapida e «Avanti».
     await expect(legenda).toContainText(/parole|libro finito/);
@@ -31,7 +31,7 @@ test.describe("configuratore", () => {
 
     // 5 — tempi: avanza da sola.
     await expect(legenda).toHaveText("Che tempi hai?");
-    await page.locator("button[aria-pressed]").first().click();
+    await page.locator("fieldset button[aria-pressed]").first().click();
 
     // 6 — contatto: il pulsante finale esiste ed è attivo anche a campi vuoti.
     await expect(legenda).toHaveText("Dove mandiamo il preventivo?");

@@ -19,7 +19,7 @@ test.describe("percorso commerciale", () => {
     // Il configuratore dev'essere davvero interattivo: se la CSP avesse
     // bloccato il JavaScript, la pagina si vedrebbe uguale e non risponderebbe.
     // Perciò non basta che il controllo esista — bisogna premerlo.
-    const scelta = page.locator("button[aria-pressed]").first();
+    const scelta = page.locator("fieldset button[aria-pressed]").first();
     await expect(scelta).toBeVisible();
     const prima = await scelta.getAttribute("aria-pressed");
     await scelta.click();

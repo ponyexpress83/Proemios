@@ -20,7 +20,8 @@ import type { ReportCompleto } from "@/lib/ai";
 type Stato = "attesa" | "analisi" | "fatto" | "errore";
 
 const FORMATI = [".docx", ".pdf", ".txt"];
-const LIMITE_MB = 15;
+// Lo stesso limite di `lib/extract.ts` (MAX_BYTES): oltre, l'API risponde 413.
+const LIMITE_MB = 4;
 
 function peso(b: number): string {
   return b >= 1024 * 1024 ? `${(b / 1024 / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(b / 1024))} KB`;
@@ -88,6 +89,10 @@ export function FlussoAnalisi({ giorniConservazione }: { giorniConservazione: nu
     setStato("analisi");
     try {
       const res = await fetch("/api/analisi", { method: "POST", body: fd });
+      if (res.status === 413)
+        throw new Error(`Il file è troppo grande: il limite è ${LIMITE_MB} MB. Carica un estratto più breve.`);
+      if (!res.headers.get("content-type")?.includes("application/json"))
+        throw new Error("Il servizio non è disponibile in questo momento. Riprova tra poco.");
       const dati = (await res.json()) as {
         report?: ReportCompleto;
         errore?: string;

@@ -91,7 +91,7 @@ export function Input({ className, ...resto }: React.InputHTMLAttributes<HTMLInp
 export function AreaTesto({
   className,
   ...resto
-}: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
+}: React.TextareaHTMLAttributes<HTMLTextAreaElement> & { ref?: React.Ref<HTMLTextAreaElement> }) {
   return <textarea className={cn(campoBase, "min-h-32 resize-y py-3", className)} {...resto} />;
 }
 

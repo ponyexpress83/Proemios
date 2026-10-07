@@ -984,27 +984,54 @@ da 44 px, link in linea nel testo del consenso).
 6. **Schede del team e testimonianze**: non esistono contenuti verificati; il
    sito dice che arriveranno, non li finge.
 
-### Merge con la base — in sospeso
+### Merge con la base (PR #13)
 
 Dopo la verifica ho trovato la base spostata di otto commit (PR #13,
 «Rinnova homepage, libro interattivo e anteprima area autore», unita il 6
-ottobre): un libro 3D animato nell'hero, un «brief vocale» con dettatura e
+ottobre): un libro 3D animato nell'hero, un brief vocale con dettatura e un
 assistente che precompila il configuratore, una demo dell'area autore in
 `/area-autore` con login simulato in `localStorage`, 4 000 righe di CSS
-proprie, più alcune correzioni di comportamento — i servizi richiesti in
-tutti i pacchetti, limite dei file a 4 MB, `noindex` in anteprima,
-JSON-LD con `<` escapato, attribution spenta in demo, risposte «simulate»
-dei moduli, parametri `stato`/`tempi`/`servizi` in `/preventivo`, verifica
-Stripe nella pagina «grazie» — e il monogramma «P» (`lib/brand-mark.ts`) che
-il brief chiede di tenere.
+proprie, e alcune correzioni di comportamento. Settanta file, 38 conflitti.
 
-Il merge tocca 70 file con 38 conflitti. La linea che proponevo è la stessa
-del merge precedente: **la presentazione nuova vince, il comportamento della
-base vince**. Cioè: tenere tutte le correzioni e le funzioni (dettatura e
-assistente compresi, ridisegnati sui componenti del sito; monogramma «P» su
-icona, favicon, logo e immagine sociale), e non portare dentro il libro 3D,
-i 4 000 righe di CSS e la demo `/area-autore` — questa PR ha l'area autore
-vera in `/area`, e la home ha già il mockup «Il tuo spazio» chiesto dal
-brief. Togliere `/area-autore` è però una scelta di prodotto, e la
-cancellazione dei file della base è stata fermata dal controllo di sicurezza
-della sessione: mi fermo e chiedo.
+La linea, confermata dal fondatore: **la presentazione nuova vince, il
+comportamento della base vince.** Portato dentro e ridisegnato sui componenti
+del sito:
+
+- i servizi richiesti in tutti i pacchetti (`lib/pricing.ts`, con il test
+  che fissa il caso del brief a 2 210 / 2 710 / 4 260 €): il punto di logica
+  segnalato in Fase B è chiuso dalla base;
+- il brief vocale (`components/preventivo/voice-brief.tsx`, logica di
+  `lib/quote-assistant.ts` e `components/voice/use-dictation.ts` identica):
+  sta sopra la prima domanda del configuratore, su carta-ombra, con un solo
+  pulsante «Detta il progetto» e le informazioni riconosciute come pillole;
+- i parametri `stato`, `tempi` e `servizi` di `/preventivo`, l'honeypot del
+  configuratore, il flag «preventivo dimostrativo» nel risultato;
+- `motivo` e `quote` in `/contatti` (messaggio precompilato da «Parla con un
+  editor» e riferimento al preventivo), le conferme «Invio simulato» nei due
+  moduli quando l'API risponde in demo;
+- il limite dei file a 4 MB (`lib/extract.ts`, copy, API) con il 413 e la
+  risposta non JSON gestiti nel flusso dell'analisi;
+- `noindex` anche in anteprima Vercel, sitemap vuota quando l'indicizzazione
+  è bloccata, `lastmod` fisso, JSON-LD con `<` escapato, attribution spenta
+  in demo, `/preventivo/grazie` nel `Disallow`;
+- la verifica Stripe nella pagina «grazie»: «La data è tua» solo se la
+  sessione risulta pagata, altrimenti «Stiamo verificando il pagamento» con
+  la via d'uscita;
+- il monogramma «P» (`lib/brand-mark.ts`), che il brief chiede di tenere, su
+  logo, icona e favicon: corpo nel colore del testo, occhio della P a foro,
+  angolo ripiegato in rosso matita.
+
+Non portato dentro, per scelta del fondatore: il libro 3D con le sue scene,
+le 4 000 righe di CSS di #13, la demo `/area-autore` con il login simulato
+(questa PR ha l'area autore vera in `/area`; «Prova l'area autore» porta a
+`/accedi`), i due font `sans*.woff2` duplicati. `lib/author-demo.ts` e i
+suoi test vanno via con la demo; restano i test dell'assistente e dei
+pacchetti. Due test end-to-end avevano bisogno di un selettore più preciso:
+il pulsante del microfono è un toggle con `aria-pressed`, come le opzioni.
+
+Dopo il merge: tsc, lint e build puliti; 444 unitari; 38 e2e; 15 pagine
+con zero violazioni axe e 7 corpi / 3 raggi / 2 ombre; 67 pagine
+raggiunte dalla home senza un non-200; Lighthouse home 94–97 / 100 / 100 /
+100 e /preventivo 98 / 100 / 100 / 100 (la simulazione oscilla di qualche
+punto fra una corsa e l'altra; FCP, CLS e peso non cambiano: 1,1–1,2 s, 0,
+285 KiB).

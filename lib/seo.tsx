@@ -1,21 +1,16 @@
 import type { Metadata } from "next";
+import { demoAttiva } from "@/lib/demo";
 import { BRAND } from "@/config/brand";
 import { TITOLARE } from "@/config/legal";
 
-/**
- * URL canonico assoluto. Sempre su proemios.it, mai su .com.
- *
- * Su un deploy di anteprima senza `NEXT_PUBLIC_SITE_URL` si usa il dominio
- * assegnato da Vercel: altrimenti l'anteprima dichiarerebbe come canoniche le
- * pagine del sito vero, che è il modo più rapido per confondere i motori.
- */
+/** Un'unica origine configurata, mai il dominio temporaneo di un deploy. */
 export function assoluto(path = "/"): string {
-  const dominioAnteprima = process.env.NEXT_PUBLIC_VERCEL_URL;
-  const base = (
-    process.env.NEXT_PUBLIC_SITE_URL ??
-    (dominioAnteprima ? `https://${dominioAnteprima}` : BRAND.url)
-  ).replace(/\/$/, "");
+  const configured = process.env.NEXT_PUBLIC_SITE_URL?.trim() || BRAND.url;
+  const base = new URL(configured).origin;
   return `${base}${path === "/" ? "" : path}`;
+}
+export function indicizzazioneBloccata(): boolean {
+  return demoAttiva() || process.env.VERCEL_ENV === "preview";
 }
 
 /** Metadata di pagina con canonical, Open Graph e Twitter coerenti. */
@@ -39,7 +34,10 @@ export function metadatiPagina({
     title: titolo,
     description: descrizione,
     alternates: { canonical: url },
-    robots: noindex ? { index: false, follow: false } : undefined,
+    robots:
+      noindex || indicizzazioneBloccata()
+        ? { index: false, follow: false }
+        : { index: true, follow: true },
     openGraph: {
       type: tipo,
       locale: "it_IT",
@@ -164,6 +162,9 @@ export function breadcrumbJsonLd(voci: { nome: string; path: string }[]): Json {
 /** Inietta JSON-LD. I dati sono generati server-side da sorgenti interne. */
 export function JsonLd({ data }: { data: Json | Json[] }) {
   return (
-    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }} />
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(data).replace(/</g, "\\u003c") }}
+    />
   );
 }

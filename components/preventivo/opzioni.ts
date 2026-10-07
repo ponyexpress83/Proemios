@@ -57,12 +57,18 @@ export const TEMPI: { valore: "standard" | "prioritaria"; label: string; nota: s
 /** Servizi consigliati quando si arriva da una pagina servizio. */
 export function serviziPrecompilati(slugServizio?: string): ServiceKey[] {
   switch (slugServizio) {
-    case "correzione-bozze":return ["proofreading"];
-    case "editing":return ["editing"];
-    case "impaginazione":return ["layout"];
-    case "copertina":return ["cover"];
-    case "pubblicazione":return ["kdp","isbn","amazonListing"];
-    case "ghostwriting":return ["layout","epub","cover","kdp"];
+    case "correzione-bozze":
+      return ["proofreading"];
+    case "editing":
+      return ["editing"];
+    case "impaginazione":
+      return ["layout"];
+    case "copertina":
+      return ["cover"];
+    case "pubblicazione":
+      return ["kdp", "isbn", "amazonListing"];
+    case "ghostwriting":
+      return ["layout", "epub", "cover", "kdp"];
     case "revisione-e-pubblicazione":
       return ["editing", "layout", "epub", "cover", "kdp"];
     case "copertina-e-impaginazione":

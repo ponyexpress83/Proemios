@@ -1,26 +1,21 @@
 import Link from "next/link";
 import type { Route } from "next";
 import { BRAND } from "@/config/brand";
+import { BRAND_MARK } from "@/lib/brand-mark";
 import { cn } from "@/lib/cn";
 
 /**
- * Marchio: il libro aperto che c'era, nei colori nuovi. Il simbolo prende il
+ * Marchio: il monogramma «P» (volume editoriale con l'angolo di pagina
+ * ripiegato, `lib/brand-mark.ts`), nei colori nuovi. Il corpo prende il
  * colore del testo che lo circonda (inchiostro sulla carta, carta
- * sull'inchiostro), il tratto centrale resta rosso matita.
+ * sull'inchiostro); l'occhio della P è un foro, così mostra lo sfondo qualunque
+ * sia; l'angolo ripiegato resta rosso matita.
  */
 export function Simbolo({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 32 32" className={cn("size-7 shrink-0", className)} aria-hidden="true">
-      <path
-        d="M5 7c5 0 8 3 11 7 3-4 6-7 11-7v17c-5 0-8 1-11 4-3-3-6-4-11-4Z"
-        fill="currentColor"
-      />
-      <path
-        d="M16 14v14"
-        stroke="var(--color-rosso-matita)"
-        strokeWidth="1.75"
-        strokeLinecap="round"
-      />
+    <svg viewBox="0 0 52 52" className={cn("size-7 shrink-0", className)} aria-hidden="true">
+      <path d={`${BRAND_MARK.body} ${BRAND_MARK.counter}`} fill="currentColor" fillRule="evenodd" />
+      <path d={BRAND_MARK.fold} fill="var(--color-rosso-matita)" />
     </svg>
   );
 }

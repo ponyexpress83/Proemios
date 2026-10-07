@@ -8,6 +8,7 @@ import { Campo, Input, AreaTesto, Consenso, RiepilogoErrori } from "@/components
 import { Filetto } from "@/components/sito/sezione";
 import { cn } from "@/lib/cn";
 import { RisultatoPreventivo } from "./risultato";
+import { VoiceBrief } from "./voice-brief";
 import {
   TIPI_PROGETTO,
   STATI_TESTO,
@@ -58,23 +59,32 @@ const RITARDO_AVANZAMENTO = 250;
 export function Configuratore({
   precompilato,
 }: {
-  precompilato?: { tipo?: ProjectType; servizi?: ServiceKey[]; parole?: number };
+  precompilato?: {
+    tipo?: ProjectType;
+    servizi?: ServiceKey[];
+    parole?: number;
+    statoTesto?: TextState;
+    tempi?: "standard" | "prioritaria";
+  };
 }) {
   const [passo, setPasso] = useState(0);
   const [raggiunto, setRaggiunto] = useState(0);
   const [invio, setInvio] = useState(false);
   const [errore, setErrore] = useState("");
   const [erroriCampi, setErroriCampi] = useState<Partial<Record<"parole" | "nome" | "email" | "privacy", string>>>({});
-  const [risultato, setRisultato] = useState<{ esito: QuoteResult; quoteId: string } | null>(null);
+  const [risultato, setRisultato] = useState<{ esito: QuoteResult; quoteId: string; demo: boolean } | null>(null);
+  // Honeypot: un campo che una persona non vede e non compila.
+  const [trappola, setTrappola] = useState("");
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [s, setS] = useState<Stato>({
     tipo: precompilato?.tipo ?? null,
-    statoTesto: precompilato?.tipo === "memoir" ? "solo-materiali" : null,
+    statoTesto:
+      precompilato?.statoTesto ?? (precompilato?.tipo === "memoir" ? "solo-materiali" : null),
     parole: precompilato?.parole ?? 50_000,
     materiale: "parziale",
     servizi: precompilato?.servizi ?? [],
-    tempi: "standard",
+    tempi: precompilato?.tempi ?? "standard",
     nome: "",
     email: "",
     telefono: "",
@@ -172,6 +182,7 @@ export function Configuratore({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          sito: trappola,
           input: {
             projectType: s.tipo,
             textState: s.statoTesto,
@@ -192,13 +203,14 @@ export function Configuratore({
       });
       const dati = (await res.json()) as {
         quoteId?: string;
+        demo?: boolean;
         preventivo?: QuoteResult;
         errore?: string;
       };
       if (!res.ok || !dati.quoteId || !dati.preventivo) {
         throw new Error(dati.errore ?? UI.erroreGenerico);
       }
-      setRisultato({ esito: dati.preventivo, quoteId: dati.quoteId });
+      setRisultato({ esito: dati.preventivo, quoteId: dati.quoteId, demo: dati.demo === true });
     } catch (err) {
       setErrore(err instanceof Error ? err.message : UI.erroreGenerico);
     } finally {
@@ -213,8 +225,9 @@ export function Configuratore({
         <div className="mb-10 max-w-giustezza">
           <h2 className="font-serif text-t-xl text-inchiostro">Tre modi di fare questo libro</h2>
           <p className="mt-3 text-t-md text-grafite">
-            Te li abbiamo mandati anche via email. Se vuoi partire, l&rsquo;acconto blocca la data;
-            se prima vuoi parlarne, rispondi a quella email.
+            {risultato.demo
+              ? "Questo è un preventivo dimostrativo: nessuna email è stata inviata e nessun pagamento viene addebitato."
+              : "Te li abbiamo mandati anche via email. Se vuoi partire, l’acconto blocca la data; se prima vuoi parlarne, rispondi a quella email."}
           </p>
         </div>
         <RisultatoPreventivo esito={risultato.esito} quoteId={risultato.quoteId} />
@@ -232,6 +245,22 @@ export function Configuratore({
     <div className="grid gap-8 pb-28 lg:grid-cols-[1.6fr_1fr] lg:gap-12 lg:pb-0">
       <div>
         <Indicatore passo={passo} raggiunto={raggiunto} vaiA={vaiA} />
+
+        {passo === 0 && (
+          <VoiceBrief
+            initialText={s.note}
+            onApply={(input, text) => {
+              setS((prev) => ({
+                ...prev,
+                tipo: input.projectType ?? prev.tipo,
+                statoTesto: input.textState ?? prev.statoTesto,
+                parole: input.wordCount ?? prev.parole,
+                servizi: [...new Set([...prev.servizi, ...(input.requestedServices || [])])],
+                note: text,
+              }));
+            }}
+          />
+        )}
 
         <div className="mt-8 min-h-[20rem]">
           {/* 1 — Tipo di progetto */}
@@ -454,6 +483,17 @@ export function Configuratore({
 
                 <Filetto />
 
+                <div className="hidden" aria-hidden="true">
+                  <label htmlFor="pv-sito">Non compilare</label>
+                  <input
+                    id="pv-sito"
+                    name="sito"
+                    tabIndex={-1}
+                    autoComplete="off"
+                    value={trappola}
+                    onChange={(e) => setTrappola(e.target.value)}
+                  />
+                </div>
                 <Consenso
                   id="pv-privacy"
                   name="consensoPrivacy"

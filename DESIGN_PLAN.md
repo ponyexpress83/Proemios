@@ -24,6 +24,8 @@ finale — è `DESIGN-NOTES.md`; questo file dice solo dove stanno le cose.
   `Carosello`, i segni di correzione in `segni.tsx`, le sezioni della home in
   `home/`. I blocchi di pagina riusati stanno in `components/marketing`,
   `components/sezioni`, `components/moduli`.
+- **Marchio**: il monogramma «P» di `lib/brand-mark.ts`, in `components/sito/logo.tsx`,
+  `app/icon.tsx` e `public/favicon.svg`.
 - **Guscio**: `app/(sito)/layout.tsx` monta `GuscioSito` (banner DEMO,
   testata, `<main id="contenuto">`, colophon). `/accedi` ha un layout proprio
   con solo il logo.

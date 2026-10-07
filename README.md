@@ -39,7 +39,8 @@ di `components/sito` sui token «matita rossa e blu» definiti in
 `app/globals.css` e `app/sito.css`: carta, inchiostro, grafite, rosso e blu
 matita, Editorial e Interface serviti da `public/fonts` in woff2. Le scelte,
 l'audit e l'autocritica sono in `DESIGN-NOTES.md`. I moduli sono collegati
-alle API del progetto; il preventivo usa le tariffe esistenti. `/accedi` è
+alle API del progetto; il preventivo usa le tariffe esistenti. Il configuratore accetta anche un brief scritto o dettato
+(`components/preventivo/voice-brief.tsx`), che precompila le risposte. `/accedi` è
 l'accesso con link via email: porta all'area autore o, per lo staff, al
 back-office. Il banner DEMO si governa con `NEXT_PUBLIC_DEMO_MODE`.
 

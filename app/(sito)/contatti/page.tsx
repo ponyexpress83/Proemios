@@ -14,7 +14,16 @@ export const metadata: Metadata = metadatiPagina({
   path: "/contatti",
 });
 
-export default function ContattiPage() {
+export default async function ContattiPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ motivo?: string; quote?: string }>;
+}) {
+  const sp = await searchParams;
+  const motivo = sp.motivo === "editor" ? "editor" : undefined;
+  // Solo un id di preventivo ben formato finisce nel messaggio.
+  const quote =
+    sp.quote && /^(demo-[a-z]+-\d+|[0-9a-f-]{36})$/.test(sp.quote) ? sp.quote : undefined;
   const calendario = publicEnv.NEXT_PUBLIC_CALENDAR_URL;
   return (
     <>
@@ -54,7 +63,7 @@ export default function ContattiPage() {
               </p>
             </div>
             <div className="rounded-foglio bg-bianco p-6 shadow-foglio sm:p-8">
-              <ModuloContatto />
+              <ModuloContatto motivo={motivo} quote={quote} />
             </div>
           </div>
         </Contenitore>

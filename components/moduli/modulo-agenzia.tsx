@@ -16,6 +16,7 @@ export function ModuloAgenzia() {
   const [errore, setErrore] = useState("");
   const [erroriCampi, setErroriCampi] = useState<{ id: string; messaggio: string }[]>([]);
   const [consenso, setConsenso] = useState(false);
+  const [simulato, setSimulato] = useState(false);
 
   async function invia(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -52,8 +53,9 @@ export function ModuloAgenzia() {
           website: String(fd.get("website") ?? ""),
         }),
       });
-      const dati = (await res.json()) as { errore?: string };
+      const dati = (await res.json()) as { errore?: string; demo?: boolean };
       if (!res.ok) throw new Error(dati.errore ?? UI.erroreGenerico);
+      setSimulato(dati.demo === true);
       setStato("inviato");
       form.reset();
     } catch (err) {
@@ -65,11 +67,14 @@ export function ModuloAgenzia() {
   if (stato === "inviato") {
     return (
       <div className="rounded-foglio border-t-4 border-esito-ok bg-bianco p-8 shadow-foglio" role="status">
-        <h3 className="font-serif text-t-lg text-inchiostro">Richiesta inviata.</h3>
+        <h3 className="font-serif text-t-lg text-inchiostro">
+          {simulato ? "Invio simulato." : "Richiesta inviata."}
+        </h3>
         <p className="mt-3 text-t-base text-grafite">
+          {simulato ? "Nessuna email è stata inviata e nessuno riceverà questa richiesta: il sito è in modalità dimostrativa." : <>
           Vi risponde una persona entro un giorno lavorativo, con l&rsquo;accordo di riservatezza e
           il listino riservato per il volume che avete indicato.
-        </p>
+        </>}</p>
       </div>
     );
   }

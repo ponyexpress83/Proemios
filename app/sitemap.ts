@@ -8,7 +8,7 @@ import {
   articles as articoliEditoriali,
 } from "@/lib/editorial-content";
 import { tuttiGliArticoli } from "@/lib/blog";
-import { assoluto } from "@/lib/seo";
+import { assoluto, indicizzazioneBloccata } from "@/lib/seo";
 
 /**
  * Sitemap dinamica.
@@ -21,7 +21,11 @@ import { assoluto } from "@/lib/seo";
  * una sitemap che elenca URL non serviti dichiara 404 ai motori.
  */
 export default function sitemap(): MetadataRoute.Sitemap {
-  const now = new Date();
+  // Demo e anteprime non vanno indicizzate: nessun URL da dichiarare.
+  if (indicizzazioneBloccata()) return [];
+  // Una data fissa, aggiornata quando cambiano i contenuti: un `lastmod`
+  // che cambia a ogni richiesta non dice niente ai motori.
+  const now = new Date("2026-10-07");
 
   const statiche: {
     path: string;

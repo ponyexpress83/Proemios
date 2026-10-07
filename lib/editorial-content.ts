@@ -166,10 +166,10 @@ export const paths = [
   },
   {
     slug: "libro-professionale",
-    title: "Sono un professionista",
-    short: "La tua competenza diventa un libro.",
+    title: "Insegno, formo, condivido un metodo",
+    short: "Trasforma corsi, consulenze e competenze in un manuale utile ai tuoi lettori.",
     description:
-      "Trasformiamo esperienza, metodo e conoscenze in un testo utile per il tuo pubblico. Il libro può spiegare un approccio, condividere un percorso o sostenere il tuo posizionamento professionale.",
+      "Se sei un professionista, un consulente o un formatore, partiamo dai tuoi corsi, appunti e materiali didattici per costruire un libro. Organizziamo il tuo metodo in capitoli, esempi ed esercizi: un manuale che trasmette le tue competenze e sostiene il tuo lavoro.",
     steps: [
       "Obiettivo e pubblico",
       "Architettura dei contenuti",
@@ -178,6 +178,21 @@ export const paths = [
     ],
     color: "coral-soft",
     icon: "document",
+  },
+  {
+    slug: "storia-impresa",
+    title: "Racconto la mia impresa",
+    short: "Persone, intuizioni e sfide: la tua storia di lavoro merita un libro.",
+    description:
+      "Un’attività nata da un’intuizione, un percorso imprenditoriale o una storia aziendale da tramandare. Partiamo da interviste, documenti e ricordi per raccontare le decisioni, le persone e le svolte che hanno costruito la tua impresa, con una voce autentica.",
+    steps: [
+      "Obiettivo, lettori e storia da raccontare",
+      "Interviste e raccolta dei materiali",
+      "Struttura e scrittura condivisa",
+      "Revisione, design e pubblicazione",
+    ],
+    color: "sky",
+    icon: "business",
   },
 ];
 export const workflow = [

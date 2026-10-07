@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { PulsanteLink } from "@/components/sito/pulsante";
 import { Contenitore, Filetto, Sezione } from "@/components/sito/sezione";
 import { metadatiPagina } from "@/lib/seo";
+import { demoAttiva } from "@/lib/demo";
+import { stripe, stripeConfigurato } from "@/lib/stripe";
 
 export const metadata: Metadata = metadatiPagina({
   titolo: "Acconto ricevuto",
@@ -19,18 +21,39 @@ const PASSI = [
 export default async function GraziePage({
   searchParams,
 }: {
-  searchParams: Promise<{ demo?: string }>;
+  searchParams: Promise<{ demo?: string; session_id?: string }>;
 }) {
   const sp = await searchParams;
-  const simulato = sp.demo === "1";
+  // «Simulato» vale solo in demo: fuori, la pagina si fida solo di Stripe.
+  const simulato = demoAttiva() && sp.demo === "1";
+  let pagato = false;
+  if (
+    !demoAttiva() &&
+    stripeConfigurato() &&
+    sp.session_id &&
+    /^cs_[a-zA-Z0-9_]{10,240}$/.test(sp.session_id)
+  ) {
+    try {
+      const sessione = await stripe().checkout.sessions.retrieve(sp.session_id);
+      pagato =
+        sessione.mode === "payment" &&
+        sessione.payment_status === "paid" &&
+        Boolean(sessione.metadata?.quoteId);
+    } catch {
+      pagato = false;
+    }
+  }
+  const confermato = simulato || pagato;
 
   return (
     <Sezione>
       <Contenitore stretto>
         <p className="maiuscoletto text-t-sm text-esito-ok">
-          {simulato ? "Acconto simulato" : "Acconto ricevuto"}
+          {simulato ? "Acconto simulato" : pagato ? "Acconto ricevuto" : "Conferma non disponibile"}
         </p>
-        <h1 className="mt-3 font-serif text-t-display text-balance text-inchiostro">La data è tua.</h1>
+        <h1 className="mt-3 font-serif text-t-display text-balance text-inchiostro">
+          {confermato ? "La data è tua." : "Stiamo verificando il pagamento."}
+        </h1>
         <Filetto className="mt-7" />
 
         {simulato && (
@@ -46,7 +69,9 @@ export default async function GraziePage({
         <p className="mt-7 text-t-md text-grafite">
           {simulato
             ? "Da questo punto in poi il percorso è quello reale: ecco come procede un progetto una volta confermato."
-            : "Abbiamo registrato il pagamento e ti è arrivata una email di conferma. Il tuo progetto è entrato nel piano di lavorazione."}
+            : pagato
+              ? "Abbiamo registrato il pagamento e ti è arrivata una email di conferma. Il tuo progetto è entrato nel piano di lavorazione."
+              : "Non abbiamo ancora la conferma del pagamento da questa pagina. Se hai completato l’acconto, la conferma arriva via email entro pochi minuti; altrimenti scrivici e lo verifichiamo insieme."}
         </p>
 
         <ol className="mt-10 space-y-4">

@@ -504,38 +504,38 @@
   "preventivo": {
     "375": {
       "stato": 200,
-      "altezzaPagina": 2329,
+      "altezzaPagina": 2764,
       "scrollOrizzontale": false,
       "fontSize": {
-        "15.00": 24,
-        "17.00": 6,
-        "13.50": 5,
-        "21.00": 3,
+        "15.00": 27,
+        "17.00": 7,
+        "13.50": 6,
+        "21.00": 4,
         "44.00": 1,
         "27.00": 1
       },
       "famiglie": {
-        "Interface": 36,
-        "Editorial": 4
+        "Interface": 41,
+        "Editorial": 5
       },
       "radius": {
-        "4px": 18,
+        "4px": 20,
         "999px": 11,
-        "12px": 5
+        "12px": 6
       },
       "ombre": {
         "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(222, 223, 227) 0px 1px 0px 0px, rgba(19, 25, 54, 0.28) 0px 16px 40px -16px": 1
       },
       "sfondi": {
-        "rgb(255, 255, 255)": 6,
+        "rgb(255, 255, 255)": 7,
         "rgb(222, 223, 227)": 5,
+        "rgb(240, 240, 235)": 3,
         "rgb(250, 250, 247)": 2,
-        "rgb(240, 240, 235)": 2,
         "rgb(200, 32, 42)": 1
       },
       "colori": {
-        "rgb(19, 25, 54)": 21,
-        "rgb(86, 91, 105)": 17,
+        "rgb(19, 25, 54)": 24,
+        "rgb(86, 91, 105)": 20,
         "rgb(200, 32, 42)": 1,
         "rgb(36, 64, 142)": 1
       },
@@ -550,43 +550,44 @@
       ],
       "h1": 1,
       "titoli": [
-        "H1 Quanto costa il tuo libro?"
+        "H1 Quanto costa il tuo libro?",
+        "H2 Raccontaci il tuo libro"
       ]
     },
     "768": {
       "stato": 200,
-      "altezzaPagina": 1523,
+      "altezzaPagina": 1923,
       "scrollOrizzontale": false,
       "fontSize": {
-        "15.00": 23,
-        "13.50": 11,
-        "17.00": 6,
-        "21.00": 3,
+        "15.00": 26,
+        "13.50": 12,
+        "17.00": 7,
+        "21.00": 4,
         "46.08": 1,
         "27.00": 1
       },
       "famiglie": {
-        "Interface": 41,
-        "Editorial": 4
+        "Interface": 46,
+        "Editorial": 5
       },
       "radius": {
-        "4px": 18,
+        "4px": 20,
         "999px": 11,
-        "12px": 5
+        "12px": 6
       },
       "ombre": {
         "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(222, 223, 227) 0px 1px 0px 0px, rgba(19, 25, 54, 0.28) 0px 16px 40px -16px": 1
       },
       "sfondi": {
-        "rgb(255, 255, 255)": 6,
+        "rgb(255, 255, 255)": 7,
         "rgb(222, 223, 227)": 5,
+        "rgb(240, 240, 235)": 3,
         "rgb(250, 250, 247)": 2,
-        "rgb(240, 240, 235)": 2,
         "rgb(200, 32, 42)": 1
       },
       "colori": {
-        "rgb(86, 91, 105)": 22,
-        "rgb(19, 25, 54)": 21,
+        "rgb(86, 91, 105)": 25,
+        "rgb(19, 25, 54)": 24,
         "rgb(200, 32, 42)": 1,
         "rgb(36, 64, 142)": 1
       },
@@ -601,43 +602,44 @@
       ],
       "h1": 1,
       "titoli": [
-        "H1 Quanto costa il tuo libro?"
+        "H1 Quanto costa il tuo libro?",
+        "H2 Raccontaci il tuo libro"
       ]
     },
     "1280": {
       "stato": 200,
-      "altezzaPagina": 1546,
+      "altezzaPagina": 1946,
       "scrollOrizzontale": false,
       "fontSize": {
-        "15.00": 30,
-        "13.50": 11,
-        "17.00": 6,
-        "21.00": 3,
+        "15.00": 33,
+        "13.50": 12,
+        "17.00": 7,
+        "21.00": 4,
         "72.00": 1,
         "27.00": 1
       },
       "famiglie": {
-        "Interface": 48,
-        "Editorial": 4
+        "Interface": 53,
+        "Editorial": 5
       },
       "radius": {
-        "4px": 24,
+        "4px": 26,
         "999px": 11,
-        "12px": 6
+        "12px": 7
       },
       "ombre": {
         "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(222, 223, 227) 0px 1px 0px 0px, rgba(19, 25, 54, 0.18) 0px 12px 24px -12px": 1
       },
       "sfondi": {
-        "rgb(255, 255, 255)": 6,
+        "rgb(255, 255, 255)": 7,
         "rgb(222, 223, 227)": 5,
+        "rgb(240, 240, 235)": 3,
         "rgb(250, 250, 247)": 2,
-        "rgb(240, 240, 235)": 2,
         "rgb(200, 32, 42)": 2
       },
       "colori": {
-        "rgb(19, 25, 54)": 27,
-        "rgb(86, 91, 105)": 23,
+        "rgb(19, 25, 54)": 30,
+        "rgb(86, 91, 105)": 26,
         "rgb(200, 32, 42)": 1,
         "rgb(255, 255, 255)": 1
       },
@@ -652,43 +654,44 @@
       ],
       "h1": 1,
       "titoli": [
-        "H1 Quanto costa il tuo libro?"
+        "H1 Quanto costa il tuo libro?",
+        "H2 Raccontaci il tuo libro"
       ]
     },
     "1440": {
       "stato": 200,
-      "altezzaPagina": 1546,
+      "altezzaPagina": 1946,
       "scrollOrizzontale": false,
       "fontSize": {
-        "15.00": 30,
-        "13.50": 11,
-        "17.00": 6,
-        "21.00": 3,
+        "15.00": 33,
+        "13.50": 12,
+        "17.00": 7,
+        "21.00": 4,
         "72.00": 1,
         "27.00": 1
       },
       "famiglie": {
-        "Interface": 48,
-        "Editorial": 4
+        "Interface": 53,
+        "Editorial": 5
       },
       "radius": {
-        "4px": 24,
+        "4px": 26,
         "999px": 11,
-        "12px": 6
+        "12px": 7
       },
       "ombre": {
         "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(222, 223, 227) 0px 1px 0px 0px, rgba(19, 25, 54, 0.18) 0px 12px 24px -12px": 1
       },
       "sfondi": {
-        "rgb(255, 255, 255)": 6,
+        "rgb(255, 255, 255)": 7,
         "rgb(222, 223, 227)": 5,
+        "rgb(240, 240, 235)": 3,
         "rgb(250, 250, 247)": 2,
-        "rgb(240, 240, 235)": 2,
         "rgb(200, 32, 42)": 2
       },
       "colori": {
-        "rgb(19, 25, 54)": 27,
-        "rgb(86, 91, 105)": 23,
+        "rgb(19, 25, 54)": 30,
+        "rgb(86, 91, 105)": 26,
         "rgb(200, 32, 42)": 1,
         "rgb(255, 255, 255)": 1
       },
@@ -703,7 +706,8 @@
       ],
       "h1": 1,
       "titoli": [
-        "H1 Quanto costa il tuo libro?"
+        "H1 Quanto costa il tuo libro?",
+        "H2 Raccontaci il tuo libro"
       ]
     },
     "url": "/preventivo"
@@ -779,7 +783,7 @@
       "h1": 1,
       "titoli": [
         "H1 Analizza il manoscritto",
-        "H2 Dove mandiamo il report"
+        "H2 Dove trovi il report"
       ]
     },
     "768": {
@@ -852,7 +856,7 @@
       "h1": 1,
       "titoli": [
         "H1 Analizza il manoscritto",
-        "H2 Dove mandiamo il report"
+        "H2 Dove trovi il report"
       ]
     },
     "1280": {
@@ -925,7 +929,7 @@
       "h1": 1,
       "titoli": [
         "H1 Analizza il manoscritto",
-        "H2 Dove mandiamo il report"
+        "H2 Dove trovi il report"
       ]
     },
     "1440": {
@@ -998,7 +1002,7 @@
       "h1": 1,
       "titoli": [
         "H1 Analizza il manoscritto",
-        "H2 Dove mandiamo il report"
+        "H2 Dove trovi il report"
       ]
     },
     "url": "/analisi-manoscritto"

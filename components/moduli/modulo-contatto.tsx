@@ -15,12 +15,19 @@ import { UI } from "@/config/copy";
  */
 type Stato = "compilazione" | "invio" | "inviato" | "errore";
 
-export function ModuloContatto() {
+/**
+ * `motivo="editor"` precompila il messaggio per chi arriva da «Parla con un
+ * editor»; `quote` è l'id del preventivo da cui si arriva, e finisce nel
+ * messaggio come riferimento.
+ */
+export function ModuloContatto({ motivo, quote }: { motivo?: "editor"; quote?: string } = {}) {
   const [stato, setStato] = useState<Stato>("compilazione");
   const [errore, setErrore] = useState("");
   const [erroriCampi, setErroriCampi] = useState<{ id: string; messaggio: string }[]>([]);
   const [consenso, setConsenso] = useState(false);
   const [marketing, setMarketing] = useState(false);
+  // In demo l'API non invia niente e lo dice: la conferma deve dirlo anche lei.
+  const [simulato, setSimulato] = useState(false);
 
   async function invia(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -49,14 +56,15 @@ export function ModuloContatto() {
           nome: String(fd.get("nome") ?? ""),
           email: String(fd.get("email") ?? ""),
           telefono: String(fd.get("telefono") ?? ""),
-          messaggio: String(fd.get("messaggio") ?? ""),
+          messaggio: `${motivo === "editor" ? "Richiesta: confronto con un editor.\n" : ""}${quote ? `Riferimento preventivo: ${quote}.\n` : ""}${String(fd.get("messaggio") ?? "")}`,
           consensoPrivacy: consenso,
           consensoMarketing: marketing,
           sito: String(fd.get("sito") ?? ""),
         }),
       });
-      const dati = (await res.json()) as { errore?: string };
+      const dati = (await res.json()) as { errore?: string; demo?: boolean };
       if (!res.ok) throw new Error(dati.errore ?? UI.erroreGenerico);
+      setSimulato(dati.demo === true);
       setStato("inviato");
       form.reset();
     } catch (err) {
@@ -68,11 +76,14 @@ export function ModuloContatto() {
   if (stato === "inviato") {
     return (
       <div className="rounded-foglio border-t-4 border-esito-ok bg-bianco p-8 shadow-foglio" role="status">
-        <h3 className="font-serif text-t-lg text-inchiostro">Messaggio inviato.</h3>
+        <h3 className="font-serif text-t-lg text-inchiostro">
+          {simulato ? "Invio simulato." : "Messaggio inviato."}
+        </h3>
         <p className="mt-3 text-t-base text-grafite">
+          {simulato ? "Nessuna email è stata inviata e nessuno riceverà questa richiesta: il sito è in modalità dimostrativa." : <>
           Ti rispondiamo entro un giorno lavorativo. Se nel frattempo vuoi già i numeri, il
           configuratore di preventivo è sempre aperto.
-        </p>
+        </>}</p>
       </div>
     );
   }
@@ -103,7 +114,15 @@ export function ModuloContatto() {
         obbligatorio
         errore={erroreDi("ct-msg")}
       >
-        {(p) => <AreaTesto {...p} name="messaggio" minLength={10} rows={5} />}
+        {(p) => (
+          <AreaTesto
+            {...p}
+            name="messaggio"
+            minLength={10}
+            rows={5}
+            defaultValue={motivo === "editor" ? "Vorrei parlare con un editor del mio progetto." : undefined}
+          />
+        )}
       </Campo>
 
       <div className="hidden" aria-hidden="true">

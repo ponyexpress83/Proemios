@@ -28,8 +28,9 @@ function readExisting(): LeadAttribution {
   }
 }
 
-export function AttributionCapture() {
+export function AttributionCapture({ enabled = true }: { enabled?: boolean }) {
   useEffect(() => {
+    if (!enabled) return;
     const url = new URL(window.location.href);
     const existing = readExisting();
     const referrer = document.referrer.slice(0, 500) || undefined;
@@ -53,7 +54,7 @@ export function AttributionCapture() {
 
     const encoded = encodeURIComponent(JSON.stringify(next));
     document.cookie = `${ATTRIBUTION_COOKIE}=${encoded}; Path=/; Max-Age=7776000; SameSite=Lax; Secure`;
-  }, []);
+  }, [enabled]);
 
   return null;
 }

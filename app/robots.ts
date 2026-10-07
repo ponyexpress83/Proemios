@@ -1,6 +1,5 @@
 import type { MetadataRoute } from "next";
-import { demoAttiva } from "@/lib/demo";
-import { assoluto } from "@/lib/seo";
+import { assoluto, indicizzazioneBloccata } from "@/lib/seo";
 
 /**
  * In modalità demo il sito è chiuso ai motori: una copia dimostrativa su un
@@ -15,7 +14,7 @@ import { assoluto } from "@/lib/seo";
 export const dynamic = "force-dynamic";
 
 export default function robots(): MetadataRoute.Robots {
-  if (demoAttiva()) {
+  if (indicizzazioneBloccata()) {
     return { rules: { userAgent: "*", disallow: "/" } };
   }
 
@@ -26,7 +25,7 @@ export default function robots(): MetadataRoute.Robots {
       // Ogni area riservata: sono già `noindex` nei metadata e protette lato
       // server, ma un crawler che le prova genera 401 nei log e spreca il
       // budget di scansione su pagine che non vedrà mai.
-      disallow: ["/admin", "/area", "/redazione", "/accedi", "/api/"],
+      disallow: ["/admin", "/area", "/redazione", "/accedi", "/api/", "/preventivo/grazie"],
     },
     sitemap: assoluto("/sitemap.xml"),
     host: assoluto("/"),
