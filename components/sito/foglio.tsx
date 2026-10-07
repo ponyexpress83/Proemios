@@ -6,7 +6,8 @@ import { cn } from "@/lib/cn";
 /**
  * L'unica card del sito: un foglio bianco appoggiato sulla carta. Le varianti
  * sono di gerarchia, non di colore. Con `href` l'intero foglio è un link — uno
- * solo, non un link più un «Scopri».
+ * solo, non un link più un «Scopri» — e il suo nome accessibile è tutto il
+ * testo del foglio: un `aria-label` più corto violerebbe «etichetta nel nome».
  */
 export function Foglio({
   href,
@@ -22,7 +23,6 @@ export function Foglio({
   /** `piatto`: solo il filetto, senza ombra. */
   rilievo?: "normale" | "piatto";
   as?: "div" | "article" | "li";
-  "aria-label"?: string;
 }) {
   const classi = cn(
     "block rounded-foglio bg-bianco p-6",

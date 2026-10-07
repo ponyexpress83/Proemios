@@ -26,7 +26,7 @@ export function PercorsiHome() {
     const p = PERCORSI.find((x) => x.slug === slug);
     if (!p) return null;
     return (
-      <Foglio key={slug} href={`/percorsi/${slug}`} className="flex w-full flex-col" aria-label={p.nome}>
+      <Foglio key={slug} href={`/percorsi/${slug}`} className="flex w-full flex-col">
         {ILLUSTRAZIONI[illustrazione]}
         <h3 className="mt-5 font-serif text-t-md leading-snug text-inchiostro">{p.nome}</h3>
         <p className="mt-2 text-t-sm text-grafite">{p.claim}</p>

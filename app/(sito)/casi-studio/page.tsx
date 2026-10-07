@@ -32,7 +32,7 @@ export default function Page() {
           </div>
           <ul className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
             {CASE_STUDIES.map((c) => (
-              <Foglio key={c.slug} as="li" href={`/casi-studio/${c.slug}`} className="flex flex-col" aria-label={c.titolo}>
+              <Foglio key={c.slug} as="li" href={`/casi-studio/${c.slug}`} className="flex flex-col">
                 <p className="maiuscoletto text-t-sm text-grafite">{c.cliente}</p>
                 <h2 className="mt-2 font-serif text-t-md leading-snug text-inchiostro">{c.titolo}</h2>
                 <p className="mt-2 flex-1 text-t-sm text-grafite">{c.sottotitolo}</p>

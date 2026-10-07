@@ -159,7 +159,7 @@ export default async function PaginaPercorso({ params }: { params: Promise<{ slu
           <Intestazione titolo="Non è il tuo caso?" />
           <ul className="grid gap-4 sm:grid-cols-3">
             {altri.map((p) => (
-              <Foglio key={p.slug} as="li" href={`/percorsi/${p.slug}`} className="flex flex-col" aria-label={p.nome}>
+              <Foglio key={p.slug} as="li" href={`/percorsi/${p.slug}`} className="flex flex-col">
                 <h3 className="font-serif text-t-md text-inchiostro">{p.nome}</h3>
                 <p className="mt-2 text-t-sm text-grafite">{p.claim}</p>
               </Foglio>

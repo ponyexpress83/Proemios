@@ -39,7 +39,7 @@ export default function Page() {
           </div>
           <ul className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
             {voci.map((v) => (
-              <Foglio key={v.slug} as="li" href={`/blog/${v.slug}`} className="flex flex-col" aria-label={v.titolo}>
+              <Foglio key={v.slug} as="li" href={`/blog/${v.slug}`} className="flex flex-col">
                 <p className="maiuscoletto text-t-sm text-grafite">{v.tag}</p>
                 <h2 className="mt-2 font-serif text-t-md leading-snug text-inchiostro">{v.titolo}</h2>
                 <p className="mt-2 flex-1 text-t-sm text-grafite">{v.sommario}</p>

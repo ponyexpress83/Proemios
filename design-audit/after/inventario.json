@@ -1,0 +1,3607 @@
+{
+  "404": {
+    "375": {
+      "stato": 404,
+      "altezzaPagina": 667,
+      "scrollOrizzontale": false,
+      "fontSize": {
+        "15.00": 2,
+        "44.00": 2,
+        "17.00": 2,
+        "21.00": 1
+      },
+      "famiglie": {
+        "Interface": 5,
+        "Editorial": 2
+      },
+      "radius": {
+        "4px": 2
+      },
+      "ombre": {},
+      "sfondi": {
+        "rgb(250, 250, 247)": 1,
+        "rgb(200, 32, 42)": 1
+      },
+      "colori": {
+        "rgb(19, 25, 54)": 4,
+        "rgb(86, 91, 105)": 2,
+        "rgb(255, 255, 255)": 1
+      },
+      "testiSotto13px": [],
+      "targetSotto44px": [
+        {
+          "w": 1,
+          "h": 1,
+          "testo": "Vai al contenuto",
+          "tag": "a"
+        }
+      ],
+      "h1": 1,
+      "titoli": [
+        "H1 Questa pagina non c’è."
+      ]
+    },
+    "768": {
+      "stato": 404,
+      "altezzaPagina": 900,
+      "scrollOrizzontale": false,
+      "fontSize": {
+        "15.00": 2,
+        "46.08": 2,
+        "17.00": 2,
+        "21.00": 1
+      },
+      "famiglie": {
+        "Interface": 5,
+        "Editorial": 2
+      },
+      "radius": {
+        "4px": 2
+      },
+      "ombre": {},
+      "sfondi": {
+        "rgb(250, 250, 247)": 1,
+        "rgb(200, 32, 42)": 1
+      },
+      "colori": {
+        "rgb(19, 25, 54)": 4,
+        "rgb(86, 91, 105)": 2,
+        "rgb(255, 255, 255)": 1
+      },
+      "testiSotto13px": [],
+      "targetSotto44px": [
+        {
+          "w": 1,
+          "h": 1,
+          "testo": "Vai al contenuto",
+          "tag": "a"
+        }
+      ],
+      "h1": 1,
+      "titoli": [
+        "H1 Questa pagina non c’è."
+      ]
+    },
+    "1280": {
+      "stato": 404,
+      "altezzaPagina": 900,
+      "scrollOrizzontale": false,
+      "fontSize": {
+        "15.00": 2,
+        "72.00": 2,
+        "17.00": 2,
+        "21.00": 1
+      },
+      "famiglie": {
+        "Interface": 5,
+        "Editorial": 2
+      },
+      "radius": {
+        "4px": 2
+      },
+      "ombre": {},
+      "sfondi": {
+        "rgb(250, 250, 247)": 1,
+        "rgb(200, 32, 42)": 1
+      },
+      "colori": {
+        "rgb(19, 25, 54)": 4,
+        "rgb(86, 91, 105)": 2,
+        "rgb(255, 255, 255)": 1
+      },
+      "testiSotto13px": [],
+      "targetSotto44px": [
+        {
+          "w": 1,
+          "h": 1,
+          "testo": "Vai al contenuto",
+          "tag": "a"
+        }
+      ],
+      "h1": 1,
+      "titoli": [
+        "H1 Questa pagina non c’è."
+      ]
+    },
+    "1440": {
+      "stato": 404,
+      "altezzaPagina": 900,
+      "scrollOrizzontale": false,
+      "fontSize": {
+        "15.00": 2,
+        "72.00": 2,
+        "17.00": 2,
+        "21.00": 1
+      },
+      "famiglie": {
+        "Interface": 5,
+        "Editorial": 2
+      },
+      "radius": {
+        "4px": 2
+      },
+      "ombre": {},
+      "sfondi": {
+        "rgb(250, 250, 247)": 1,
+        "rgb(200, 32, 42)": 1
+      },
+      "colori": {
+        "rgb(19, 25, 54)": 4,
+        "rgb(86, 91, 105)": 2,
+        "rgb(255, 255, 255)": 1
+      },
+      "testiSotto13px": [],
+      "targetSotto44px": [
+        {
+          "w": 1,
+          "h": 1,
+          "testo": "Vai al contenuto",
+          "tag": "a"
+        }
+      ],
+      "h1": 1,
+      "titoli": [
+        "H1 Questa pagina non c’è."
+      ]
+    },
+    "url": "/pagina-che-non-esiste"
+  },
+  "home": {
+    "375": {
+      "stato": 200,
+      "altezzaPagina": 8906,
+      "scrollOrizzontale": false,
+      "fontSize": {
+        "15.00": 94,
+        "17.00": 43,
+        "13.50": 28,
+        "21.00": 23,
+        "36.00": 6,
+        "27.00": 6,
+        "44.00": 2
+      },
+      "famiglie": {
+        "Interface": 143,
+        "Editorial": 59
+      },
+      "radius": {
+        "4px": 53,
+        "999px": 23,
+        "12px": 7
+      },
+      "ombre": {
+        "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(222, 223, 227) 0px 1px 0px 0px, rgba(19, 25, 54, 0.18) 0px 12px 24px -12px": 6,
+        "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(222, 223, 227) 0px 1px 0px 0px, rgba(19, 25, 54, 0.28) 0px 16px 40px -16px": 1
+      },
+      "sfondi": {
+        "rgb(255, 255, 255)": 10,
+        "rgb(222, 223, 227)": 7,
+        "rgb(240, 240, 235)": 6,
+        "rgb(200, 32, 42)": 4,
+        "rgb(250, 250, 247)": 3,
+        "rgb(31, 107, 69)": 2,
+        "rgb(19, 25, 54)": 1
+      },
+      "colori": {
+        "rgb(19, 25, 54)": 98,
+        "rgb(86, 91, 105)": 84,
+        "rgb(36, 64, 142)": 11,
+        "rgb(200, 32, 42)": 3,
+        "rgb(255, 255, 255)": 2,
+        "rgb(250, 250, 247)": 2,
+        "rgb(185, 189, 202)": 2
+      },
+      "testiSotto13px": [],
+      "targetSotto44px": [
+        {
+          "w": 1,
+          "h": 1,
+          "testo": "Vai al contenuto",
+          "tag": "a"
+        }
+      ],
+      "h1": 1,
+      "titoli": [
+        "H1 Dai forma alla tua storia.",
+        "H2 Da dove parti?",
+        "H3 Ho già scritto il libro",
+        "H3 Ho un'idea o del materiale grezzo",
+        "H3 Memoir, autobiografia, storia familiare",
+        "H3 Libro professionale o d'impresa",
+        "H3 Voglio pubblicare",
+        "H2 La cura si vede.",
+        "H2 Come funziona",
+        "H3 Raccontaci il progetto",
+        "H3 Costruiamo il percorso",
+        "H3 Lavoriamo insieme",
+        "H3 Approvi ogni fase",
+        "H3 Ricevi il libro pronto",
+        "H3 I diritti restano tuoi",
+        "H3 Prezzi chiari prima di iniziare",
+        "H3 Approvi tu ogni fase",
+        "H2 Il tuo libro, in un posto solo.",
+        "H2 Servizi",
+        "H3 Testo",
+        "H3 Scrittura",
+        "H3 Produzione",
+        "H3 Pubblicazione",
+        "H3 Lingue",
+        "H3 Promozione",
+        "H2 Quanto costa il tuo libro?"
+      ]
+    },
+    "768": {
+      "stato": 200,
+      "altezzaPagina": 6207,
+      "scrollOrizzontale": false,
+      "fontSize": {
+        "15.00": 94,
+        "17.00": 43,
+        "13.50": 28,
+        "21.00": 23,
+        "36.00": 6,
+        "27.00": 6,
+        "46.08": 2
+      },
+      "famiglie": {
+        "Interface": 143,
+        "Editorial": 59
+      },
+      "radius": {
+        "4px": 53,
+        "999px": 23,
+        "12px": 7
+      },
+      "ombre": {
+        "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(222, 223, 227) 0px 1px 0px 0px, rgba(19, 25, 54, 0.18) 0px 12px 24px -12px": 6,
+        "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(222, 223, 227) 0px 1px 0px 0px, rgba(19, 25, 54, 0.28) 0px 16px 40px -16px": 1
+      },
+      "sfondi": {
+        "rgb(255, 255, 255)": 10,
+        "rgb(222, 223, 227)": 7,
+        "rgb(240, 240, 235)": 6,
+        "rgb(200, 32, 42)": 4,
+        "rgb(250, 250, 247)": 3,
+        "rgb(31, 107, 69)": 2,
+        "rgb(19, 25, 54)": 1
+      },
+      "colori": {
+        "rgb(19, 25, 54)": 98,
+        "rgb(86, 91, 105)": 84,
+        "rgb(36, 64, 142)": 11,
+        "rgb(200, 32, 42)": 3,
+        "rgb(255, 255, 255)": 2,
+        "rgb(250, 250, 247)": 2,
+        "rgb(185, 189, 202)": 2
+      },
+      "testiSotto13px": [],
+      "targetSotto44px": [
+        {
+          "w": 1,
+          "h": 1,
+          "testo": "Vai al contenuto",
+          "tag": "a"
+        }
+      ],
+      "h1": 1,
+      "titoli": [
+        "H1 Dai forma alla tua storia.",
+        "H2 Da dove parti?",
+        "H3 Ho già scritto il libro",
+        "H3 Ho un'idea o del materiale grezzo",
+        "H3 Memoir, autobiografia, storia familiare",
+        "H3 Libro professionale o d'impresa",
+        "H3 Voglio pubblicare",
+        "H2 La cura si vede.",
+        "H2 Come funziona",
+        "H3 Raccontaci il progetto",
+        "H3 Costruiamo il percorso",
+        "H3 Lavoriamo insieme",
+        "H3 Approvi ogni fase",
+        "H3 Ricevi il libro pronto",
+        "H3 I diritti restano tuoi",
+        "H3 Prezzi chiari prima di iniziare",
+        "H3 Approvi tu ogni fase",
+        "H2 Il tuo libro, in un posto solo.",
+        "H2 Servizi",
+        "H3 Testo",
+        "H3 Scrittura",
+        "H3 Produzione",
+        "H3 Pubblicazione",
+        "H3 Lingue",
+        "H3 Promozione",
+        "H2 Quanto costa il tuo libro?"
+      ]
+    },
+    "1280": {
+      "stato": 200,
+      "altezzaPagina": 5738,
+      "scrollOrizzontale": false,
+      "fontSize": {
+        "15.00": 101,
+        "17.00": 43,
+        "13.50": 28,
+        "21.00": 23,
+        "36.00": 6,
+        "27.00": 6,
+        "72.00": 2
+      },
+      "famiglie": {
+        "Interface": 150,
+        "Editorial": 59
+      },
+      "radius": {
+        "4px": 59,
+        "999px": 13,
+        "12px": 7
+      },
+      "ombre": {
+        "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(222, 223, 227) 0px 1px 0px 0px, rgba(19, 25, 54, 0.18) 0px 12px 24px -12px": 6,
+        "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(222, 223, 227) 0px 1px 0px 0px, rgba(19, 25, 54, 0.28) 0px 16px 40px -16px": 1
+      },
+      "sfondi": {
+        "rgb(255, 255, 255)": 10,
+        "rgb(250, 250, 247)": 8,
+        "rgb(240, 240, 235)": 6,
+        "rgb(200, 32, 42)": 4,
+        "rgb(222, 223, 227)": 3,
+        "rgb(31, 107, 69)": 2,
+        "rgb(19, 25, 54)": 1
+      },
+      "colori": {
+        "rgb(19, 25, 54)": 104,
+        "rgb(86, 91, 105)": 84,
+        "rgb(36, 64, 142)": 11,
+        "rgb(200, 32, 42)": 3,
+        "rgb(255, 255, 255)": 3,
+        "rgb(250, 250, 247)": 2,
+        "rgb(185, 189, 202)": 2
+      },
+      "testiSotto13px": [],
+      "targetSotto44px": [
+        {
+          "w": 1,
+          "h": 1,
+          "testo": "Vai al contenuto",
+          "tag": "a"
+        }
+      ],
+      "h1": 1,
+      "titoli": [
+        "H1 Dai forma alla tua storia.",
+        "H2 Da dove parti?",
+        "H3 Ho già scritto il libro",
+        "H3 Ho un'idea o del materiale grezzo",
+        "H3 Memoir, autobiografia, storia familiare",
+        "H3 Libro professionale o d'impresa",
+        "H3 Voglio pubblicare",
+        "H2 La cura si vede.",
+        "H2 Come funziona",
+        "H3 Raccontaci il progetto",
+        "H3 Costruiamo il percorso",
+        "H3 Lavoriamo insieme",
+        "H3 Approvi ogni fase",
+        "H3 Ricevi il libro pronto",
+        "H3 I diritti restano tuoi",
+        "H3 Prezzi chiari prima di iniziare",
+        "H3 Approvi tu ogni fase",
+        "H2 Il tuo libro, in un posto solo.",
+        "H2 Servizi",
+        "H3 Testo",
+        "H3 Scrittura",
+        "H3 Produzione",
+        "H3 Pubblicazione",
+        "H3 Lingue",
+        "H3 Promozione",
+        "H2 Quanto costa il tuo libro?"
+      ]
+    },
+    "1440": {
+      "stato": 200,
+      "altezzaPagina": 5738,
+      "scrollOrizzontale": false,
+      "fontSize": {
+        "15.00": 101,
+        "17.00": 43,
+        "13.50": 28,
+        "21.00": 23,
+        "36.00": 6,
+        "27.00": 6,
+        "72.00": 2
+      },
+      "famiglie": {
+        "Interface": 150,
+        "Editorial": 59
+      },
+      "radius": {
+        "4px": 59,
+        "999px": 13,
+        "12px": 7
+      },
+      "ombre": {
+        "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(222, 223, 227) 0px 1px 0px 0px, rgba(19, 25, 54, 0.18) 0px 12px 24px -12px": 6,
+        "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(222, 223, 227) 0px 1px 0px 0px, rgba(19, 25, 54, 0.28) 0px 16px 40px -16px": 1
+      },
+      "sfondi": {
+        "rgb(255, 255, 255)": 10,
+        "rgb(250, 250, 247)": 8,
+        "rgb(240, 240, 235)": 6,
+        "rgb(200, 32, 42)": 4,
+        "rgb(222, 223, 227)": 3,
+        "rgb(31, 107, 69)": 2,
+        "rgb(19, 25, 54)": 1
+      },
+      "colori": {
+        "rgb(19, 25, 54)": 104,
+        "rgb(86, 91, 105)": 84,
+        "rgb(36, 64, 142)": 11,
+        "rgb(200, 32, 42)": 3,
+        "rgb(255, 255, 255)": 3,
+        "rgb(250, 250, 247)": 2,
+        "rgb(185, 189, 202)": 2
+      },
+      "testiSotto13px": [],
+      "targetSotto44px": [
+        {
+          "w": 1,
+          "h": 1,
+          "testo": "Vai al contenuto",
+          "tag": "a"
+        }
+      ],
+      "h1": 1,
+      "titoli": [
+        "H1 Dai forma alla tua storia.",
+        "H2 Da dove parti?",
+        "H3 Ho già scritto il libro",
+        "H3 Ho un'idea o del materiale grezzo",
+        "H3 Memoir, autobiografia, storia familiare",
+        "H3 Libro professionale o d'impresa",
+        "H3 Voglio pubblicare",
+        "H2 La cura si vede.",
+        "H2 Come funziona",
+        "H3 Raccontaci il progetto",
+        "H3 Costruiamo il percorso",
+        "H3 Lavoriamo insieme",
+        "H3 Approvi ogni fase",
+        "H3 Ricevi il libro pronto",
+        "H3 I diritti restano tuoi",
+        "H3 Prezzi chiari prima di iniziare",
+        "H3 Approvi tu ogni fase",
+        "H2 Il tuo libro, in un posto solo.",
+        "H2 Servizi",
+        "H3 Testo",
+        "H3 Scrittura",
+        "H3 Produzione",
+        "H3 Pubblicazione",
+        "H3 Lingue",
+        "H3 Promozione",
+        "H2 Quanto costa il tuo libro?"
+      ]
+    },
+    "url": "/"
+  },
+  "preventivo": {
+    "375": {
+      "stato": 200,
+      "altezzaPagina": 2329,
+      "scrollOrizzontale": false,
+      "fontSize": {
+        "15.00": 24,
+        "17.00": 6,
+        "13.50": 5,
+        "21.00": 3,
+        "44.00": 1,
+        "27.00": 1
+      },
+      "famiglie": {
+        "Interface": 36,
+        "Editorial": 4
+      },
+      "radius": {
+        "4px": 18,
+        "999px": 11,
+        "12px": 5
+      },
+      "ombre": {
+        "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(222, 223, 227) 0px 1px 0px 0px, rgba(19, 25, 54, 0.28) 0px 16px 40px -16px": 1
+      },
+      "sfondi": {
+        "rgb(255, 255, 255)": 6,
+        "rgb(222, 223, 227)": 5,
+        "rgb(250, 250, 247)": 2,
+        "rgb(240, 240, 235)": 2,
+        "rgb(200, 32, 42)": 1
+      },
+      "colori": {
+        "rgb(19, 25, 54)": 21,
+        "rgb(86, 91, 105)": 17,
+        "rgb(200, 32, 42)": 1,
+        "rgb(36, 64, 142)": 1
+      },
+      "testiSotto13px": [],
+      "targetSotto44px": [
+        {
+          "w": 1,
+          "h": 1,
+          "testo": "Vai al contenuto",
+          "tag": "a"
+        }
+      ],
+      "h1": 1,
+      "titoli": [
+        "H1 Quanto costa il tuo libro?"
+      ]
+    },
+    "768": {
+      "stato": 200,
+      "altezzaPagina": 1523,
+      "scrollOrizzontale": false,
+      "fontSize": {
+        "15.00": 23,
+        "13.50": 11,
+        "17.00": 6,
+        "21.00": 3,
+        "46.08": 1,
+        "27.00": 1
+      },
+      "famiglie": {
+        "Interface": 41,
+        "Editorial": 4
+      },
+      "radius": {
+        "4px": 18,
+        "999px": 11,
+        "12px": 5
+      },
+      "ombre": {
+        "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(222, 223, 227) 0px 1px 0px 0px, rgba(19, 25, 54, 0.28) 0px 16px 40px -16px": 1
+      },
+      "sfondi": {
+        "rgb(255, 255, 255)": 6,
+        "rgb(222, 223, 227)": 5,
+        "rgb(250, 250, 247)": 2,
+        "rgb(240, 240, 235)": 2,
+        "rgb(200, 32, 42)": 1
+      },
+      "colori": {
+        "rgb(86, 91, 105)": 22,
+        "rgb(19, 25, 54)": 21,
+        "rgb(200, 32, 42)": 1,
+        "rgb(36, 64, 142)": 1
+      },
+      "testiSotto13px": [],
+      "targetSotto44px": [
+        {
+          "w": 1,
+          "h": 1,
+          "testo": "Vai al contenuto",
+          "tag": "a"
+        }
+      ],
+      "h1": 1,
+      "titoli": [
+        "H1 Quanto costa il tuo libro?"
+      ]
+    },
+    "1280": {
+      "stato": 200,
+      "altezzaPagina": 1546,
+      "scrollOrizzontale": false,
+      "fontSize": {
+        "15.00": 30,
+        "13.50": 11,
+        "17.00": 6,
+        "21.00": 3,
+        "72.00": 1,
+        "27.00": 1
+      },
+      "famiglie": {
+        "Interface": 48,
+        "Editorial": 4
+      },
+      "radius": {
+        "4px": 24,
+        "999px": 11,
+        "12px": 6
+      },
+      "ombre": {
+        "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(222, 223, 227) 0px 1px 0px 0px, rgba(19, 25, 54, 0.18) 0px 12px 24px -12px": 1
+      },
+      "sfondi": {
+        "rgb(255, 255, 255)": 6,
+        "rgb(222, 223, 227)": 5,
+        "rgb(250, 250, 247)": 2,
+        "rgb(240, 240, 235)": 2,
+        "rgb(200, 32, 42)": 2
+      },
+      "colori": {
+        "rgb(19, 25, 54)": 27,
+        "rgb(86, 91, 105)": 23,
+        "rgb(200, 32, 42)": 1,
+        "rgb(255, 255, 255)": 1
+      },
+      "testiSotto13px": [],
+      "targetSotto44px": [
+        {
+          "w": 1,
+          "h": 1,
+          "testo": "Vai al contenuto",
+          "tag": "a"
+        }
+      ],
+      "h1": 1,
+      "titoli": [
+        "H1 Quanto costa il tuo libro?"
+      ]
+    },
+    "1440": {
+      "stato": 200,
+      "altezzaPagina": 1546,
+      "scrollOrizzontale": false,
+      "fontSize": {
+        "15.00": 30,
+        "13.50": 11,
+        "17.00": 6,
+        "21.00": 3,
+        "72.00": 1,
+        "27.00": 1
+      },
+      "famiglie": {
+        "Interface": 48,
+        "Editorial": 4
+      },
+      "radius": {
+        "4px": 24,
+        "999px": 11,
+        "12px": 6
+      },
+      "ombre": {
+        "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(222, 223, 227) 0px 1px 0px 0px, rgba(19, 25, 54, 0.18) 0px 12px 24px -12px": 1
+      },
+      "sfondi": {
+        "rgb(255, 255, 255)": 6,
+        "rgb(222, 223, 227)": 5,
+        "rgb(250, 250, 247)": 2,
+        "rgb(240, 240, 235)": 2,
+        "rgb(200, 32, 42)": 2
+      },
+      "colori": {
+        "rgb(19, 25, 54)": 27,
+        "rgb(86, 91, 105)": 23,
+        "rgb(200, 32, 42)": 1,
+        "rgb(255, 255, 255)": 1
+      },
+      "testiSotto13px": [],
+      "targetSotto44px": [
+        {
+          "w": 1,
+          "h": 1,
+          "testo": "Vai al contenuto",
+          "tag": "a"
+        }
+      ],
+      "h1": 1,
+      "titoli": [
+        "H1 Quanto costa il tuo libro?"
+      ]
+    },
+    "url": "/preventivo"
+  },
+  "analisi-manoscritto": {
+    "375": {
+      "stato": 200,
+      "altezzaPagina": 2428,
+      "scrollOrizzontale": false,
+      "fontSize": {
+        "15.00": 25,
+        "13.50": 6,
+        "21.00": 3,
+        "17.00": 3,
+        "44.00": 1,
+        "27.00": 1
+      },
+      "famiglie": {
+        "Interface": 35,
+        "Editorial": 4
+      },
+      "radius": {
+        "4px": 15,
+        "12px": 1
+      },
+      "ombre": {},
+      "sfondi": {
+        "rgb(255, 255, 255)": 3,
+        "rgb(250, 250, 247)": 2,
+        "rgb(240, 240, 235)": 2,
+        "rgb(200, 32, 42)": 1
+      },
+      "colori": {
+        "rgb(19, 25, 54)": 20,
+        "rgb(86, 91, 105)": 16,
+        "rgb(200, 32, 42)": 1,
+        "rgb(36, 64, 142)": 1,
+        "rgb(255, 255, 255)": 1
+      },
+      "testiSotto13px": [],
+      "targetSotto44px": [
+        {
+          "w": 1,
+          "h": 1,
+          "testo": "Vai al contenuto",
+          "tag": "a"
+        },
+        {
+          "w": 1,
+          "h": 1,
+          "testo": "",
+          "tag": "input"
+        },
+        {
+          "w": 20,
+          "h": 20,
+          "testo": "",
+          "tag": "input"
+        },
+        {
+          "w": 90,
+          "h": 15,
+          "testo": "privacy policy",
+          "tag": "a"
+        },
+        {
+          "w": 20,
+          "h": 20,
+          "testo": "",
+          "tag": "input"
+        }
+      ],
+      "h1": 1,
+      "titoli": [
+        "H1 Analizza il manoscritto",
+        "H2 Dove mandiamo il report"
+      ]
+    },
+    "768": {
+      "stato": 200,
+      "altezzaPagina": 1641,
+      "scrollOrizzontale": false,
+      "fontSize": {
+        "15.00": 25,
+        "13.50": 6,
+        "21.00": 3,
+        "17.00": 3,
+        "46.08": 1,
+        "27.00": 1
+      },
+      "famiglie": {
+        "Interface": 35,
+        "Editorial": 4
+      },
+      "radius": {
+        "4px": 15,
+        "12px": 1
+      },
+      "ombre": {},
+      "sfondi": {
+        "rgb(255, 255, 255)": 3,
+        "rgb(250, 250, 247)": 2,
+        "rgb(240, 240, 235)": 2,
+        "rgb(200, 32, 42)": 1
+      },
+      "colori": {
+        "rgb(19, 25, 54)": 20,
+        "rgb(86, 91, 105)": 16,
+        "rgb(200, 32, 42)": 1,
+        "rgb(36, 64, 142)": 1,
+        "rgb(255, 255, 255)": 1
+      },
+      "testiSotto13px": [],
+      "targetSotto44px": [
+        {
+          "w": 1,
+          "h": 1,
+          "testo": "Vai al contenuto",
+          "tag": "a"
+        },
+        {
+          "w": 1,
+          "h": 1,
+          "testo": "",
+          "tag": "input"
+        },
+        {
+          "w": 20,
+          "h": 20,
+          "testo": "",
+          "tag": "input"
+        },
+        {
+          "w": 90,
+          "h": 15,
+          "testo": "privacy policy",
+          "tag": "a"
+        },
+        {
+          "w": 20,
+          "h": 20,
+          "testo": "",
+          "tag": "input"
+        }
+      ],
+      "h1": 1,
+      "titoli": [
+        "H1 Analizza il manoscritto",
+        "H2 Dove mandiamo il report"
+      ]
+    },
+    "1280": {
+      "stato": 200,
+      "altezzaPagina": 1777,
+      "scrollOrizzontale": false,
+      "fontSize": {
+        "15.00": 32,
+        "13.50": 6,
+        "21.00": 3,
+        "17.00": 3,
+        "72.00": 1,
+        "27.00": 1
+      },
+      "famiglie": {
+        "Interface": 42,
+        "Editorial": 4
+      },
+      "radius": {
+        "4px": 21,
+        "12px": 1
+      },
+      "ombre": {},
+      "sfondi": {
+        "rgb(255, 255, 255)": 3,
+        "rgb(250, 250, 247)": 2,
+        "rgb(240, 240, 235)": 2,
+        "rgb(200, 32, 42)": 2
+      },
+      "colori": {
+        "rgb(19, 25, 54)": 26,
+        "rgb(86, 91, 105)": 16,
+        "rgb(255, 255, 255)": 2,
+        "rgb(200, 32, 42)": 1,
+        "rgb(36, 64, 142)": 1
+      },
+      "testiSotto13px": [],
+      "targetSotto44px": [
+        {
+          "w": 1,
+          "h": 1,
+          "testo": "Vai al contenuto",
+          "tag": "a"
+        },
+        {
+          "w": 1,
+          "h": 1,
+          "testo": "",
+          "tag": "input"
+        },
+        {
+          "w": 20,
+          "h": 20,
+          "testo": "",
+          "tag": "input"
+        },
+        {
+          "w": 90,
+          "h": 15,
+          "testo": "privacy policy",
+          "tag": "a"
+        },
+        {
+          "w": 20,
+          "h": 20,
+          "testo": "",
+          "tag": "input"
+        }
+      ],
+      "h1": 1,
+      "titoli": [
+        "H1 Analizza il manoscritto",
+        "H2 Dove mandiamo il report"
+      ]
+    },
+    "1440": {
+      "stato": 200,
+      "altezzaPagina": 1777,
+      "scrollOrizzontale": false,
+      "fontSize": {
+        "15.00": 32,
+        "13.50": 6,
+        "21.00": 3,
+        "17.00": 3,
+        "72.00": 1,
+        "27.00": 1
+      },
+      "famiglie": {
+        "Interface": 42,
+        "Editorial": 4
+      },
+      "radius": {
+        "4px": 21,
+        "12px": 1
+      },
+      "ombre": {},
+      "sfondi": {
+        "rgb(255, 255, 255)": 3,
+        "rgb(250, 250, 247)": 2,
+        "rgb(240, 240, 235)": 2,
+        "rgb(200, 32, 42)": 2
+      },
+      "colori": {
+        "rgb(19, 25, 54)": 26,
+        "rgb(86, 91, 105)": 16,
+        "rgb(255, 255, 255)": 2,
+        "rgb(200, 32, 42)": 1,
+        "rgb(36, 64, 142)": 1
+      },
+      "testiSotto13px": [],
+      "targetSotto44px": [
+        {
+          "w": 1,
+          "h": 1,
+          "testo": "Vai al contenuto",
+          "tag": "a"
+        },
+        {
+          "w": 1,
+          "h": 1,
+          "testo": "",
+          "tag": "input"
+        },
+        {
+          "w": 20,
+          "h": 20,
+          "testo": "",
+          "tag": "input"
+        },
+        {
+          "w": 90,
+          "h": 15,
+          "testo": "privacy policy",
+          "tag": "a"
+        },
+        {
+          "w": 20,
+          "h": 20,
+          "testo": "",
+          "tag": "input"
+        }
+      ],
+      "h1": 1,
+      "titoli": [
+        "H1 Analizza il manoscritto",
+        "H2 Dove mandiamo il report"
+      ]
+    },
+    "url": "/analisi-manoscritto"
+  },
+  "accedi": {
+    "375": {
+      "stato": 200,
+      "altezzaPagina": 667,
+      "scrollOrizzontale": false,
+      "fontSize": {
+        "15.00": 4,
+        "17.00": 2,
+        "21.00": 1,
+        "36.00": 1
+      },
+      "famiglie": {
+        "Interface": 6,
+        "Editorial": 2
+      },
+      "radius": {
+        "4px": 3
+      },
+      "ombre": {},
+      "sfondi": {
+        "rgb(250, 250, 247)": 1,
+        "rgb(255, 255, 255)": 1,
+        "rgb(200, 32, 42)": 1
+      },
+      "colori": {
+        "rgb(19, 25, 54)": 4,
+        "rgb(86, 91, 105)": 3,
+        "rgb(255, 255, 255)": 1
+      },
+      "testiSotto13px": [],
+      "targetSotto44px": [
+        {
+          "w": 1,
+          "h": 1,
+          "testo": "Vai al contenuto",
+          "tag": "a"
+        }
+      ],
+      "h1": 1,
+      "titoli": [
+        "H1 Entra nell’area autore"
+      ]
+    },
+    "768": {
+      "stato": 200,
+      "altezzaPagina": 900,
+      "scrollOrizzontale": false,
+      "fontSize": {
+        "15.00": 4,
+        "17.00": 2,
+        "21.00": 1,
+        "36.00": 1
+      },
+      "famiglie": {
+        "Interface": 6,
+        "Editorial": 2
+      },
+      "radius": {
+        "4px": 3
+      },
+      "ombre": {},
+      "sfondi": {
+        "rgb(250, 250, 247)": 1,
+        "rgb(255, 255, 255)": 1,
+        "rgb(200, 32, 42)": 1
+      },
+      "colori": {
+        "rgb(19, 25, 54)": 4,
+        "rgb(86, 91, 105)": 3,
+        "rgb(255, 255, 255)": 1
+      },
+      "testiSotto13px": [],
+      "targetSotto44px": [
+        {
+          "w": 1,
+          "h": 1,
+          "testo": "Vai al contenuto",
+          "tag": "a"
+        }
+      ],
+      "h1": 1,
+      "titoli": [
+        "H1 Entra nell’area autore"
+      ]
+    },
+    "1280": {
+      "stato": 200,
+      "altezzaPagina": 900,
+      "scrollOrizzontale": false,
+      "fontSize": {
+        "15.00": 4,
+        "17.00": 2,
+        "21.00": 1,
+        "36.00": 1
+      },
+      "famiglie": {
+        "Interface": 6,
+        "Editorial": 2
+      },
+      "radius": {
+        "4px": 3
+      },
+      "ombre": {},
+      "sfondi": {
+        "rgb(250, 250, 247)": 1,
+        "rgb(255, 255, 255)": 1,
+        "rgb(200, 32, 42)": 1
+      },
+      "colori": {
+        "rgb(19, 25, 54)": 4,
+        "rgb(86, 91, 105)": 3,
+        "rgb(255, 255, 255)": 1
+      },
+      "testiSotto13px": [],
+      "targetSotto44px": [
+        {
+          "w": 1,
+          "h": 1,
+          "testo": "Vai al contenuto",
+          "tag": "a"
+        }
+      ],
+      "h1": 1,
+      "titoli": [
+        "H1 Entra nell’area autore"
+      ]
+    },
+    "1440": {
+      "stato": 200,
+      "altezzaPagina": 900,
+      "scrollOrizzontale": false,
+      "fontSize": {
+        "15.00": 4,
+        "17.00": 2,
+        "21.00": 1,
+        "36.00": 1
+      },
+      "famiglie": {
+        "Interface": 6,
+        "Editorial": 2
+      },
+      "radius": {
+        "4px": 3
+      },
+      "ombre": {},
+      "sfondi": {
+        "rgb(250, 250, 247)": 1,
+        "rgb(255, 255, 255)": 1,
+        "rgb(200, 32, 42)": 1
+      },
+      "colori": {
+        "rgb(19, 25, 54)": 4,
+        "rgb(86, 91, 105)": 3,
+        "rgb(255, 255, 255)": 1
+      },
+      "testiSotto13px": [],
+      "targetSotto44px": [
+        {
+          "w": 1,
+          "h": 1,
+          "testo": "Vai al contenuto",
+          "tag": "a"
+        }
+      ],
+      "h1": 1,
+      "titoli": [
+        "H1 Entra nell’area autore"
+      ]
+    },
+    "url": "/accedi"
+  },
+  "servizi": {
+    "375": {
+      "stato": 200,
+      "altezzaPagina": 4366,
+      "scrollOrizzontale": false,
+      "fontSize": {
+        "15.00": 90,
+        "27.00": 7,
+        "13.50": 5,
+        "21.00": 4,
+        "17.00": 2,
+        "44.00": 1,
+        "36.00": 1
+      },
+      "famiglie": {
+        "Interface": 99,
+        "Editorial": 11
+      },
+      "radius": {
+        "4px": 44
+      },
+      "ombre": {},
+      "sfondi": {
+        "rgb(250, 250, 247)": 2,
+        "rgb(240, 240, 235)": 2,
+        "rgb(200, 32, 42)": 1
+      },
+      "colori": {
+        "rgb(19, 25, 54)": 60,
+        "rgb(86, 91, 105)": 48,
+        "rgb(200, 32, 42)": 1,
+        "rgb(255, 255, 255)": 1
+      },
+      "testiSotto13px": [],
+      "targetSotto44px": [
+        {
+          "w": 1,
+          "h": 1,
+          "testo": "Vai al contenuto",
+          "tag": "a"
+        }
+      ],
+      "h1": 1,
+      "titoli": [
+        "H1 Servizi",
+        "H3 Testo",
+        "H3 Scrittura",
+        "H3 Produzione",
+        "H3 Pubblicazione",
+        "H3 Lingue",
+        "H3 Promozione",
+        "H3 B2B e white label",
+        "H2 Più servizi insieme?"
+      ]
+    },
+    "768": {
+      "stato": 200,
+      "altezzaPagina": 2491,
+      "scrollOrizzontale": false,
+      "fontSize": {
+        "15.00": 90,
+        "27.00": 7,
+        "13.50": 5,
+        "21.00": 4,
+        "17.00": 2,
+        "46.08": 1,
+        "36.00": 1
+      },
+      "famiglie": {
+        "Interface": 99,
+        "Editorial": 11
+      },
+      "radius": {
+        "4px": 44
+      },
+      "ombre": {},
+      "sfondi": {
+        "rgb(250, 250, 247)": 2,
+        "rgb(240, 240, 235)": 2,
+        "rgb(200, 32, 42)": 1
+      },
+      "colori": {
+        "rgb(19, 25, 54)": 60,
+        "rgb(86, 91, 105)": 48,
+        "rgb(200, 32, 42)": 1,
+        "rgb(255, 255, 255)": 1
+      },
+      "testiSotto13px": [],
+      "targetSotto44px": [
+        {
+          "w": 1,
+          "h": 1,
+          "testo": "Vai al contenuto",
+          "tag": "a"
+        }
+      ],
+      "h1": 1,
+      "titoli": [
+        "H1 Servizi",
+        "H3 Testo",
+        "H3 Scrittura",
+        "H3 Produzione",
+        "H3 Pubblicazione",
+        "H3 Lingue",
+        "H3 Promozione",
+        "H3 B2B e white label",
+        "H2 Più servizi insieme?"
+      ]
+    },
+    "1280": {
+      "stato": 200,
+      "altezzaPagina": 2576,
+      "scrollOrizzontale": false,
+      "fontSize": {
+        "15.00": 97,
+        "27.00": 7,
+        "13.50": 5,
+        "21.00": 4,
+        "17.00": 2,
+        "72.00": 1,
+        "36.00": 1
+      },
+      "famiglie": {
+        "Interface": 106,
+        "Editorial": 11
+      },
+      "radius": {
+        "4px": 50
+      },
+      "ombre": {},
+      "sfondi": {
+        "rgb(250, 250, 247)": 2,
+        "rgb(240, 240, 235)": 2,
+        "rgb(200, 32, 42)": 2
+      },
+      "colori": {
+        "rgb(19, 25, 54)": 66,
+        "rgb(86, 91, 105)": 48,
+        "rgb(255, 255, 255)": 2,
+        "rgb(200, 32, 42)": 1
+      },
+      "testiSotto13px": [],
+      "targetSotto44px": [
+        {
+          "w": 1,
+          "h": 1,
+          "testo": "Vai al contenuto",
+          "tag": "a"
+        }
+      ],
+      "h1": 1,
+      "titoli": [
+        "H1 Servizi",
+        "H3 Testo",
+        "H3 Scrittura",
+        "H3 Produzione",
+        "H3 Pubblicazione",
+        "H3 Lingue",
+        "H3 Promozione",
+        "H3 B2B e white label",
+        "H2 Più servizi insieme?"
+      ]
+    },
+    "1440": {
+      "stato": 200,
+      "altezzaPagina": 2576,
+      "scrollOrizzontale": false,
+      "fontSize": {
+        "15.00": 97,
+        "27.00": 7,
+        "13.50": 5,
+        "21.00": 4,
+        "17.00": 2,
+        "72.00": 1,
+        "36.00": 1
+      },
+      "famiglie": {
+        "Interface": 106,
+        "Editorial": 11
+      },
+      "radius": {
+        "4px": 50
+      },
+      "ombre": {},
+      "sfondi": {
+        "rgb(250, 250, 247)": 2,
+        "rgb(240, 240, 235)": 2,
+        "rgb(200, 32, 42)": 2
+      },
+      "colori": {
+        "rgb(19, 25, 54)": 66,
+        "rgb(86, 91, 105)": 48,
+        "rgb(255, 255, 255)": 2,
+        "rgb(200, 32, 42)": 1
+      },
+      "testiSotto13px": [],
+      "targetSotto44px": [
+        {
+          "w": 1,
+          "h": 1,
+          "testo": "Vai al contenuto",
+          "tag": "a"
+        }
+      ],
+      "h1": 1,
+      "titoli": [
+        "H1 Servizi",
+        "H3 Testo",
+        "H3 Scrittura",
+        "H3 Produzione",
+        "H3 Pubblicazione",
+        "H3 Lingue",
+        "H3 Promozione",
+        "H3 B2B e white label",
+        "H2 Più servizi insieme?"
+      ]
+    },
+    "url": "/servizi"
+  },
+  "percorsi": {
+    "375": {
+      "stato": 200,
+      "altezzaPagina": 3167,
+      "scrollOrizzontale": false,
+      "fontSize": {
+        "15.00": 22,
+        "21.00": 12,
+        "13.50": 5,
+        "17.00": 2,
+        "44.00": 1,
+        "36.00": 1
+      },
+      "famiglie": {
+        "Interface": 31,
+        "Editorial": 12
+      },
+      "radius": {
+        "4px": 13,
+        "12px": 8
+      },
+      "ombre": {
+        "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(222, 223, 227) 0px 1px 0px 0px, rgba(19, 25, 54, 0.18) 0px 12px 24px -12px": 8
+      },
+      "sfondi": {
+        "rgb(255, 255, 255)": 8,
+        "rgb(250, 250, 247)": 2,
+        "rgb(240, 240, 235)": 2,
+        "rgb(200, 32, 42)": 1
+      },
+      "colori": {
+        "rgb(19, 25, 54)": 23,
+        "rgb(86, 91, 105)": 18,
+        "rgb(200, 32, 42)": 1,
+        "rgb(255, 255, 255)": 1
+      },
+      "testiSotto13px": [],
+      "targetSotto44px": [
+        {
+          "w": 1,
+          "h": 1,
+          "testo": "Vai al contenuto",
+          "tag": "a"
+        }
+      ],
+      "h1": 1,
+      "titoli": [
+        "H1 Da dove parti?",
+        "H3 Ho già scritto il libro",
+        "H3 Ho un'idea o del materiale grezzo",
+        "H3 Memoir, autobiografia, storia familiare",
+        "H3 Libro professionale o d'impresa",
+        "H3 Ricerca storica e archivistica",
+        "H3 Voglio pubblicare",
+        "H3 Voglio promuovere il libro",
+        "H3 Agenzie e white label",
+        "H2 Nessuno dei percorsi ti somiglia?"
+      ]
+    },
+    "768": {
+      "stato": 200,
+      "altezzaPagina": 1875,
+      "scrollOrizzontale": false,
+      "fontSize": {
+        "15.00": 22,
+        "21.00": 12,
+        "13.50": 5,
+        "17.00": 2,
+        "46.08": 1,
+        "36.00": 1
+      },
+      "famiglie": {
+        "Interface": 31,
+        "Editorial": 12
+      },
+      "radius": {
+        "4px": 13,
+        "12px": 8
+      },
+      "ombre": {
+        "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(222, 223, 227) 0px 1px 0px 0px, rgba(19, 25, 54, 0.18) 0px 12px 24px -12px": 8
+      },
+      "sfondi": {
+        "rgb(255, 255, 255)": 8,
+        "rgb(250, 250, 247)": 2,
+        "rgb(240, 240, 235)": 2,
+        "rgb(200, 32, 42)": 1
+      },
+      "colori": {
+        "rgb(19, 25, 54)": 23,
+        "rgb(86, 91, 105)": 18,
+        "rgb(200, 32, 42)": 1,
+        "rgb(255, 255, 255)": 1
+      },
+      "testiSotto13px": [],
+      "targetSotto44px": [
+        {
+          "w": 1,
+          "h": 1,
+          "testo": "Vai al contenuto",
+          "tag": "a"
+        }
+      ],
+      "h1": 1,
+      "titoli": [
+        "H1 Da dove parti?",
+        "H3 Ho già scritto il libro",
+        "H3 Ho un'idea o del materiale grezzo",
+        "H3 Memoir, autobiografia, storia familiare",
+        "H3 Libro professionale o d'impresa",
+        "H3 Ricerca storica e archivistica",
+        "H3 Voglio pubblicare",
+        "H3 Voglio promuovere il libro",
+        "H3 Agenzie e white label",
+        "H2 Nessuno dei percorsi ti somiglia?"
+      ]
+    },
+    "1280": {
+      "stato": 200,
+      "altezzaPagina": 1836,
+      "scrollOrizzontale": false,
+      "fontSize": {
+        "15.00": 29,
+        "21.00": 12,
+        "13.50": 5,
+        "17.00": 2,
+        "72.00": 1,
+        "36.00": 1
+      },
+      "famiglie": {
+        "Interface": 38,
+        "Editorial": 12
+      },
+      "radius": {
+        "4px": 19,
+        "12px": 8
+      },
+      "ombre": {
+        "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(222, 223, 227) 0px 1px 0px 0px, rgba(19, 25, 54, 0.18) 0px 12px 24px -12px": 8
+      },
+      "sfondi": {
+        "rgb(255, 255, 255)": 8,
+        "rgb(250, 250, 247)": 2,
+        "rgb(240, 240, 235)": 2,
+        "rgb(200, 32, 42)": 2
+      },
+      "colori": {
+        "rgb(19, 25, 54)": 29,
+        "rgb(86, 91, 105)": 18,
+        "rgb(255, 255, 255)": 2,
+        "rgb(200, 32, 42)": 1
+      },
+      "testiSotto13px": [],
+      "targetSotto44px": [
+        {
+          "w": 1,
+          "h": 1,
+          "testo": "Vai al contenuto",
+          "tag": "a"
+        }
+      ],
+      "h1": 1,
+      "titoli": [
+        "H1 Da dove parti?",
+        "H3 Ho già scritto il libro",
+        "H3 Ho un'idea o del materiale grezzo",
+        "H3 Memoir, autobiografia, storia familiare",
+        "H3 Libro professionale o d'impresa",
+        "H3 Ricerca storica e archivistica",
+        "H3 Voglio pubblicare",
+        "H3 Voglio promuovere il libro",
+        "H3 Agenzie e white label",
+        "H2 Nessuno dei percorsi ti somiglia?"
+      ]
+    },
+    "1440": {
+      "stato": 200,
+      "altezzaPagina": 1836,
+      "scrollOrizzontale": false,
+      "fontSize": {
+        "15.00": 29,
+        "21.00": 12,
+        "13.50": 5,
+        "17.00": 2,
+        "72.00": 1,
+        "36.00": 1
+      },
+      "famiglie": {
+        "Interface": 38,
+        "Editorial": 12
+      },
+      "radius": {
+        "4px": 19,
+        "12px": 8
+      },
+      "ombre": {
+        "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(222, 223, 227) 0px 1px 0px 0px, rgba(19, 25, 54, 0.18) 0px 12px 24px -12px": 8
+      },
+      "sfondi": {
+        "rgb(255, 255, 255)": 8,
+        "rgb(250, 250, 247)": 2,
+        "rgb(240, 240, 235)": 2,
+        "rgb(200, 32, 42)": 2
+      },
+      "colori": {
+        "rgb(19, 25, 54)": 29,
+        "rgb(86, 91, 105)": 18,
+        "rgb(255, 255, 255)": 2,
+        "rgb(200, 32, 42)": 1
+      },
+      "testiSotto13px": [],
+      "targetSotto44px": [
+        {
+          "w": 1,
+          "h": 1,
+          "testo": "Vai al contenuto",
+          "tag": "a"
+        }
+      ],
+      "h1": 1,
+      "titoli": [
+        "H1 Da dove parti?",
+        "H3 Ho già scritto il libro",
+        "H3 Ho un'idea o del materiale grezzo",
+        "H3 Memoir, autobiografia, storia familiare",
+        "H3 Libro professionale o d'impresa",
+        "H3 Ricerca storica e archivistica",
+        "H3 Voglio pubblicare",
+        "H3 Voglio promuovere il libro",
+        "H3 Agenzie e white label",
+        "H2 Nessuno dei percorsi ti somiglia?"
+      ]
+    },
+    "url": "/percorsi"
+  },
+  "come-funziona": {
+    "375": {
+      "stato": 200,
+      "altezzaPagina": 4028,
+      "scrollOrizzontale": false,
+      "fontSize": {
+        "15.00": 24,
+        "21.00": 17,
+        "17.00": 12,
+        "13.50": 5,
+        "36.00": 3,
+        "44.00": 1
+      },
+      "famiglie": {
+        "Interface": 39,
+        "Editorial": 23
+      },
+      "radius": {
+        "4px": 19,
+        "999px": 13
+      },
+      "ombre": {},
+      "sfondi": {
+        "rgb(200, 32, 42)": 5,
+        "rgb(240, 240, 235)": 3,
+        "rgb(250, 250, 247)": 2
+      },
+      "colori": {
+        "rgb(19, 25, 54)": 38,
+        "rgb(86, 91, 105)": 20,
+        "rgb(36, 64, 142)": 2,
+        "rgb(200, 32, 42)": 1,
+        "rgb(255, 255, 255)": 1
+      },
+      "testiSotto13px": [],
+      "targetSotto44px": [
+        {
+          "w": 1,
+          "h": 1,
+          "testo": "Vai al contenuto",
+          "tag": "a"
+        }
+      ],
+      "h1": 1,
+      "titoli": [
+        "H1 Come funziona",
+        "H3 Raccontaci il progetto",
+        "H3 Costruiamo il percorso",
+        "H3 Lavoriamo insieme",
+        "H3 Approvi ogni fase",
+        "H3 Ricevi il libro pronto",
+        "H3 I diritti restano tuoi",
+        "H3 Prezzi chiari prima di iniziare",
+        "H3 Approvi tu ogni fase",
+        "H2 Il tuo ruolo",
+        "H2 Domande frequenti",
+        "H3 Quando inizia il lavoro?",
+        "H3 Quanto dura un progetto?",
+        "H3 Posso cambiare il lavoro concordato dopo l'inizio?",
+        "H3 Chi decide sulle correzioni?",
+        "H2 Quanto costa il tuo libro?"
+      ]
+    },
+    "768": {
+      "stato": 200,
+      "altezzaPagina": 2853,
+      "scrollOrizzontale": false,
+      "fontSize": {
+        "15.00": 24,
+        "21.00": 17,
+        "17.00": 12,
+        "13.50": 5,
+        "36.00": 3,
+        "46.08": 1
+      },
+      "famiglie": {
+        "Interface": 39,
+        "Editorial": 23
+      },
+      "radius": {
+        "4px": 19,
+        "999px": 13
+      },
+      "ombre": {},
+      "sfondi": {
+        "rgb(200, 32, 42)": 5,
+        "rgb(240, 240, 235)": 3,
+        "rgb(250, 250, 247)": 2
+      },
+      "colori": {
+        "rgb(19, 25, 54)": 38,
+        "rgb(86, 91, 105)": 20,
+        "rgb(36, 64, 142)": 2,
+        "rgb(200, 32, 42)": 1,
+        "rgb(255, 255, 255)": 1
+      },
+      "testiSotto13px": [],
+      "targetSotto44px": [
+        {
+          "w": 1,
+          "h": 1,
+          "testo": "Vai al contenuto",
+          "tag": "a"
+        }
+      ],
+      "h1": 1,
+      "titoli": [
+        "H1 Come funziona",
+        "H3 Raccontaci il progetto",
+        "H3 Costruiamo il percorso",
+        "H3 Lavoriamo insieme",
+        "H3 Approvi ogni fase",
+        "H3 Ricevi il libro pronto",
+        "H3 I diritti restano tuoi",
+        "H3 Prezzi chiari prima di iniziare",
+        "H3 Approvi tu ogni fase",
+        "H2 Il tuo ruolo",
+        "H2 Domande frequenti",
+        "H3 Quando inizia il lavoro?",
+        "H3 Quanto dura un progetto?",
+        "H3 Posso cambiare il lavoro concordato dopo l'inizio?",
+        "H3 Chi decide sulle correzioni?",
+        "H2 Quanto costa il tuo libro?"
+      ]
+    },
+    "1280": {
+      "stato": 200,
+      "altezzaPagina": 2383,
+      "scrollOrizzontale": false,
+      "fontSize": {
+        "15.00": 31,
+        "21.00": 17,
+        "17.00": 12,
+        "13.50": 5,
+        "36.00": 3,
+        "72.00": 1
+      },
+      "famiglie": {
+        "Interface": 46,
+        "Editorial": 23
+      },
+      "radius": {
+        "4px": 25,
+        "999px": 13
+      },
+      "ombre": {},
+      "sfondi": {
+        "rgb(250, 250, 247)": 7,
+        "rgb(200, 32, 42)": 6,
+        "rgb(240, 240, 235)": 3
+      },
+      "colori": {
+        "rgb(19, 25, 54)": 44,
+        "rgb(86, 91, 105)": 20,
+        "rgb(255, 255, 255)": 2,
+        "rgb(36, 64, 142)": 2,
+        "rgb(200, 32, 42)": 1
+      },
+      "testiSotto13px": [],
+      "targetSotto44px": [
+        {
+          "w": 1,
+          "h": 1,
+          "testo": "Vai al contenuto",
+          "tag": "a"
+        }
+      ],
+      "h1": 1,
+      "titoli": [
+        "H1 Come funziona",
+        "H3 Raccontaci il progetto",
+        "H3 Costruiamo il percorso",
+        "H3 Lavoriamo insieme",
+        "H3 Approvi ogni fase",
+        "H3 Ricevi il libro pronto",
+        "H3 I diritti restano tuoi",
+        "H3 Prezzi chiari prima di iniziare",
+        "H3 Approvi tu ogni fase",
+        "H2 Il tuo ruolo",
+        "H2 Domande frequenti",
+        "H3 Quando inizia il lavoro?",
+        "H3 Quanto dura un progetto?",
+        "H3 Posso cambiare il lavoro concordato dopo l'inizio?",
+        "H3 Chi decide sulle correzioni?",
+        "H2 Quanto costa il tuo libro?"
+      ]
+    },
+    "1440": {
+      "stato": 200,
+      "altezzaPagina": 2383,
+      "scrollOrizzontale": false,
+      "fontSize": {
+        "15.00": 31,
+        "21.00": 17,
+        "17.00": 12,
+        "13.50": 5,
+        "36.00": 3,
+        "72.00": 1
+      },
+      "famiglie": {
+        "Interface": 46,
+        "Editorial": 23
+      },
+      "radius": {
+        "4px": 25,
+        "999px": 13
+      },
+      "ombre": {},
+      "sfondi": {
+        "rgb(250, 250, 247)": 7,
+        "rgb(200, 32, 42)": 6,
+        "rgb(240, 240, 235)": 3
+      },
+      "colori": {
+        "rgb(19, 25, 54)": 44,
+        "rgb(86, 91, 105)": 20,
+        "rgb(255, 255, 255)": 2,
+        "rgb(36, 64, 142)": 2,
+        "rgb(200, 32, 42)": 1
+      },
+      "testiSotto13px": [],
+      "targetSotto44px": [
+        {
+          "w": 1,
+          "h": 1,
+          "testo": "Vai al contenuto",
+          "tag": "a"
+        }
+      ],
+      "h1": 1,
+      "titoli": [
+        "H1 Come funziona",
+        "H3 Raccontaci il progetto",
+        "H3 Costruiamo il percorso",
+        "H3 Lavoriamo insieme",
+        "H3 Approvi ogni fase",
+        "H3 Ricevi il libro pronto",
+        "H3 I diritti restano tuoi",
+        "H3 Prezzi chiari prima di iniziare",
+        "H3 Approvi tu ogni fase",
+        "H2 Il tuo ruolo",
+        "H2 Domande frequenti",
+        "H3 Quando inizia il lavoro?",
+        "H3 Quanto dura un progetto?",
+        "H3 Posso cambiare il lavoro concordato dopo l'inizio?",
+        "H3 Chi decide sulle correzioni?",
+        "H2 Quanto costa il tuo libro?"
+      ]
+    },
+    "url": "/come-funziona"
+  },
+  "per-agenzie": {
+    "375": {
+      "stato": 200,
+      "altezzaPagina": 3401,
+      "scrollOrizzontale": false,
+      "fontSize": {
+        "15.00": 31,
+        "13.50": 7,
+        "17.00": 7,
+        "21.00": 3,
+        "36.00": 2,
+        "44.00": 1
+      },
+      "famiglie": {
+        "Interface": 46,
+        "Editorial": 5
+      },
+      "radius": {
+        "4px": 19,
+        "999px": 5,
+        "12px": 1
+      },
+      "ombre": {
+        "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(222, 223, 227) 0px 1px 0px 0px, rgba(19, 25, 54, 0.18) 0px 12px 24px -12px": 1
+      },
+      "sfondi": {
+        "rgb(255, 255, 255)": 8,
+        "rgb(200, 32, 42)": 6,
+        "rgb(240, 240, 235)": 3,
+        "rgb(250, 250, 247)": 2
+      },
+      "colori": {
+        "rgb(19, 25, 54)": 27,
+        "rgb(86, 91, 105)": 21,
+        "rgb(200, 32, 42)": 1,
+        "rgb(36, 64, 142)": 1,
+        "rgb(255, 255, 255)": 1
+      },
+      "testiSotto13px": [],
+      "targetSotto44px": [
+        {
+          "w": 1,
+          "h": 1,
+          "testo": "Vai al contenuto",
+          "tag": "a"
+        },
+        {
+          "w": 20,
+          "h": 20,
+          "testo": "",
+          "tag": "input"
+        },
+        {
+          "w": 90,
+          "h": 15,
+          "testo": "privacy policy",
+          "tag": "a"
+        }
+      ],
+      "h1": 1,
+      "titoli": [
+        "H1 Capacità produttiva, a marchio vostro",
+        "H2 Cosa comprende",
+        "H2 Raccontateci come lavorate"
+      ]
+    },
+    "768": {
+      "stato": 200,
+      "altezzaPagina": 2310,
+      "scrollOrizzontale": false,
+      "fontSize": {
+        "15.00": 31,
+        "13.50": 7,
+        "17.00": 7,
+        "21.00": 3,
+        "36.00": 2,
+        "46.08": 1
+      },
+      "famiglie": {
+        "Interface": 46,
+        "Editorial": 5
+      },
+      "radius": {
+        "4px": 19,
+        "999px": 5,
+        "12px": 1
+      },
+      "ombre": {
+        "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(222, 223, 227) 0px 1px 0px 0px, rgba(19, 25, 54, 0.18) 0px 12px 24px -12px": 1
+      },
+      "sfondi": {
+        "rgb(255, 255, 255)": 8,
+        "rgb(200, 32, 42)": 6,
+        "rgb(240, 240, 235)": 3,
+        "rgb(250, 250, 247)": 2
+      },
+      "colori": {
+        "rgb(19, 25, 54)": 27,
+        "rgb(86, 91, 105)": 21,
+        "rgb(200, 32, 42)": 1,
+        "rgb(36, 64, 142)": 1,
+        "rgb(255, 255, 255)": 1
+      },
+      "testiSotto13px": [],
+      "targetSotto44px": [
+        {
+          "w": 1,
+          "h": 1,
+          "testo": "Vai al contenuto",
+          "tag": "a"
+        },
+        {
+          "w": 20,
+          "h": 20,
+          "testo": "",
+          "tag": "input"
+        },
+        {
+          "w": 90,
+          "h": 15,
+          "testo": "privacy policy",
+          "tag": "a"
+        }
+      ],
+      "h1": 1,
+      "titoli": [
+        "H1 Capacità produttiva, a marchio vostro",
+        "H2 Cosa comprende",
+        "H2 Raccontateci come lavorate"
+      ]
+    },
+    "1280": {
+      "stato": 200,
+      "altezzaPagina": 2135,
+      "scrollOrizzontale": false,
+      "fontSize": {
+        "15.00": 38,
+        "13.50": 7,
+        "17.00": 7,
+        "21.00": 3,
+        "36.00": 2,
+        "72.00": 1
+      },
+      "famiglie": {
+        "Interface": 53,
+        "Editorial": 5
+      },
+      "radius": {
+        "4px": 25,
+        "999px": 5,
+        "12px": 1
+      },
+      "ombre": {
+        "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(222, 223, 227) 0px 1px 0px 0px, rgba(19, 25, 54, 0.18) 0px 12px 24px -12px": 1
+      },
+      "sfondi": {
+        "rgb(255, 255, 255)": 8,
+        "rgb(200, 32, 42)": 7,
+        "rgb(240, 240, 235)": 3,
+        "rgb(250, 250, 247)": 2
+      },
+      "colori": {
+        "rgb(19, 25, 54)": 33,
+        "rgb(86, 91, 105)": 21,
+        "rgb(255, 255, 255)": 2,
+        "rgb(200, 32, 42)": 1,
+        "rgb(36, 64, 142)": 1
+      },
+      "testiSotto13px": [],
+      "targetSotto44px": [
+        {
+          "w": 1,
+          "h": 1,
+          "testo": "Vai al contenuto",
+          "tag": "a"
+        },
+        {
+          "w": 20,
+          "h": 20,
+          "testo": "",
+          "tag": "input"
+        },
+        {
+          "w": 90,
+          "h": 15,
+          "testo": "privacy policy",
+          "tag": "a"
+        }
+      ],
+      "h1": 1,
+      "titoli": [
+        "H1 Capacità produttiva, a marchio vostro",
+        "H2 Cosa comprende",
+        "H2 Raccontateci come lavorate"
+      ]
+    },
+    "1440": {
+      "stato": 200,
+      "altezzaPagina": 2135,
+      "scrollOrizzontale": false,
+      "fontSize": {
+        "15.00": 38,
+        "13.50": 7,
+        "17.00": 7,
+        "21.00": 3,
+        "36.00": 2,
+        "72.00": 1
+      },
+      "famiglie": {
+        "Interface": 53,
+        "Editorial": 5
+      },
+      "radius": {
+        "4px": 25,
+        "999px": 5,
+        "12px": 1
+      },
+      "ombre": {
+        "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(222, 223, 227) 0px 1px 0px 0px, rgba(19, 25, 54, 0.18) 0px 12px 24px -12px": 1
+      },
+      "sfondi": {
+        "rgb(255, 255, 255)": 8,
+        "rgb(200, 32, 42)": 7,
+        "rgb(240, 240, 235)": 3,
+        "rgb(250, 250, 247)": 2
+      },
+      "colori": {
+        "rgb(19, 25, 54)": 33,
+        "rgb(86, 91, 105)": 21,
+        "rgb(255, 255, 255)": 2,
+        "rgb(200, 32, 42)": 1,
+        "rgb(36, 64, 142)": 1
+      },
+      "testiSotto13px": [],
+      "targetSotto44px": [
+        {
+          "w": 1,
+          "h": 1,
+          "testo": "Vai al contenuto",
+          "tag": "a"
+        },
+        {
+          "w": 20,
+          "h": 20,
+          "testo": "",
+          "tag": "input"
+        },
+        {
+          "w": 90,
+          "h": 15,
+          "testo": "privacy policy",
+          "tag": "a"
+        }
+      ],
+      "h1": 1,
+      "titoli": [
+        "H1 Capacità produttiva, a marchio vostro",
+        "H2 Cosa comprende",
+        "H2 Raccontateci come lavorate"
+      ]
+    },
+    "url": "/per-agenzie"
+  },
+  "blog": {
+    "375": {
+      "stato": 200,
+      "altezzaPagina": 2591,
+      "scrollOrizzontale": false,
+      "fontSize": {
+        "15.00": 20,
+        "21.00": 7,
+        "13.50": 5,
+        "17.00": 2,
+        "44.00": 1,
+        "36.00": 1
+      },
+      "famiglie": {
+        "Interface": 29,
+        "Editorial": 7
+      },
+      "radius": {
+        "4px": 13,
+        "12px": 3
+      },
+      "ombre": {
+        "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(222, 223, 227) 0px 1px 0px 0px, rgba(19, 25, 54, 0.18) 0px 12px 24px -12px": 3
+      },
+      "sfondi": {
+        "rgb(255, 255, 255)": 3,
+        "rgb(250, 250, 247)": 2,
+        "rgb(240, 240, 235)": 2,
+        "rgb(200, 32, 42)": 1
+      },
+      "colori": {
+        "rgb(19, 25, 54)": 18,
+        "rgb(86, 91, 105)": 16,
+        "rgb(200, 32, 42)": 1,
+        "rgb(255, 255, 255)": 1
+      },
+      "testiSotto13px": [],
+      "targetSotto44px": [
+        {
+          "w": 1,
+          "h": 1,
+          "testo": "Vai al contenuto",
+          "tag": "a"
+        }
+      ],
+      "h1": 1,
+      "titoli": [
+        "H1 Guide",
+        "H2 Editing o correzione bozze: da dove cominciare?",
+        "H2 Come preparare il manoscritto per un editor",
+        "H2 Dalla bozza ai file finali: le approvazioni che co",
+        "H2 Quanto costa il tuo libro?"
+      ]
+    },
+    "768": {
+      "stato": 200,
+      "altezzaPagina": 1689,
+      "scrollOrizzontale": false,
+      "fontSize": {
+        "15.00": 20,
+        "21.00": 7,
+        "13.50": 5,
+        "17.00": 2,
+        "46.08": 1,
+        "36.00": 1
+      },
+      "famiglie": {
+        "Interface": 29,
+        "Editorial": 7
+      },
+      "radius": {
+        "4px": 13,
+        "12px": 3
+      },
+      "ombre": {
+        "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(222, 223, 227) 0px 1px 0px 0px, rgba(19, 25, 54, 0.18) 0px 12px 24px -12px": 3
+      },
+      "sfondi": {
+        "rgb(255, 255, 255)": 3,
+        "rgb(250, 250, 247)": 2,
+        "rgb(240, 240, 235)": 2,
+        "rgb(200, 32, 42)": 1
+      },
+      "colori": {
+        "rgb(19, 25, 54)": 18,
+        "rgb(86, 91, 105)": 16,
+        "rgb(200, 32, 42)": 1,
+        "rgb(255, 255, 255)": 1
+      },
+      "testiSotto13px": [],
+      "targetSotto44px": [
+        {
+          "w": 1,
+          "h": 1,
+          "testo": "Vai al contenuto",
+          "tag": "a"
+        }
+      ],
+      "h1": 1,
+      "titoli": [
+        "H1 Guide",
+        "H2 Editing o correzione bozze: da dove cominciare?",
+        "H2 Come preparare il manoscritto per un editor",
+        "H2 Dalla bozza ai file finali: le approvazioni che co",
+        "H2 Quanto costa il tuo libro?"
+      ]
+    },
+    "1280": {
+      "stato": 200,
+      "altezzaPagina": 1597,
+      "scrollOrizzontale": false,
+      "fontSize": {
+        "15.00": 27,
+        "21.00": 7,
+        "13.50": 5,
+        "17.00": 2,
+        "72.00": 1,
+        "36.00": 1
+      },
+      "famiglie": {
+        "Interface": 36,
+        "Editorial": 7
+      },
+      "radius": {
+        "4px": 19,
+        "12px": 3
+      },
+      "ombre": {
+        "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(222, 223, 227) 0px 1px 0px 0px, rgba(19, 25, 54, 0.18) 0px 12px 24px -12px": 3
+      },
+      "sfondi": {
+        "rgb(255, 255, 255)": 3,
+        "rgb(250, 250, 247)": 2,
+        "rgb(240, 240, 235)": 2,
+        "rgb(200, 32, 42)": 2
+      },
+      "colori": {
+        "rgb(19, 25, 54)": 24,
+        "rgb(86, 91, 105)": 16,
+        "rgb(255, 255, 255)": 2,
+        "rgb(200, 32, 42)": 1
+      },
+      "testiSotto13px": [],
+      "targetSotto44px": [
+        {
+          "w": 1,
+          "h": 1,
+          "testo": "Vai al contenuto",
+          "tag": "a"
+        }
+      ],
+      "h1": 1,
+      "titoli": [
+        "H1 Guide",
+        "H2 Editing o correzione bozze: da dove cominciare?",
+        "H2 Come preparare il manoscritto per un editor",
+        "H2 Dalla bozza ai file finali: le approvazioni che co",
+        "H2 Quanto costa il tuo libro?"
+      ]
+    },
+    "1440": {
+      "stato": 200,
+      "altezzaPagina": 1597,
+      "scrollOrizzontale": false,
+      "fontSize": {
+        "15.00": 27,
+        "21.00": 7,
+        "13.50": 5,
+        "17.00": 2,
+        "72.00": 1,
+        "36.00": 1
+      },
+      "famiglie": {
+        "Interface": 36,
+        "Editorial": 7
+      },
+      "radius": {
+        "4px": 19,
+        "12px": 3
+      },
+      "ombre": {
+        "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(222, 223, 227) 0px 1px 0px 0px, rgba(19, 25, 54, 0.18) 0px 12px 24px -12px": 3
+      },
+      "sfondi": {
+        "rgb(255, 255, 255)": 3,
+        "rgb(250, 250, 247)": 2,
+        "rgb(240, 240, 235)": 2,
+        "rgb(200, 32, 42)": 2
+      },
+      "colori": {
+        "rgb(19, 25, 54)": 24,
+        "rgb(86, 91, 105)": 16,
+        "rgb(255, 255, 255)": 2,
+        "rgb(200, 32, 42)": 1
+      },
+      "testiSotto13px": [],
+      "targetSotto44px": [
+        {
+          "w": 1,
+          "h": 1,
+          "testo": "Vai al contenuto",
+          "tag": "a"
+        }
+      ],
+      "h1": 1,
+      "titoli": [
+        "H1 Guide",
+        "H2 Editing o correzione bozze: da dove cominciare?",
+        "H2 Come preparare il manoscritto per un editor",
+        "H2 Dalla bozza ai file finali: le approvazioni che co",
+        "H2 Quanto costa il tuo libro?"
+      ]
+    },
+    "url": "/blog"
+  },
+  "contatti": {
+    "375": {
+      "stato": 200,
+      "altezzaPagina": 2385,
+      "scrollOrizzontale": false,
+      "fontSize": {
+        "15.00": 28,
+        "13.50": 7,
+        "21.00": 3,
+        "44.00": 1,
+        "17.00": 1
+      },
+      "famiglie": {
+        "Interface": 37,
+        "Editorial": 3
+      },
+      "radius": {
+        "4px": 18,
+        "12px": 1
+      },
+      "ombre": {
+        "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(222, 223, 227) 0px 1px 0px 0px, rgba(19, 25, 54, 0.18) 0px 12px 24px -12px": 1
+      },
+      "sfondi": {
+        "rgb(255, 255, 255)": 5,
+        "rgb(250, 250, 247)": 2,
+        "rgb(240, 240, 235)": 2,
+        "rgb(200, 32, 42)": 1
+      },
+      "colori": {
+        "rgb(86, 91, 105)": 18,
+        "rgb(19, 25, 54)": 17,
+        "rgb(36, 64, 142)": 3,
+        "rgb(200, 32, 42)": 1,
+        "rgb(255, 255, 255)": 1
+      },
+      "testiSotto13px": [],
+      "targetSotto44px": [
+        {
+          "w": 1,
+          "h": 1,
+          "testo": "Vai al contenuto",
+          "tag": "a"
+        },
+        {
+          "w": 20,
+          "h": 20,
+          "testo": "",
+          "tag": "input"
+        },
+        {
+          "w": 90,
+          "h": 15,
+          "testo": "privacy policy",
+          "tag": "a"
+        },
+        {
+          "w": 20,
+          "h": 20,
+          "testo": "",
+          "tag": "input"
+        }
+      ],
+      "h1": 1,
+      "titoli": [
+        "H1 Parliamone."
+      ]
+    },
+    "768": {
+      "stato": 200,
+      "altezzaPagina": 1657,
+      "scrollOrizzontale": false,
+      "fontSize": {
+        "15.00": 28,
+        "13.50": 7,
+        "21.00": 3,
+        "46.08": 1,
+        "17.00": 1
+      },
+      "famiglie": {
+        "Interface": 37,
+        "Editorial": 3
+      },
+      "radius": {
+        "4px": 18,
+        "12px": 1
+      },
+      "ombre": {
+        "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(222, 223, 227) 0px 1px 0px 0px, rgba(19, 25, 54, 0.18) 0px 12px 24px -12px": 1
+      },
+      "sfondi": {
+        "rgb(255, 255, 255)": 5,
+        "rgb(250, 250, 247)": 2,
+        "rgb(240, 240, 235)": 2,
+        "rgb(200, 32, 42)": 1
+      },
+      "colori": {
+        "rgb(86, 91, 105)": 18,
+        "rgb(19, 25, 54)": 17,
+        "rgb(36, 64, 142)": 3,
+        "rgb(200, 32, 42)": 1,
+        "rgb(255, 255, 255)": 1
+      },
+      "testiSotto13px": [],
+      "targetSotto44px": [
+        {
+          "w": 1,
+          "h": 1,
+          "testo": "Vai al contenuto",
+          "tag": "a"
+        },
+        {
+          "w": 20,
+          "h": 20,
+          "testo": "",
+          "tag": "input"
+        },
+        {
+          "w": 90,
+          "h": 15,
+          "testo": "privacy policy",
+          "tag": "a"
+        },
+        {
+          "w": 20,
+          "h": 20,
+          "testo": "",
+          "tag": "input"
+        }
+      ],
+      "h1": 1,
+      "titoli": [
+        "H1 Parliamone."
+      ]
+    },
+    "1280": {
+      "stato": 200,
+      "altezzaPagina": 1431,
+      "scrollOrizzontale": false,
+      "fontSize": {
+        "15.00": 35,
+        "13.50": 7,
+        "21.00": 3,
+        "72.00": 1,
+        "17.00": 1
+      },
+      "famiglie": {
+        "Interface": 44,
+        "Editorial": 3
+      },
+      "radius": {
+        "4px": 24,
+        "12px": 1
+      },
+      "ombre": {
+        "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(222, 223, 227) 0px 1px 0px 0px, rgba(19, 25, 54, 0.18) 0px 12px 24px -12px": 1
+      },
+      "sfondi": {
+        "rgb(255, 255, 255)": 5,
+        "rgb(250, 250, 247)": 2,
+        "rgb(240, 240, 235)": 2,
+        "rgb(200, 32, 42)": 2
+      },
+      "colori": {
+        "rgb(19, 25, 54)": 23,
+        "rgb(86, 91, 105)": 18,
+        "rgb(36, 64, 142)": 3,
+        "rgb(255, 255, 255)": 2,
+        "rgb(200, 32, 42)": 1
+      },
+      "testiSotto13px": [],
+      "targetSotto44px": [
+        {
+          "w": 1,
+          "h": 1,
+          "testo": "Vai al contenuto",
+          "tag": "a"
+        },
+        {
+          "w": 20,
+          "h": 20,
+          "testo": "",
+          "tag": "input"
+        },
+        {
+          "w": 90,
+          "h": 15,
+          "testo": "privacy policy",
+          "tag": "a"
+        },
+        {
+          "w": 20,
+          "h": 20,
+          "testo": "",
+          "tag": "input"
+        }
+      ],
+      "h1": 1,
+      "titoli": [
+        "H1 Parliamone."
+      ]
+    },
+    "1440": {
+      "stato": 200,
+      "altezzaPagina": 1431,
+      "scrollOrizzontale": false,
+      "fontSize": {
+        "15.00": 35,
+        "13.50": 7,
+        "21.00": 3,
+        "72.00": 1,
+        "17.00": 1
+      },
+      "famiglie": {
+        "Interface": 44,
+        "Editorial": 3
+      },
+      "radius": {
+        "4px": 24,
+        "12px": 1
+      },
+      "ombre": {
+        "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(222, 223, 227) 0px 1px 0px 0px, rgba(19, 25, 54, 0.18) 0px 12px 24px -12px": 1
+      },
+      "sfondi": {
+        "rgb(255, 255, 255)": 5,
+        "rgb(250, 250, 247)": 2,
+        "rgb(240, 240, 235)": 2,
+        "rgb(200, 32, 42)": 2
+      },
+      "colori": {
+        "rgb(19, 25, 54)": 23,
+        "rgb(86, 91, 105)": 18,
+        "rgb(36, 64, 142)": 3,
+        "rgb(255, 255, 255)": 2,
+        "rgb(200, 32, 42)": 1
+      },
+      "testiSotto13px": [],
+      "targetSotto44px": [
+        {
+          "w": 1,
+          "h": 1,
+          "testo": "Vai al contenuto",
+          "tag": "a"
+        },
+        {
+          "w": 20,
+          "h": 20,
+          "testo": "",
+          "tag": "input"
+        },
+        {
+          "w": 90,
+          "h": 15,
+          "testo": "privacy policy",
+          "tag": "a"
+        },
+        {
+          "w": 20,
+          "h": 20,
+          "testo": "",
+          "tag": "input"
+        }
+      ],
+      "h1": 1,
+      "titoli": [
+        "H1 Parliamone."
+      ]
+    },
+    "url": "/contatti"
+  },
+  "chi-siamo": {
+    "375": {
+      "stato": 200,
+      "altezzaPagina": 3748,
+      "scrollOrizzontale": false,
+      "fontSize": {
+        "15.00": 17,
+        "21.00": 13,
+        "17.00": 9,
+        "13.50": 5,
+        "36.00": 3,
+        "44.00": 1
+      },
+      "famiglie": {
+        "Interface": 34,
+        "Editorial": 14
+      },
+      "radius": {
+        "4px": 14
+      },
+      "ombre": {},
+      "sfondi": {
+        "rgb(240, 240, 235)": 3,
+        "rgb(250, 250, 247)": 2,
+        "rgb(200, 32, 42)": 1
+      },
+      "colori": {
+        "rgb(19, 25, 54)": 25,
+        "rgb(86, 91, 105)": 20,
+        "rgb(200, 32, 42)": 1,
+        "rgb(36, 64, 142)": 1,
+        "rgb(255, 255, 255)": 1
+      },
+      "testiSotto13px": [],
+      "targetSotto44px": [
+        {
+          "w": 1,
+          "h": 1,
+          "testo": "Vai al contenuto",
+          "tag": "a"
+        }
+      ],
+      "h1": 1,
+      "titoli": [
+        "H1 Chi c’è dietro",
+        "H2 Chi lavora sul tuo libro",
+        "H3 Editor",
+        "H3 Responsabile di progetto",
+        "H3 Grafico editoriale",
+        "H3 Specialista di pubblicazione",
+        "H2 Quello in cui crediamo",
+        "H3 Chiarezza",
+        "H3 Accompagnamento",
+        "H3 Responsabilità",
+        "H2 Quanto costa il tuo libro?"
+      ]
+    },
+    "768": {
+      "stato": 200,
+      "altezzaPagina": 2346,
+      "scrollOrizzontale": false,
+      "fontSize": {
+        "15.00": 17,
+        "21.00": 13,
+        "17.00": 9,
+        "13.50": 5,
+        "36.00": 3,
+        "46.08": 1
+      },
+      "famiglie": {
+        "Interface": 34,
+        "Editorial": 14
+      },
+      "radius": {
+        "4px": 14
+      },
+      "ombre": {},
+      "sfondi": {
+        "rgb(240, 240, 235)": 3,
+        "rgb(250, 250, 247)": 2,
+        "rgb(200, 32, 42)": 1
+      },
+      "colori": {
+        "rgb(19, 25, 54)": 25,
+        "rgb(86, 91, 105)": 20,
+        "rgb(200, 32, 42)": 1,
+        "rgb(36, 64, 142)": 1,
+        "rgb(255, 255, 255)": 1
+      },
+      "testiSotto13px": [],
+      "targetSotto44px": [
+        {
+          "w": 1,
+          "h": 1,
+          "testo": "Vai al contenuto",
+          "tag": "a"
+        }
+      ],
+      "h1": 1,
+      "titoli": [
+        "H1 Chi c’è dietro",
+        "H2 Chi lavora sul tuo libro",
+        "H3 Editor",
+        "H3 Responsabile di progetto",
+        "H3 Grafico editoriale",
+        "H3 Specialista di pubblicazione",
+        "H2 Quello in cui crediamo",
+        "H3 Chiarezza",
+        "H3 Accompagnamento",
+        "H3 Responsabilità",
+        "H2 Quanto costa il tuo libro?"
+      ]
+    },
+    "1280": {
+      "stato": 200,
+      "altezzaPagina": 2525,
+      "scrollOrizzontale": false,
+      "fontSize": {
+        "15.00": 24,
+        "21.00": 13,
+        "17.00": 9,
+        "13.50": 5,
+        "36.00": 3,
+        "72.00": 1
+      },
+      "famiglie": {
+        "Interface": 41,
+        "Editorial": 14
+      },
+      "radius": {
+        "4px": 20
+      },
+      "ombre": {},
+      "sfondi": {
+        "rgb(240, 240, 235)": 3,
+        "rgb(250, 250, 247)": 2,
+        "rgb(200, 32, 42)": 2
+      },
+      "colori": {
+        "rgb(19, 25, 54)": 31,
+        "rgb(86, 91, 105)": 20,
+        "rgb(255, 255, 255)": 2,
+        "rgb(200, 32, 42)": 1,
+        "rgb(36, 64, 142)": 1
+      },
+      "testiSotto13px": [],
+      "targetSotto44px": [
+        {
+          "w": 1,
+          "h": 1,
+          "testo": "Vai al contenuto",
+          "tag": "a"
+        }
+      ],
+      "h1": 1,
+      "titoli": [
+        "H1 Chi c’è dietro",
+        "H2 Chi lavora sul tuo libro",
+        "H3 Editor",
+        "H3 Responsabile di progetto",
+        "H3 Grafico editoriale",
+        "H3 Specialista di pubblicazione",
+        "H2 Quello in cui crediamo",
+        "H3 Chiarezza",
+        "H3 Accompagnamento",
+        "H3 Responsabilità",
+        "H2 Quanto costa il tuo libro?"
+      ]
+    },
+    "1440": {
+      "stato": 200,
+      "altezzaPagina": 2525,
+      "scrollOrizzontale": false,
+      "fontSize": {
+        "15.00": 24,
+        "21.00": 13,
+        "17.00": 9,
+        "13.50": 5,
+        "36.00": 3,
+        "72.00": 1
+      },
+      "famiglie": {
+        "Interface": 41,
+        "Editorial": 14
+      },
+      "radius": {
+        "4px": 20
+      },
+      "ombre": {},
+      "sfondi": {
+        "rgb(240, 240, 235)": 3,
+        "rgb(250, 250, 247)": 2,
+        "rgb(200, 32, 42)": 2
+      },
+      "colori": {
+        "rgb(19, 25, 54)": 31,
+        "rgb(86, 91, 105)": 20,
+        "rgb(255, 255, 255)": 2,
+        "rgb(200, 32, 42)": 1,
+        "rgb(36, 64, 142)": 1
+      },
+      "testiSotto13px": [],
+      "targetSotto44px": [
+        {
+          "w": 1,
+          "h": 1,
+          "testo": "Vai al contenuto",
+          "tag": "a"
+        }
+      ],
+      "h1": 1,
+      "titoli": [
+        "H1 Chi c’è dietro",
+        "H2 Chi lavora sul tuo libro",
+        "H3 Editor",
+        "H3 Responsabile di progetto",
+        "H3 Grafico editoriale",
+        "H3 Specialista di pubblicazione",
+        "H2 Quello in cui crediamo",
+        "H3 Chiarezza",
+        "H3 Accompagnamento",
+        "H3 Responsabilità",
+        "H2 Quanto costa il tuo libro?"
+      ]
+    },
+    "url": "/chi-siamo"
+  },
+  "casi-studio": {
+    "375": {
+      "stato": 200,
+      "altezzaPagina": 2650,
+      "scrollOrizzontale": false,
+      "fontSize": {
+        "15.00": 20,
+        "21.00": 7,
+        "13.50": 6,
+        "17.00": 2,
+        "44.00": 1,
+        "36.00": 1
+      },
+      "famiglie": {
+        "Interface": 30,
+        "Editorial": 7
+      },
+      "radius": {
+        "4px": 13,
+        "12px": 3
+      },
+      "ombre": {
+        "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(222, 223, 227) 0px 1px 0px 0px, rgba(19, 25, 54, 0.18) 0px 12px 24px -12px": 3
+      },
+      "sfondi": {
+        "rgb(255, 255, 255)": 3,
+        "rgb(250, 250, 247)": 2,
+        "rgb(240, 240, 235)": 2,
+        "rgb(200, 32, 42)": 1
+      },
+      "colori": {
+        "rgb(19, 25, 54)": 18,
+        "rgb(86, 91, 105)": 17,
+        "rgb(200, 32, 42)": 1,
+        "rgb(255, 255, 255)": 1
+      },
+      "testiSotto13px": [],
+      "targetSotto44px": [
+        {
+          "w": 1,
+          "h": 1,
+          "testo": "Vai al contenuto",
+          "tag": "a"
+        }
+      ],
+      "h1": 1,
+      "titoli": [
+        "H1 Casi studio",
+        "H2 Dal diario di una vita a un romanzo pubblicato",
+        "H2 Un manoscritto finito, portato in libreria digital",
+        "H2 Il manuale che un consulente usa come biglietto da",
+        "H2 Quanto costa il tuo libro?"
+      ]
+    },
+    "768": {
+      "stato": 200,
+      "altezzaPagina": 1726,
+      "scrollOrizzontale": false,
+      "fontSize": {
+        "15.00": 20,
+        "21.00": 7,
+        "13.50": 6,
+        "17.00": 2,
+        "46.08": 1,
+        "36.00": 1
+      },
+      "famiglie": {
+        "Interface": 30,
+        "Editorial": 7
+      },
+      "radius": {
+        "4px": 13,
+        "12px": 3
+      },
+      "ombre": {
+        "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(222, 223, 227) 0px 1px 0px 0px, rgba(19, 25, 54, 0.18) 0px 12px 24px -12px": 3
+      },
+      "sfondi": {
+        "rgb(255, 255, 255)": 3,
+        "rgb(250, 250, 247)": 2,
+        "rgb(240, 240, 235)": 2,
+        "rgb(200, 32, 42)": 1
+      },
+      "colori": {
+        "rgb(19, 25, 54)": 18,
+        "rgb(86, 91, 105)": 17,
+        "rgb(200, 32, 42)": 1,
+        "rgb(255, 255, 255)": 1
+      },
+      "testiSotto13px": [],
+      "targetSotto44px": [
+        {
+          "w": 1,
+          "h": 1,
+          "testo": "Vai al contenuto",
+          "tag": "a"
+        }
+      ],
+      "h1": 1,
+      "titoli": [
+        "H1 Casi studio",
+        "H2 Dal diario di una vita a un romanzo pubblicato",
+        "H2 Un manoscritto finito, portato in libreria digital",
+        "H2 Il manuale che un consulente usa come biglietto da",
+        "H2 Quanto costa il tuo libro?"
+      ]
+    },
+    "1280": {
+      "stato": 200,
+      "altezzaPagina": 1633,
+      "scrollOrizzontale": false,
+      "fontSize": {
+        "15.00": 27,
+        "21.00": 7,
+        "13.50": 6,
+        "17.00": 2,
+        "72.00": 1,
+        "36.00": 1
+      },
+      "famiglie": {
+        "Interface": 37,
+        "Editorial": 7
+      },
+      "radius": {
+        "4px": 19,
+        "12px": 3
+      },
+      "ombre": {
+        "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(222, 223, 227) 0px 1px 0px 0px, rgba(19, 25, 54, 0.18) 0px 12px 24px -12px": 3
+      },
+      "sfondi": {
+        "rgb(255, 255, 255)": 3,
+        "rgb(250, 250, 247)": 2,
+        "rgb(240, 240, 235)": 2,
+        "rgb(200, 32, 42)": 2
+      },
+      "colori": {
+        "rgb(19, 25, 54)": 24,
+        "rgb(86, 91, 105)": 17,
+        "rgb(255, 255, 255)": 2,
+        "rgb(200, 32, 42)": 1
+      },
+      "testiSotto13px": [],
+      "targetSotto44px": [
+        {
+          "w": 1,
+          "h": 1,
+          "testo": "Vai al contenuto",
+          "tag": "a"
+        }
+      ],
+      "h1": 1,
+      "titoli": [
+        "H1 Casi studio",
+        "H2 Dal diario di una vita a un romanzo pubblicato",
+        "H2 Un manoscritto finito, portato in libreria digital",
+        "H2 Il manuale che un consulente usa come biglietto da",
+        "H2 Quanto costa il tuo libro?"
+      ]
+    },
+    "1440": {
+      "stato": 200,
+      "altezzaPagina": 1633,
+      "scrollOrizzontale": false,
+      "fontSize": {
+        "15.00": 27,
+        "21.00": 7,
+        "13.50": 6,
+        "17.00": 2,
+        "72.00": 1,
+        "36.00": 1
+      },
+      "famiglie": {
+        "Interface": 37,
+        "Editorial": 7
+      },
+      "radius": {
+        "4px": 19,
+        "12px": 3
+      },
+      "ombre": {
+        "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(222, 223, 227) 0px 1px 0px 0px, rgba(19, 25, 54, 0.18) 0px 12px 24px -12px": 3
+      },
+      "sfondi": {
+        "rgb(255, 255, 255)": 3,
+        "rgb(250, 250, 247)": 2,
+        "rgb(240, 240, 235)": 2,
+        "rgb(200, 32, 42)": 2
+      },
+      "colori": {
+        "rgb(19, 25, 54)": 24,
+        "rgb(86, 91, 105)": 17,
+        "rgb(255, 255, 255)": 2,
+        "rgb(200, 32, 42)": 1
+      },
+      "testiSotto13px": [],
+      "targetSotto44px": [
+        {
+          "w": 1,
+          "h": 1,
+          "testo": "Vai al contenuto",
+          "tag": "a"
+        }
+      ],
+      "h1": 1,
+      "titoli": [
+        "H1 Casi studio",
+        "H2 Dal diario di una vita a un romanzo pubblicato",
+        "H2 Un manoscritto finito, portato in libreria digital",
+        "H2 Il manuale che un consulente usa come biglietto da",
+        "H2 Quanto costa il tuo libro?"
+      ]
+    },
+    "url": "/casi-studio"
+  },
+  "servizio": {
+    "375": {
+      "stato": 200,
+      "altezzaPagina": 4548,
+      "scrollOrizzontale": false,
+      "fontSize": {
+        "15.00": 28,
+        "17.00": 11,
+        "21.00": 10,
+        "13.50": 5,
+        "36.00": 5,
+        "44.00": 1,
+        "27.00": 1
+      },
+      "famiglie": {
+        "Interface": 49,
+        "Editorial": 12
+      },
+      "radius": {
+        "4px": 15,
+        "999px": 7,
+        "12px": 4
+      },
+      "ombre": {
+        "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(222, 223, 227) 0px 1px 0px 0px, rgba(19, 25, 54, 0.18) 0px 12px 24px -12px": 4
+      },
+      "sfondi": {
+        "rgb(200, 32, 42)": 7,
+        "rgb(255, 255, 255)": 4,
+        "rgb(240, 240, 235)": 3,
+        "rgb(250, 250, 247)": 2,
+        "rgb(86, 91, 105)": 2
+      },
+      "colori": {
+        "rgb(19, 25, 54)": 32,
+        "rgb(86, 91, 105)": 26,
+        "rgb(255, 255, 255)": 2,
+        "rgb(200, 32, 42)": 1
+      },
+      "testiSotto13px": [],
+      "targetSotto44px": [
+        {
+          "w": 1,
+          "h": 1,
+          "testo": "Vai al contenuto",
+          "tag": "a"
+        }
+      ],
+      "h1": 1,
+      "titoli": [
+        "H1 Correzione bozze",
+        "H2 Quello che ricevi",
+        "H2 Quello che non ricevi",
+        "H2 I percorsi che lo includono",
+        "H3 Ho già scritto il libro",
+        "H2 Spesso insieme",
+        "H3 Revisione linguistica",
+        "H3 Impaginazione",
+        "H2 Quanto costa il tuo libro?"
+      ]
+    },
+    "768": {
+      "stato": 200,
+      "altezzaPagina": 3372,
+      "scrollOrizzontale": false,
+      "fontSize": {
+        "15.00": 28,
+        "17.00": 11,
+        "21.00": 10,
+        "13.50": 5,
+        "36.00": 5,
+        "46.08": 1,
+        "27.00": 1
+      },
+      "famiglie": {
+        "Interface": 49,
+        "Editorial": 12
+      },
+      "radius": {
+        "4px": 15,
+        "999px": 7,
+        "12px": 4
+      },
+      "ombre": {
+        "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(222, 223, 227) 0px 1px 0px 0px, rgba(19, 25, 54, 0.18) 0px 12px 24px -12px": 4
+      },
+      "sfondi": {
+        "rgb(200, 32, 42)": 7,
+        "rgb(255, 255, 255)": 4,
+        "rgb(240, 240, 235)": 3,
+        "rgb(250, 250, 247)": 2,
+        "rgb(86, 91, 105)": 2
+      },
+      "colori": {
+        "rgb(19, 25, 54)": 32,
+        "rgb(86, 91, 105)": 26,
+        "rgb(255, 255, 255)": 2,
+        "rgb(200, 32, 42)": 1
+      },
+      "testiSotto13px": [],
+      "targetSotto44px": [
+        {
+          "w": 1,
+          "h": 1,
+          "testo": "Vai al contenuto",
+          "tag": "a"
+        }
+      ],
+      "h1": 1,
+      "titoli": [
+        "H1 Correzione bozze",
+        "H2 Quello che ricevi",
+        "H2 Quello che non ricevi",
+        "H2 I percorsi che lo includono",
+        "H3 Ho già scritto il libro",
+        "H2 Spesso insieme",
+        "H3 Revisione linguistica",
+        "H3 Impaginazione",
+        "H2 Quanto costa il tuo libro?"
+      ]
+    },
+    "1280": {
+      "stato": 200,
+      "altezzaPagina": 3341,
+      "scrollOrizzontale": false,
+      "fontSize": {
+        "15.00": 35,
+        "17.00": 11,
+        "21.00": 10,
+        "13.50": 5,
+        "36.00": 5,
+        "72.00": 1,
+        "27.00": 1
+      },
+      "famiglie": {
+        "Interface": 56,
+        "Editorial": 12
+      },
+      "radius": {
+        "4px": 21,
+        "999px": 7,
+        "12px": 4
+      },
+      "ombre": {
+        "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(222, 223, 227) 0px 1px 0px 0px, rgba(19, 25, 54, 0.18) 0px 12px 24px -12px": 4
+      },
+      "sfondi": {
+        "rgb(200, 32, 42)": 8,
+        "rgb(255, 255, 255)": 4,
+        "rgb(240, 240, 235)": 3,
+        "rgb(250, 250, 247)": 2,
+        "rgb(86, 91, 105)": 2
+      },
+      "colori": {
+        "rgb(19, 25, 54)": 38,
+        "rgb(86, 91, 105)": 26,
+        "rgb(255, 255, 255)": 3,
+        "rgb(200, 32, 42)": 1
+      },
+      "testiSotto13px": [],
+      "targetSotto44px": [
+        {
+          "w": 1,
+          "h": 1,
+          "testo": "Vai al contenuto",
+          "tag": "a"
+        }
+      ],
+      "h1": 1,
+      "titoli": [
+        "H1 Correzione bozze",
+        "H2 Quello che ricevi",
+        "H2 Quello che non ricevi",
+        "H2 I percorsi che lo includono",
+        "H3 Ho già scritto il libro",
+        "H2 Spesso insieme",
+        "H3 Revisione linguistica",
+        "H3 Impaginazione",
+        "H2 Quanto costa il tuo libro?"
+      ]
+    },
+    "1440": {
+      "stato": 200,
+      "altezzaPagina": 3341,
+      "scrollOrizzontale": false,
+      "fontSize": {
+        "15.00": 35,
+        "17.00": 11,
+        "21.00": 10,
+        "13.50": 5,
+        "36.00": 5,
+        "72.00": 1,
+        "27.00": 1
+      },
+      "famiglie": {
+        "Interface": 56,
+        "Editorial": 12
+      },
+      "radius": {
+        "4px": 21,
+        "999px": 7,
+        "12px": 4
+      },
+      "ombre": {
+        "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(222, 223, 227) 0px 1px 0px 0px, rgba(19, 25, 54, 0.18) 0px 12px 24px -12px": 4
+      },
+      "sfondi": {
+        "rgb(200, 32, 42)": 8,
+        "rgb(255, 255, 255)": 4,
+        "rgb(240, 240, 235)": 3,
+        "rgb(250, 250, 247)": 2,
+        "rgb(86, 91, 105)": 2
+      },
+      "colori": {
+        "rgb(19, 25, 54)": 38,
+        "rgb(86, 91, 105)": 26,
+        "rgb(255, 255, 255)": 3,
+        "rgb(200, 32, 42)": 1
+      },
+      "testiSotto13px": [],
+      "targetSotto44px": [
+        {
+          "w": 1,
+          "h": 1,
+          "testo": "Vai al contenuto",
+          "tag": "a"
+        }
+      ],
+      "h1": 1,
+      "titoli": [
+        "H1 Correzione bozze",
+        "H2 Quello che ricevi",
+        "H2 Quello che non ricevi",
+        "H2 I percorsi che lo includono",
+        "H3 Ho già scritto il libro",
+        "H2 Spesso insieme",
+        "H3 Revisione linguistica",
+        "H3 Impaginazione",
+        "H2 Quanto costa il tuo libro?"
+      ]
+    },
+    "url": "/servizi/correzione-bozze"
+  },
+  "percorso": {
+    "375": {
+      "stato": 200,
+      "altezzaPagina": 6345,
+      "scrollOrizzontale": false,
+      "fontSize": {
+        "15.00": 39,
+        "21.00": 22,
+        "17.00": 10,
+        "13.50": 5,
+        "36.00": 5,
+        "44.00": 1,
+        "27.00": 1
+      },
+      "famiglie": {
+        "Interface": 55,
+        "Editorial": 28
+      },
+      "radius": {
+        "4px": 19,
+        "12px": 9,
+        "999px": 7
+      },
+      "ombre": {
+        "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(222, 223, 227) 0px 1px 0px 0px, rgba(19, 25, 54, 0.18) 0px 12px 24px -12px": 9
+      },
+      "sfondi": {
+        "rgb(255, 255, 255)": 9,
+        "rgb(240, 240, 235)": 3,
+        "rgb(250, 250, 247)": 2,
+        "rgb(200, 32, 42)": 2
+      },
+      "colori": {
+        "rgb(19, 25, 54)": 43,
+        "rgb(86, 91, 105)": 36,
+        "rgb(255, 255, 255)": 2,
+        "rgb(200, 32, 42)": 1,
+        "rgb(36, 64, 142)": 1
+      },
+      "testiSotto13px": [],
+      "targetSotto44px": [
+        {
+          "w": 1,
+          "h": 1,
+          "testo": "Vai al contenuto",
+          "tag": "a"
+        }
+      ],
+      "h1": 1,
+      "titoli": [
+        "H1 Ho già scritto il libro",
+        "H2 Le tappe del percorso",
+        "H3 Lettura e diagnosi",
+        "H3 Livello di intervento",
+        "H3 Lavorazione",
+        "H3 Chiusura",
+        "H2 I servizi di questo percorso",
+        "H3 Scheda di valutazione editoriale",
+        "H3 Correzione bozze",
+        "H3 Revisione linguistica",
+        "H3 Editing stilistico",
+        "H3 Editing narrativo",
+        "H2 Domande su questo percorso",
+        "H3 Come faccio a sapere quale livello mi serve?",
+        "H3 Mi cambiate la voce?",
+        "H3 Quanto ci vuole?",
+        "H2 Non è il tuo caso?",
+        "H3 Ho un'idea o del materiale grezzo",
+        "H3 Memoir, autobiografia, storia familiare",
+        "H3 Libro professionale o d'impresa",
+        "H2 Quanto costa il tuo libro?"
+      ]
+    },
+    "768": {
+      "stato": 200,
+      "altezzaPagina": 4260,
+      "scrollOrizzontale": false,
+      "fontSize": {
+        "15.00": 39,
+        "21.00": 22,
+        "17.00": 10,
+        "13.50": 5,
+        "36.00": 5,
+        "46.08": 1,
+        "27.00": 1
+      },
+      "famiglie": {
+        "Interface": 55,
+        "Editorial": 28
+      },
+      "radius": {
+        "4px": 19,
+        "12px": 9,
+        "999px": 7
+      },
+      "ombre": {
+        "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(222, 223, 227) 0px 1px 0px 0px, rgba(19, 25, 54, 0.18) 0px 12px 24px -12px": 9
+      },
+      "sfondi": {
+        "rgb(255, 255, 255)": 9,
+        "rgb(240, 240, 235)": 3,
+        "rgb(250, 250, 247)": 2,
+        "rgb(200, 32, 42)": 2
+      },
+      "colori": {
+        "rgb(19, 25, 54)": 43,
+        "rgb(86, 91, 105)": 36,
+        "rgb(255, 255, 255)": 2,
+        "rgb(200, 32, 42)": 1,
+        "rgb(36, 64, 142)": 1
+      },
+      "testiSotto13px": [],
+      "targetSotto44px": [
+        {
+          "w": 1,
+          "h": 1,
+          "testo": "Vai al contenuto",
+          "tag": "a"
+        }
+      ],
+      "h1": 1,
+      "titoli": [
+        "H1 Ho già scritto il libro",
+        "H2 Le tappe del percorso",
+        "H3 Lettura e diagnosi",
+        "H3 Livello di intervento",
+        "H3 Lavorazione",
+        "H3 Chiusura",
+        "H2 I servizi di questo percorso",
+        "H3 Scheda di valutazione editoriale",
+        "H3 Correzione bozze",
+        "H3 Revisione linguistica",
+        "H3 Editing stilistico",
+        "H3 Editing narrativo",
+        "H2 Domande su questo percorso",
+        "H3 Come faccio a sapere quale livello mi serve?",
+        "H3 Mi cambiate la voce?",
+        "H3 Quanto ci vuole?",
+        "H2 Non è il tuo caso?",
+        "H3 Ho un'idea o del materiale grezzo",
+        "H3 Memoir, autobiografia, storia familiare",
+        "H3 Libro professionale o d'impresa",
+        "H2 Quanto costa il tuo libro?"
+      ]
+    },
+    "1280": {
+      "stato": 200,
+      "altezzaPagina": 4148,
+      "scrollOrizzontale": false,
+      "fontSize": {
+        "15.00": 46,
+        "21.00": 22,
+        "17.00": 10,
+        "13.50": 5,
+        "36.00": 5,
+        "72.00": 1,
+        "27.00": 1
+      },
+      "famiglie": {
+        "Interface": 62,
+        "Editorial": 28
+      },
+      "radius": {
+        "4px": 25,
+        "12px": 9,
+        "999px": 7
+      },
+      "ombre": {
+        "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(222, 223, 227) 0px 1px 0px 0px, rgba(19, 25, 54, 0.18) 0px 12px 24px -12px": 9
+      },
+      "sfondi": {
+        "rgb(255, 255, 255)": 9,
+        "rgb(240, 240, 235)": 3,
+        "rgb(200, 32, 42)": 3,
+        "rgb(250, 250, 247)": 2
+      },
+      "colori": {
+        "rgb(19, 25, 54)": 49,
+        "rgb(86, 91, 105)": 36,
+        "rgb(255, 255, 255)": 3,
+        "rgb(200, 32, 42)": 1,
+        "rgb(36, 64, 142)": 1
+      },
+      "testiSotto13px": [],
+      "targetSotto44px": [
+        {
+          "w": 1,
+          "h": 1,
+          "testo": "Vai al contenuto",
+          "tag": "a"
+        }
+      ],
+      "h1": 1,
+      "titoli": [
+        "H1 Ho già scritto il libro",
+        "H2 Le tappe del percorso",
+        "H3 Lettura e diagnosi",
+        "H3 Livello di intervento",
+        "H3 Lavorazione",
+        "H3 Chiusura",
+        "H2 I servizi di questo percorso",
+        "H3 Scheda di valutazione editoriale",
+        "H3 Correzione bozze",
+        "H3 Revisione linguistica",
+        "H3 Editing stilistico",
+        "H3 Editing narrativo",
+        "H2 Domande su questo percorso",
+        "H3 Come faccio a sapere quale livello mi serve?",
+        "H3 Mi cambiate la voce?",
+        "H3 Quanto ci vuole?",
+        "H2 Non è il tuo caso?",
+        "H3 Ho un'idea o del materiale grezzo",
+        "H3 Memoir, autobiografia, storia familiare",
+        "H3 Libro professionale o d'impresa",
+        "H2 Quanto costa il tuo libro?"
+      ]
+    },
+    "1440": {
+      "stato": 200,
+      "altezzaPagina": 4148,
+      "scrollOrizzontale": false,
+      "fontSize": {
+        "15.00": 46,
+        "21.00": 22,
+        "17.00": 10,
+        "13.50": 5,
+        "36.00": 5,
+        "72.00": 1,
+        "27.00": 1
+      },
+      "famiglie": {
+        "Interface": 62,
+        "Editorial": 28
+      },
+      "radius": {
+        "4px": 25,
+        "12px": 9,
+        "999px": 7
+      },
+      "ombre": {
+        "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(222, 223, 227) 0px 1px 0px 0px, rgba(19, 25, 54, 0.18) 0px 12px 24px -12px": 9
+      },
+      "sfondi": {
+        "rgb(255, 255, 255)": 9,
+        "rgb(240, 240, 235)": 3,
+        "rgb(200, 32, 42)": 3,
+        "rgb(250, 250, 247)": 2
+      },
+      "colori": {
+        "rgb(19, 25, 54)": 49,
+        "rgb(86, 91, 105)": 36,
+        "rgb(255, 255, 255)": 3,
+        "rgb(200, 32, 42)": 1,
+        "rgb(36, 64, 142)": 1
+      },
+      "testiSotto13px": [],
+      "targetSotto44px": [
+        {
+          "w": 1,
+          "h": 1,
+          "testo": "Vai al contenuto",
+          "tag": "a"
+        }
+      ],
+      "h1": 1,
+      "titoli": [
+        "H1 Ho già scritto il libro",
+        "H2 Le tappe del percorso",
+        "H3 Lettura e diagnosi",
+        "H3 Livello di intervento",
+        "H3 Lavorazione",
+        "H3 Chiusura",
+        "H2 I servizi di questo percorso",
+        "H3 Scheda di valutazione editoriale",
+        "H3 Correzione bozze",
+        "H3 Revisione linguistica",
+        "H3 Editing stilistico",
+        "H3 Editing narrativo",
+        "H2 Domande su questo percorso",
+        "H3 Come faccio a sapere quale livello mi serve?",
+        "H3 Mi cambiate la voce?",
+        "H3 Quanto ci vuole?",
+        "H2 Non è il tuo caso?",
+        "H3 Ho un'idea o del materiale grezzo",
+        "H3 Memoir, autobiografia, storia familiare",
+        "H3 Libro professionale o d'impresa",
+        "H2 Quanto costa il tuo libro?"
+      ]
+    },
+    "url": "/percorsi/ho-gia-scritto-il-libro"
+  }
+}

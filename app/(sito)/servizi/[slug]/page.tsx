@@ -162,7 +162,7 @@ export default async function PaginaServizio({ params }: { params: Promise<{ slu
             />
             <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {percorsi.map((p) => (
-                <Foglio key={p.slug} as="li" href={`/percorsi/${p.slug}`} className="flex flex-col" aria-label={p.nome}>
+                <Foglio key={p.slug} as="li" href={`/percorsi/${p.slug}`} className="flex flex-col">
                   <h3 className="font-serif text-t-md text-inchiostro">{p.nome}</h3>
                   <p className="mt-2 text-t-sm text-grafite">{p.claim}</p>
                 </Foglio>

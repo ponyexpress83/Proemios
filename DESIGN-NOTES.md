@@ -872,6 +872,21 @@ e dicono che il sito pubblico non usa i token delle aree riservate.
 `/per-agenzie`: l'H1 dice già a chi parla. La `priority` sull'immagine
 dell'hero.
 
+**Tre correzioni emerse in Fase D, fatte qui.** (1) I fogli-link avevano un
+`aria-label` con il solo titolo: il nome accessibile non conteneva il testo
+visibile (WCAG 2.5.3, «etichetta nel nome») e Lighthouse lo segnalava sulla
+home; `Foglio` non accetta più `aria-label`, il nome del link è tutto il
+foglio. (2) Per le pagine dinamiche Next manda `<title>` e `<meta>` in
+streaming dentro il `<body>` a ogni user agent che non sia nella sua lista di
+bot «solo HTML» — Googlebot compreso, e Lighthouse 13, che non si presenta
+più come «Chrome-Lighthouse». I browser e Google li leggono comunque, ma i
+metadati del brief vanno «mantenuti», e mantenuti vuol dire nell'`<head>`:
+`htmlLimitedBots: /./` in `next.config.mjs` li blocca lì per tutti. Qui i
+metadati sono tutti sincroni, lo streaming non aveva niente da anticipare, e
+il TTFB locale è rimasto a 30 ms. SEO da 92 a 100. (3) `images.imageSizes`
+ha una taglia da 448 px: l'illustrazione dell'hero, mostrata a 220 px, a
+densità 2 passava a 640 px; ora 24 KiB invece di 42.
+
 **Cosa non mi convince ancora.** `/accedi` senza `DATABASE_URL` risponde 500
 (è così anche prima del redesign: l'adapter di autenticazione si connette
 all'avvio); nel deploy c'è sempre un database, ma un 500 su una pagina
@@ -884,4 +899,78 @@ il metodo simulato resta a 2,6 s.
 
 ## Fase D — Verifica
 
-_(da compilare: metriche prima/dopo, axe, Lighthouse, test di fumo, crawl)_
+Tutto misurato sulla build di produzione (`next start`), 7 ottobre 2026,
+stessa procedura e stesso script del «prima» (`scripts/audit-design.mjs`,
+`BASE=… FASE=after`). Screenshot, inventario, axe e i rapporti Lighthouse
+sono in `design-audit/after/`; `design-audit/confronto.html` affianca prima e
+dopo per le 15 pagine a 375 e 1 280 px.
+
+### Prima / dopo
+
+| | Prima (deploy del 7 ottobre) | Dopo | Obiettivo |
+|---|---|---|---|
+| Corpi tipografici distinti (15 pagine × 4 larghezze) | 71 | **7** + il `clamp` del display | 7 |
+| Famiglie di font | 5 | **2** | 2 |
+| Raggi distinti | 19 | **3** | 3 |
+| Ombre distinte | 11 | **2** | 2 |
+| Colori di sfondo distinti | 41 | **8** | — |
+| Colori di testo distinti | 31 | **7** | — |
+| Altezza della home a 375 px | 11 727 px | **8 906 px** | ≤ 9 000 |
+| Testi sotto i 13 px (home, 375) | 85 | **0** | 0 |
+| Target sotto i 44 px (home, 375) | 40 | **1** (il «Vai al contenuto» finché è nascosto) | 0 |
+| axe serious/critical, 15 pagine × 375 e 1 280 | 4 | **0** | 0 |
+| Lighthouse home mobile — Perf / A11y / BP / SEO | 52 / 100 / 100 / 58 | **97 / 100 / 100 / 100** | ≥ 95 / 100 / 100 / 100 |
+| Lighthouse /preventivo mobile | 95 / 98 / 100 / 54 | **96 / 100 / 100 / 100** | idem |
+| FCP home | 3,1 s | **1,1 s** | < 1,2 s |
+| LCP home (simulato / throttling applicato) | 5,3 s | 2,6 s / **1,8 s** | < 2,0 s |
+| TBT home | 1 000 ms | **48 ms** | — |
+| CLS home | 0,023 | **0** | < 0,05 |
+| Peso della home | 656 KiB | **285 KiB** (30 HTML, 14 CSS, 136 JS, 79 font, 24 immagine) | < 400 KB |
+| Peso di /preventivo | 589 KiB | **253 KiB** | — |
+| TTFB (locale) | — | 16–37 ms | < 300 ms |
+
+I target sotto i 44 px che restano sulle altre pagine sono i quattro casi di
+C5 (link di salto nascosto, honeypot, casella del consenso dentro una `label`
+da 44 px, link in linea nel testo del consenso).
+
+### Criteri di accettazione del brief
+
+- **Nessun colore, raggio, ombra o corpo letterale fuori dai token.** `rg`
+  su `app/(sito)`, `app/accedi`, `app/not-found.tsx`, `app/sito.css` e i
+  componenti del sito per `#hex`, `rgb(`, `text-[`, `rounded-[`, `shadow-[`,
+  `font-size:`, `border-radius:`, `box-shadow:`: l'unico risultato era un
+  `text-[0.9em]` nella pagina dei cookie, corretto. Restano `max-w-[220px]`
+  e `min-h-[20rem]`, che sono misure, non token del brief. L'inventario
+  calcolato a runtime conferma: 7 corpi, 3 raggi, 2 ombre.
+- **axe: 0 serious/critical** su 15 pagine × 2 larghezze.
+- **Lighthouse ≥ 95 / 100 / 100 / 100** su home e /preventivo: sì (97 e 96).
+  LCP simulato 2,6 s contro il budget di 2,0 s: spiegato in C6, dipende dal
+  rendering dinamico e dal modello di Lighthouse; con throttling applicato è
+  1,8 s.
+- **Test di fumo Playwright** (`e2e/sito.spec.ts`, 5 test): configuratore
+  fino al sesto passo con le sole scelte e ritorno dall'indicatore;
+  caricamento fino a «File pronto» e rifiuto di un `.jpg` prima dell'invio;
+  menu mobile aperto, percorso con Tab senza uscirne, chiuso con Esc e fuoco
+  restituito; cursore del confronto con frecce, Home, End e `aria-valuetext`.
+  Con i 33 test esistenti: **38 passati**. Unitari: 438 passati.
+- **Crawl**: 67 pagine raggiunte dalla home seguendo ogni link interno
+  (compresi i `/preventivo?tipo=…`), **nessun non-200**; 60 link esterni non
+  seguiti. Le 33 rotte di controllo e tutti gli URL della sitemap rispondono
+  200; gli otto redirect storici restano 301.
+- **Screenshot «dopo»** in `design-audit/after/`, 15 pagine × 4 larghezze.
+
+### Cosa non ho fatto, e perché
+
+1. **Pagine di marketing statiche.** Richiede di togliere il nonce della CSP
+   dal layout radice: decisione di sicurezza, con tre opzioni elencate in C6.
+   Finché resta dinamico, l'LCP simulato sta a 2,6 s e il `bf-cache` è
+   spento (`Cache-Control: no-store` sulle pagine dinamiche).
+2. **La logica dei prezzi** (Essenziale + correzione bozze che supera il
+   Consigliato da 60 000 parole in su): documentata in «Punti di logica», non
+   toccata.
+3. **Consolidare catalogo e contenuti editoriali** (`/servizi/editing` e
+   simili): scelta commerciale, lasciata aperta e segnalata.
+4. **`/accedi` senza database → 500**: logica di autenticazione, segnalata.
+5. **Rinominare «white label»** nel nome dei servizi: è il prodotto.
+6. **Schede del team e testimonianze**: non esistono contenuti verificati; il
+   sito dice che arriveranno, non li finge.

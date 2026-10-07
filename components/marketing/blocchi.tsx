@@ -9,7 +9,7 @@ import { cn } from "@/lib/cn";
 /** Scheda di un percorso: un foglio, intero cliccabile, un solo link. */
 export function SchedaPercorso({ percorso }: { percorso: Percorso }) {
   return (
-    <Foglio href={`/percorsi/${percorso.slug}`} className="flex h-full flex-col" aria-label={percorso.nome}>
+    <Foglio href={`/percorsi/${percorso.slug}`} className="flex h-full flex-col">
       <h3 className="font-serif text-t-md leading-snug text-inchiostro">{percorso.nome}</h3>
       <p className="mt-2 flex-1 text-t-sm text-grafite">{percorso.claim}</p>
     </Foglio>
@@ -19,7 +19,7 @@ export function SchedaPercorso({ percorso }: { percorso: Percorso }) {
 /** Scheda di un singolo servizio: titolo, una riga, la tariffa. */
 export function SchedaServizio({ servizio }: { servizio: Servizio }) {
   return (
-    <Foglio href={`/servizi/${servizio.slug}`} className="flex h-full flex-col" aria-label={servizio.nome}>
+    <Foglio href={`/servizi/${servizio.slug}`} className="flex h-full flex-col">
       <h3 className="font-serif text-t-md leading-snug text-inchiostro">{servizio.nome}</h3>
       <p className="mt-2 flex-1 text-t-sm text-grafite">{servizio.sommario}</p>
       <div className="mt-4 border-t border-filetto pt-3">
