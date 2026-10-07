@@ -179,3 +179,44 @@
     animation: none;
   }
 }
+
+/* ── Flussi di conversione ───────────────────────────────────────────────── */
+
+/* Un importo che cambia: breve transizione del numero, non un lampeggio. */
+.prezzo-aggiornato {
+  animation: prezzo-aggiornato 220ms var(--ease-matita);
+}
+@keyframes prezzo-aggiornato {
+  from {
+    opacity: 0.35;
+    transform: translateY(0.2em);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Barra di avanzamento indeterminata: il server non dice a che punto è. */
+.barra-indeterminata {
+  animation: barra-indeterminata 1.2s var(--ease-matita) infinite;
+}
+@keyframes barra-indeterminata {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(300%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .prezzo-aggiornato {
+    animation: none;
+  }
+  .barra-indeterminata {
+    animation: none;
+    width: 100%;
+    transform: none;
+  }
+}

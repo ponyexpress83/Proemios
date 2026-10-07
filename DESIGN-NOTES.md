@@ -663,7 +663,56 @@ telefono vero, non in uno screenshot.
 
 ### C4 — Flussi di conversione
 
-_(da compilare)_
+**Cosa è cambiato.** Configuratore, risultato, flusso dell'analisi, report e
+modulo di contatto sono riscritti nel markup e negli stili sui componenti di
+`components/sito`; i blocchi di logica — stato, `computeQuote`, `calcola()`,
+le chiamate alle API, consensi, honeypot, tracciamento — sono identici a
+prima, riga per riga.
+
+`/preventivo`: l'indicatore ha i nomi dei sei passi e i passi già fatti si
+cliccano; una scelta singola (tipo, stato del testo, tempi) porta al passo
+dopo da sola, 250 ms dopo, così si vede la scelta prima di cambiare schermo;
+l'anteprima dei prezzi sta di lato da `lg` e in una barra fissa in basso sul
+telefono, con il numero che si aggiorna con una breve transizione; «Calcola
+il preventivo» non è mai disabilitato: se manca qualcosa, un riepilogo dice
+cosa e il fuoco va al primo campo («Inserisci la tua email per ricevere il
+preventivo»). Telefono con `type="tel"`, `inputmode="tel"`,
+`autocomplete="tel"`. I prezzi arrivano da `Intl` in `it-IT`, con lo spazio
+non separabile prima di €.
+
+`/analisi-manoscritto`: l'area di caricamento ha gli stati vuoto,
+trascinamento, file pronto (nome, peso, «Cambia file»), analisi in corso con
+la barra, errore di formato o di peso con la soluzione nel messaggio. Prima
+del pulsante: «Il tuo testo non viene archiviato». Il controllo di formato e
+peso avviene subito, prima dell'invio — non è una validazione nuova lato
+server, è un messaggio dato prima invece che dopo.
+
+`/contatti`: stesso `Campo` ovunque, errori sul campo con `aria-describedby`
+e `aria-invalid`, riepilogo focalizzato all'invio, conferma con lo stesso
+verbo del pulsante: «Messaggio inviato. Ti rispondiamo entro un giorno
+lavorativo».
+
+**Verificato provando.** Nelle tre pagine, a 375 e 1 280: un H1, zero testi
+sotto i 13 px, zero violazioni axe. Scelta singola → passo 2 dopo 400 ms;
+click sull'indicatore → torna al passo 1; all'ultimo passo «Calcola» è
+attivo e con i campi vuoti elenca tre cose da sistemare e porta il fuoco su
+«Nome»; la barra in basso mostra «Consigliato 2 260 €» dopo due risposte;
+un .txt da 21 KB diventa «File pronto», un .jpg produce «Il formato .jpg non
+è tra quelli accettati…». I dieci test end-to-end del percorso cliente
+passano.
+
+**Cosa ho tolto.** Il pannello navy del configuratore (`.operative-surface`)
+con dentro il tema scuro: le domande stanno sulla carta come il resto del
+sito. Il «Passo 1 di 6» da solo, senza i nomi. L'asterisco: i campi dicono
+«(obbligatorio)» o «(facoltativo)» in parole.
+
+**Cosa non mi convince ancora.** La barra di avanzamento dell'analisi è
+indeterminata: il server non comunica a che punto è, e una barra che finge
+di saperlo sarebbe peggio. Si potrebbe passare a `XMLHttpRequest` per avere
+l'avanzamento dell'*upload*, ma è il primo dei due tempi e il più breve: il
+tempo lungo è la lettura del testo. L'ho lasciata onesta. E l'avanzamento
+automatico dopo una scelta singola è una scelta del brief che va osservata
+su utenti veri: a chi cambia idea costa un click in più su «Indietro».
 
 ### C5 — Pagine interne
 

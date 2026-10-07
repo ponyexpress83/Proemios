@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
-import { QuotePage } from "@/components/editorial/operational-pages";
+import { Configuratore } from "@/components/preventivo/configuratore";
 import { serviziPrecompilati } from "@/components/preventivo/opzioni";
+import { Contenitore, Sezione } from "@/components/sito/sezione";
 import { projectTypeSchema } from "@/lib/validation";
 import { metadatiPagina, JsonLd, breadcrumbJsonLd } from "@/lib/seo";
 import type { ProjectType } from "@/lib/pricing";
@@ -43,7 +44,20 @@ export default async function PreventivoPage({
           { nome: "Preventivo", path: "/preventivo" },
         ])}
       />
-      <QuotePage precompilato={{ tipo, servizi, parole }} />
+      <Sezione className="pt-10 lg:pt-14">
+        <Contenitore>
+          <div className="mb-8 max-w-giustezza lg:mb-12">
+            <h1 className="font-serif text-t-display text-balance text-inchiostro">
+              Quanto costa il tuo libro?
+            </h1>
+            <p className="mt-4 text-t-md text-grafite">
+              Sei domande. La stima compare mentre rispondi e non chiede dati personali; alla fine
+              lasci un&rsquo;email per ricevere il preventivo.
+            </p>
+          </div>
+          <Configuratore precompilato={{ tipo, servizi, parole }} />
+        </Contenitore>
+      </Sezione>
     </>
   );
 }

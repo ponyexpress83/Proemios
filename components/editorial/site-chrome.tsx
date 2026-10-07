@@ -12,7 +12,7 @@ import { services, articles } from "@/lib/editorial-content";
  * le pagine non ancora rifatte restano stilate dal foglio editoriale.
  */
 /** Pagine già rifatte con `components/sito`: nessun involucro editoriale. */
-const RIFATTE = new Set(["/"]);
+const RIFATTE = new Set(["/", "/preventivo", "/analisi-manoscritto", "/contatti"]);
 
 export function CorpoTransitorio({ children }: { children: ReactNode }) {
   const pathname = usePathname();
