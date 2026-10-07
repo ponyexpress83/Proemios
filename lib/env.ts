@@ -83,6 +83,12 @@ const clientSchema = z.object({
   NEXT_PUBLIC_ANALYTICS_DOMAIN: z.string().optional(),
   /** Numero per i link wa.me. Nessun invio: apre WhatsApp su chi clicca. */
   NEXT_PUBLIC_WHATSAPP_NUMERO: z.string().optional(),
+  /**
+   * Governa solo la fascia «Demo» in cima alle pagine pubbliche: `off` la
+   * toglie, qualunque cosa decida `DEMO_MODE` lato server. Non tocca la demo
+   * vera (dati non salvati, pagamenti simulati), che resta di `lib/demo.ts`.
+   */
+  NEXT_PUBLIC_DEMO_MODE: z.enum(["on", "off"]).optional(),
 });
 
 /** Env server-side. Non importare da componenti client. */
@@ -128,6 +134,7 @@ export const publicEnv = clientSchema.parse({
   NEXT_PUBLIC_CALENDAR_URL: process.env.NEXT_PUBLIC_CALENDAR_URL,
   NEXT_PUBLIC_ANALYTICS_DOMAIN: process.env.NEXT_PUBLIC_ANALYTICS_DOMAIN,
   NEXT_PUBLIC_WHATSAPP_NUMERO: process.env.NEXT_PUBLIC_WHATSAPP_NUMERO,
+  NEXT_PUBLIC_DEMO_MODE: process.env.NEXT_PUBLIC_DEMO_MODE as "on" | "off" | undefined,
 });
 
 /**

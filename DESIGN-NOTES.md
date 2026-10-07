@@ -496,7 +496,52 @@ perché non serviva, cosa non mi convince.
 
 ### C1 — Token e fondamenta
 
-_(da compilare)_
+**Cosa è cambiato.** I token del sito pubblico stanno in `app/globals.css`
+dentro `@theme`, con nomi diversi da quelli delle aree riservate
+(`carta`/`inchiostro`/`grafite`/`rosso-matita`/`blu-matita`/`filetto`, sette
+dimensioni `t-*`, tre raggi, due ombre). Tailwind ne genera le utility, quindi
+`bg-carta` o `text-t-md` sono l'unico modo di scrivere un colore o una
+dimensione in un componente pubblico. Il tema chiaro si accende con
+`data-tema="carta"` sul contenitore del route group: il resto dell'app resta
+scuro, e `body:has()` fa il cambio senza JavaScript. Focus: anello di 2 px in
+blu matita con offset 2 px; carta dentro `data-tema="inchiostro"`.
+
+Le cinque famiglie di font sono diventate due. Editorial e Interface passano
+da OTF (110 KB l'uno, non precaricati) a woff2 (71 e 52 KB), dichiarate in
+`globals.css` con facce di fallback che replicano le metriche del font vero
+(`ascent-override`, `size-adjust`…), così il testo non si sposta quando il
+woff2 arriva. Il layout radice precarica le due facce sopra la piega —
+Editorial regolare e Interface regolare — con un `<link rel="preload">`
+esplicito. Geist, Geist Mono e Instrument Serif sono uscite dal progetto:
+`--font-sans`, `--font-serif` e `--font-mono` puntano alle due famiglie
+locali, così le aree riservate e i componenti condivisi (configuratore,
+moduli, catalogo) non cambiano codice. `--font-mono` non è più una monospace:
+i numeri tabellari li danno `tabular-nums` nelle utility `cifre` ed
+`etichetta`, che è ciò che serviva ai prezzi.
+
+**Una cosa trovata strada facendo.** Avevo iniziato con `next/font/local`,
+che è la via canonica. Ma con il layout radice dinamico — legge il nonce
+della CSP da `headers()` — Next 15.5 non scrive i `<link rel="preload">` dei
+font nell'HTML: li lascia come suggerimenti nel flusso RSC (`:HL[...]`), che
+il browser vede solo dopo aver eseguito il runtime client. Un preload che
+parte dopo il JavaScript non è un preload. Le metriche di fallback che
+`next/font` aveva calcolato le ho riportate a mano nelle `@font-face`, e gli
+URL stabili in `public/fonts/` hanno cache immutabile da `next.config.mjs`.
+
+`NEXT_PUBLIC_DEMO_MODE` esiste e governa solo la fascia.
+
+**Cosa ho tolto.** I quattro OTF e le tre famiglie Google. Nessun font nuovo.
+
+**Cosa non mi convince ancora.** In questo passaggio il sito pubblico è
+*identico* a prima, per scelta: i token nuovi esistono ma nessun componente
+li usa ancora, e `editorial.css` continua a governare le pagine finché C2 e
+C3 non lo sostituiscono. È il modo di tenere ogni commit verde. Il rovescio è
+che per due commit convivono tre sistemi (scuro riservato, editoriale, matita):
+la pulizia arriva quando l'ultima pagina abbandona `editorial.css`, non prima.
+
+Verificato: TypeScript, ESLint, 438 test; build; nel browser caricano
+esattamente quattro facce (Editorial 400 normale e corsivo, Interface 400 e
+700) e nessuna richiesta a Google.
 
 ### C2 — Componenti condivisi
 

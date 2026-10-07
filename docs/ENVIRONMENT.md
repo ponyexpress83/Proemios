@@ -66,6 +66,7 @@ un'email o emesso una fattura è peggio di uno che dichiara di non poterlo fare.
 | `GOOGLE_ADS_*`                         | Le conversioni restano registrate e non inviate, e il funnel lo dice               |
 | `NEXT_PUBLIC_CALENDAR_URL`             | Nessun pulsante di prenotazione, invece di un link rotto                           |
 | `NEXT_PUBLIC_GTM_ID`                   | Nessun tag caricato                                                                |
+| `NEXT_PUBLIC_DEMO_MODE`                | La fascia «Demo» segue `DEMO_MODE`; `off` la toglie, `on` la forza                 |
 
 ## Sicurezza
 

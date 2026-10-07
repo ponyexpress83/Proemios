@@ -12,6 +12,18 @@ const nextConfig = {
    * a due livelli li ha sostituiti: un 301 verso il percorso o il servizio
    * equivalente conserva il posizionamento invece di produrre 404.
    */
+  async headers() {
+    return [
+      {
+        // I font sono serviti da `public/fonts` con URL stabili, così il layout
+        // radice può dichiarare il preload con un `<link>` esplicito. Se una
+        // faccia cambia, cambia anche il nome del file: la cache è immutabile.
+        source: "/fonts/:file*",
+        headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
+      },
+    ];
+  },
+
   async redirects() {
     return [
       { source: "/servizi/valutazione-editoriale", destination: "/servizi/scheda-valutazione-editoriale", permanent: true },

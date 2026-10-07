@@ -3,7 +3,7 @@ import Script from "next/script";
 import { headers } from "next/headers";
 import { BRAND } from "@/config/brand";
 import { UI } from "@/config/copy";
-import { fontVariables } from "./fonts";
+import { PRELOAD_FONT } from "./fonts";
 import { AttributionCapture } from "@/components/marketing/attribution-capture";
 import { demoAttiva } from "@/lib/demo";
 import { JsonLd, organizationJsonLd } from "@/lib/seo";
@@ -44,7 +44,15 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const nonce = (await headers()).get("x-nonce") ?? undefined;
 
   return (
-    <html lang="it" className={fontVariables}>
+    <html lang="it">
+      <head>
+        {/* Solo le facce sopra la piega. Le altre arrivano con `font-display: swap`
+            quando servono. Dichiarato a mano perché Next, con un layout dinamico,
+            lascia i suggerimenti di preload nel flusso RSC e non nell'HTML. */}
+        {PRELOAD_FONT.map((href) => (
+          <link key={href} rel="preload" href={href} as="font" type="font/woff2" crossOrigin="anonymous" />
+        ))}
+      </head>
       <body className="flex min-h-dvh flex-col">
         {gtmId && !demoAttiva() && (
           <>

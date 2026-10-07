@@ -1,5 +1,69 @@
 @import "tailwindcss";
 
+/* ── Font ──────────────────────────────────────────────────────────────────
+   Due famiglie, in locale. Le facce di fallback replicano le metriche del
+   font vero (calcolate da next/font e riportate qui): quando il woff2 arriva,
+   il testo non si sposta. Il preload delle due facce sopra la piega sta nel
+   layout radice (app/fonts.ts). */
+@font-face {
+  font-family: "Editorial";
+  src: url("/fonts/editorial.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Editorial";
+  src: url("/fonts/editorial-italic.woff2") format("woff2");
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Editorial Fallback";
+  src: local("Times New Roman");
+  font-style: normal;
+  ascent-override: 65.7%;
+  descent-override: 24.8%;
+  line-gap-override: 18.1%;
+  size-adjust: 110.5%;
+}
+@font-face {
+  font-family: "Editorial Fallback";
+  src: local("Times New Roman Italic"), local("Times New Roman");
+  font-style: italic;
+  ascent-override: 73.97%;
+  descent-override: 26.94%;
+  line-gap-override: 20.18%;
+  size-adjust: 99.1%;
+}
+@font-face {
+  font-family: "Interface";
+  src: url("/fonts/interface.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Interface";
+  src: url("/fonts/interface-bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Interface Fallback";
+  src: local("Arial");
+  ascent-override: 72.91%;
+  descent-override: 27.1%;
+  line-gap-override: 20%;
+  size-adjust: 99.99%;
+}
+:root {
+  --font-editorial: "Editorial", "Editorial Fallback";
+  --font-interface: "Interface", "Interface Fallback";
+}
+
 /* ─────────────────────────────────────────────────────────────────────────
    Proemios — design system
    Piattaforma editoriale premium: midnight + antracite, viola elettrico come
@@ -42,9 +106,12 @@
   --color-bordo-viola: rgb(108 75 255 / 0.45);
 
   /* ── Tipografia ── */
-  --font-sans: var(--font-geist), ui-sans-serif, system-ui, -apple-system, sans-serif;
-  --font-serif: var(--font-serif-editoriale), Georgia, "Times New Roman", serif;
-  --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", monospace;
+  /* Due sole famiglie nel progetto, servite in locale (app/fonts.ts).
+     `--font-mono` non è più una monospace: i numeri tabellari li dà
+     `font-variant-numeric` nelle utility `cifre` ed `etichetta`. */
+  --font-sans: var(--font-interface), "Helvetica Neue", Arial, sans-serif;
+  --font-serif: var(--font-editorial), Georgia, "Times New Roman", serif;
+  --font-mono: var(--font-interface), "Helvetica Neue", Arial, sans-serif;
 
   /* ── Gabbia ── */
   --spacing-gabbia: 82rem;
@@ -66,6 +133,64 @@
 
   /* ── Motion ── */
   --ease-garbo: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* ════════════════════════════════════════════════════════════════════
+     Sito pubblico — «Matita rossa e blu»
+     Nomi diversi da quelli delle aree riservate, di proposito: un
+     componente pubblico non può prendere per sbaglio un token del tema
+     scuro, e viceversa. Il registro delle scelte sta in DESIGN-NOTES.md.
+     ════════════════════════════════════════════════════════════════════ */
+
+  /* Colore */
+  --color-carta: #fafaf7; /* sfondo principale: neutro, non crema */
+  --color-carta-ombra: #f0f0eb; /* sezioni alternate, campi dei form */
+  --color-bianco: #ffffff; /* i fogli (card) sopra la carta */
+  --color-inchiostro: #131936; /* testo, testata, fondo delle sezioni scure */
+  --color-grafite: #565b69; /* testo secondario — 6,49:1 su carta */
+  --color-rosso-matita: #c8202a; /* azione primaria, segni di correzione, stato attivo */
+  --color-blu-matita: #24408e; /* link, evidenze di sostanza, anello di focus — 9,13:1 su carta */
+  --color-filetto: #dedfe3; /* bordi e filetti */
+  /* Sulle sezioni scure: grafite e blu non reggono sull'inchiostro (2,54:1 e 1,80:1). */
+  --color-carta-su-inchiostro: #fafaf7;
+  --color-grafite-su-inchiostro: #b9bdca; /* 7,8:1 */
+  --color-rosso-su-inchiostro: #e8656d; /* 4,6:1 — per i tratti sottili */
+  --color-esito-ok: #1f6b45;
+  --color-esito-errore: #c8202a; /* un errore è una correzione: lo stesso rosso */
+
+  /* Tipografia: scala modulare 1,25 da 17 px, sette dimensioni e basta */
+  --text-t-xs: 0.84375rem; /* 13,5 px — mai sotto i 13 */
+  --text-t-xs--line-height: 1.5;
+  --text-t-sm: 0.9375rem; /* 15 px */
+  --text-t-sm--line-height: 1.5;
+  --text-t-base: 1.0625rem; /* 17 px */
+  --text-t-base--line-height: 1.6;
+  --text-t-md: 1.3125rem; /* 21 px */
+  --text-t-md--line-height: 1.45;
+  --text-t-lg: 1.6875rem; /* 27 px */
+  --text-t-lg--line-height: 1.2;
+  --text-t-xl: 2.25rem; /* 36 px */
+  --text-t-xl--line-height: 1.1;
+  --text-t-display: clamp(2.75rem, 6vw, 4.5rem); /* 44 → 72 px */
+  --text-t-display--line-height: 1.05;
+
+  /* Misure: 12 colonne, contenuto 1200, giustezza 60–72 caratteri */
+  --spacing-pagina: 75rem; /* 1200 px */
+  --spacing-giustezza: 68ch;
+  /* Spazio verticale fra le sezioni */
+  --spacing-sezione: 7rem; /* 112 px */
+  --spacing-sezione-mobile: 4.5rem; /* 72 px */
+
+  /* Tre raggi in tutto */
+  --radius-campo: 4px; /* campi, chip */
+  --radius-foglio: 12px; /* card */
+  --radius-pillola: 999px; /* pillole, avatar */
+
+  /* Due ombre in tutto */
+  --shadow-foglio: 0 1px 0 var(--color-filetto), 0 12px 24px -12px rgb(19 25 54 / 0.18);
+  --shadow-sollevata-sito: 0 1px 0 var(--color-filetto), 0 16px 40px -16px rgb(19 25 54 / 0.28);
+
+  /* Motion: una risposta a un'azione dura 150–250 ms */
+  --ease-matita: cubic-bezier(0.3, 0, 0.2, 1);
 }
 
 /* ── Base ─────────────────────────────────────────────────────────────── */
@@ -116,6 +241,47 @@ p {
   border-radius: var(--radius-xs);
 }
 
+/* ── Sito pubblico: tema chiaro ─────────────────────────────────────────
+   Si attiva con `data-tema="carta"` sul contenitore del route group (sito).
+   Il resto dell'app resta scuro. */
+body:has([data-tema="carta"]) {
+  background-color: var(--color-carta);
+  color: var(--color-inchiostro);
+  color-scheme: light;
+}
+[data-tema="carta"] {
+  font-family: var(--font-sans);
+  font-size: var(--text-t-base);
+  line-height: var(--text-t-base--line-height);
+  font-feature-settings: normal;
+}
+[data-tema="carta"] :where(h1, h2, h3, h4) {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+[data-tema="carta"] h1 {
+  letter-spacing: -0.02em;
+}
+[data-tema="carta"] ::selection {
+  background-color: rgb(36 64 142 / 0.18);
+  color: var(--color-inchiostro);
+}
+/* Focus visibile: anello blu matita con offset; sulle sezioni scure, carta. */
+[data-tema="carta"]
+  :where(a, button, input, textarea, select, summary, [tabindex], [role="button"]):focus-visible {
+  outline: 2px solid var(--color-blu-matita);
+  outline-offset: 2px;
+  border-radius: var(--radius-campo);
+}
+[data-tema="inchiostro"]
+  :where(a, button, input, textarea, select, summary, [tabindex], [role="button"]):focus-visible {
+  outline-color: var(--color-carta-su-inchiostro);
+}
+[data-tema="carta"] * {
+  scrollbar-color: var(--color-filetto) transparent;
+}
+
 /* Scrollbar coerente col fondale (progressive enhancement). */
 * {
   scrollbar-color: var(--color-superficie-viva) transparent;
@@ -156,7 +322,8 @@ p {
 
 /** Etichetta tecnica: maiuscoletto spaziato, mono. Usata per meta e stati. */
 @utility etichetta {
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
+  font-variant-numeric: tabular-nums;
   font-size: 0.6875rem;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -165,7 +332,7 @@ p {
 
 /** Numeri: tabellari, per prezzi, conteggi, progressi. */
 @utility cifre {
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum" 1;
 }
