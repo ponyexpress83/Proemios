@@ -74,3 +74,108 @@
     stroke-dashoffset: 0;
   }
 }
+
+/* ── Home ──────────────────────────────────────────────────────────────── */
+
+/* Il segno di inserimento nell'H1: il titolo è leggibile da subito, si
+   anima solo il tratto; la parola sale al suo posto quando il tratto finisce. */
+.inserzione {
+  position: relative;
+  display: inline-block;
+  white-space: nowrap;
+}
+.inserzione-parola {
+  display: inline-block;
+  color: var(--color-rosso-matita);
+  animation: inserzione-parola 320ms var(--ease-matita) 560ms both;
+}
+.inserzione-segno {
+  position: absolute;
+  left: 50%;
+  bottom: -0.32em;
+  width: 0.5em;
+  height: 0.42em;
+  transform: translateX(-50%);
+}
+@keyframes inserzione-parola {
+  from {
+    transform: translateY(0.18em);
+    opacity: 0.4;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Il cursore del confronto: un `<input type="range">` con il pomello a matita. */
+.cursore-confronto {
+  appearance: none;
+  height: 44px;
+  background: transparent;
+  cursor: ew-resize;
+}
+.cursore-confronto::-webkit-slider-runnable-track {
+  height: 2px;
+  background: var(--color-filetto);
+}
+.cursore-confronto::-moz-range-track {
+  height: 2px;
+  background: var(--color-filetto);
+}
+.cursore-confronto::-webkit-slider-thumb {
+  appearance: none;
+  width: 28px;
+  height: 28px;
+  margin-top: -13px;
+  border-radius: var(--radius-pillola);
+  background: var(--color-bianco);
+  border: 2px solid var(--color-rosso-matita);
+  box-shadow: var(--shadow-foglio);
+}
+.cursore-confronto::-moz-range-thumb {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-pillola);
+  background: var(--color-bianco);
+  border: 2px solid var(--color-rosso-matita);
+  box-shadow: var(--shadow-foglio);
+}
+.cursore-confronto:focus-visible {
+  outline: 2px solid var(--color-blu-matita);
+  outline-offset: 2px;
+  border-radius: var(--radius-campo);
+}
+
+/* Puntini di guida dell'indice, come in un sommario stampato. */
+.indice-guida {
+  flex: 1 1 auto;
+  min-width: 1.5rem;
+  border-bottom: 1px dotted var(--color-grafite);
+  transform: translateY(-0.3em);
+}
+
+/* La linea che unisce i cinque passaggi, da `lg` in su. */
+@media (min-width: 1024px) {
+  .tappe {
+    position: relative;
+  }
+  .tappe::before {
+    content: "";
+    position: absolute;
+    top: 1.125rem; /* a metà del numero (36 px) */
+    left: 2.25rem;
+    right: 2.25rem;
+    border-top: 1px solid var(--color-filetto);
+  }
+  .tappa-numero {
+    position: relative;
+    background: var(--color-carta);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .inserzione-parola {
+    animation: none;
+  }
+}

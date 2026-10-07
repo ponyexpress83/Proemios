@@ -48,11 +48,17 @@ export function Colophon() {
 
           <dl className="text-t-sm">
             <dt className="maiuscoletto text-grafite">Contatti</dt>
-            <dd className="mt-2 flex flex-col gap-1">
-              <a href={`mailto:${BRAND.email.general}`} className="sottolinea-matita text-inchiostro">
+            <dd className="mt-1 flex flex-col">
+              <a
+                href={`mailto:${BRAND.email.general}`}
+                className="sottolinea-matita inline-flex min-h-11 items-center self-start rounded-campo text-inchiostro"
+              >
                 {BRAND.email.general}
               </a>
-              <a href={`mailto:${BRAND.email.agencies}`} className="sottolinea-matita text-inchiostro">
+              <a
+                href={`mailto:${BRAND.email.agencies}`}
+                className="sottolinea-matita inline-flex min-h-11 items-center self-start rounded-campo text-inchiostro"
+              >
                 {BRAND.email.agencies}
               </a>
             </dd>

@@ -597,7 +597,69 @@ e vale la pena allinearla.
 
 ### C3 — Home
 
-_(da compilare)_
+**Cosa è cambiato.** La home è riscritta da zero su `components/sito`,
+nell'ordine del wireframe: hero con il segno di inserimento, cinque fogli
+«Da dove parti», il confronto prima/dopo, «Come funziona» con le tre garanzie
+a margine, l'area autore su inchiostro, i servizi come indice, la fascia
+delle agenzie, la chiusura. Nessuno scroll-reveal, nessuna animazione
+sull'H1 o sull'immagine. Il confronto usa un `<input type="range">`: frecce,
+Home ed End funzionano senza una riga di JavaScript in più, e le differenze
+sono segnate come su una bozza — tratto rosso sulle parole tolte, blu con il
+⁁ sotto per quelle aggiunte — con l'elenco delle correzioni in testo per chi
+non vede il confronto. L'area autore è HTML e SVG: nitida, in italiano, con
+gli importi che arrivano dal listino (`computeQuote`, romanzo da 50 000
+parole: acconto 904 €, saldo 1 356 €), così «dati di esempio» è vero in
+entrambi i sensi. L'indice dei servizi legge dal catalogo (31 voci, sei
+parti; la settima, B2B, ha la fascia) e a destra mette la tariffa, non
+«Scopri →»: in un indice la cosa a destra è un'informazione.
+
+**Misure, stessa procedura del «prima».**
+
+| | Prima | Dopo | Obiettivo |
+|---|---|---|---|
+| Altezza a 375 px | 11 727 | **8 871** | ≤ 9 000 |
+| Testi < 13 px (375) | 85 | **0** | 0 |
+| Target < 44 px (375) | 40 | **1** (il «Vai al contenuto», invisibile finché non ha il fuoco) | 0 |
+| axe serious/critical, 4 larghezze | 4 | **0** | 0 |
+| H1 | 1 | 1 | 1 |
+| Pulsanti dell'hero dentro 375 × 667 | no | sì (il secondario finisce a 585 px) | sì |
+| Lighthouse mobile — Performance | 52 | **92** | ≥ 95 |
+| LCP | 5,3 s | **1,8 s** | < 2,0 s |
+| FCP | 3,1 s | 1,8 s | < 1,2 s |
+| TBT | 1 000 ms | 320 ms | — |
+| Peso | 656 KiB | 416 KiB | < 400 KB |
+| Accessibilità / Best practices | 100 / 100 | 100 / 100 | 100 / 100 |
+
+I 16 test end-to-end su home, testata, accesso e prestazioni passano senza
+modifiche: la testata nuova espone ciò che quei test cercavano.
+
+**Cosa resta sopra il budget, e perché.** FCP e peso. Lighthouse conta 770 ms
+di CSS bloccante: tre fogli, e uno è `editorial.css` da 3 086 righe che il
+layout radice carica ancora su ogni pagina per le pagine non rifatte. Se ne va
+in C5, e con lui la parte più grossa di quel tempo. I font trasferiti sono
+175 KiB e sono le tre facce giuste — Editorial regolare, Interface regolare
+e grassetto (il primario in testata) — verificato contando le richieste: il
+corsivo non viene chiesto. Per scendere sotto i 400 KB resta da guardare il
+JavaScript (138 KiB) in C6.
+
+**Cosa ho tolto.** La striscia delle sei fasi e le schede di stato
+sull'illustrazione dell'hero; dalla home, l'immagine della dashboard in
+inglese (`dashboard.webp`) e quella del tavolo (`editor-desk.webp`) — i file
+escono dal repository in C5, quando l'ultima pagina interna smette di usarli;
+le tre spunte verdi; la numerazione 01–05 dei fogli; le testimonianze
+segnaposto e l'«orbita» delle sei tappe — due sezioni intere, perché dicevano
+quello che la timeline dice già; le chip non cliccabili dei servizi; il punto
+mediano in «Amazon KDP · ISBN · Metadati».
+
+**Cosa non mi convince ancora.** Le cinque illustrazioni a tratto sono
+corrette ma timide: tre o quattro linee ciascuna, e a 64 px si somigliano. Se
+a fine lavoro restano così, meglio toglierle e lasciare ai titoli il compito
+di distinguere i fogli — un foglio bianco con un buon titolo serif regge da
+solo. E il confronto a 375 px è stretto: due testi affiancati in 343 px si
+leggono, ma la metà sinistra sotto il cursore è una colonna di tre parole.
+Un'alternativa è mostrare, su mobile, prima l'originale intero e poi il
+corretto, con il cursore solo da `md` in su. Da decidere guardandolo su un
+telefono vero, non in uno screenshot.
 
 ### C4 — Flussi di conversione
 
