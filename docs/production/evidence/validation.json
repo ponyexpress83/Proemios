@@ -40,5 +40,7 @@
     "Postgres dump/restore tested; actual purchased backup plan and Blob restore not verified"
   ],
   "release": "blocked",
-  "followup": "Saved CRM search, proposal revision UI and scoped history added; build/lint and suite rechecked."
+  "followup": "Saved CRM search, proposal revision UI and scoped history added; build/lint and suite rechecked.",
+  "code_sha": "4989787d43cedd66cce235785f77bc2799201578",
+  "preview": "deployment.json"
 }
