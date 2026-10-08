@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
+import type { PricingInput } from "@/lib/pricing";
 import { authClient } from "@/lib/auth-client";
 import {
   can,
@@ -115,7 +116,8 @@ type ProjectDetail = {
   approvals: Array<{ fileId: string; decision: string }>;
 };
 type QuoteDetail = {
-  quote: Quote;
+  quote: Quote & { input: PricingInput };
+  history: Array<{ version: number; createdAt: string }>;
   record: { version: number; selectedTier: string | null; acceptedAt: string | null };
   packages: Array<{
     tier: string;
@@ -250,7 +252,13 @@ export function PlatformWorkspace({ user }: { user: Profile }) {
     [loading, setLoading] = useState(true),
     [busy, setBusy] = useState(false),
     [refresh, setRefresh] = useState(0),
-    [selected, setSelected] = useState<string | null>(null);
+    [selected, setSelected] = useState<string | null>(null),
+    [crmQuery, setCrmQuery] = useState("");
+  useEffect(() => {
+    let active = true;
+    platformApi<Collection>("preferences").then(result => { if (active) setCrmQuery(result.preferences?.savedFilters.crm ?? ""); }).catch(() => {});
+    return () => { active = false; };
+  }, []);
   useEffect(() => {
     const params = new URLSearchParams(location.search), quote = params.get("preventivo"), project = params.get("progetto");
     if (quote && hasPermission(user.grants, "quote.read")) { setTab("quotes"); setSelected(quote); }
@@ -261,7 +269,7 @@ export function PlatformWorkspace({ user }: { user: Profile }) {
     setLoading(true);
     setError("");
     setData({});
-    platformApi<Collection>(tab)
+    platformApi<Collection>(`${tab}${tab === "leads" && crmQuery ? `?q=${encodeURIComponent(crmQuery)}` : ""}`)
       .then((r) => {
         if (active) setData(r);
       })
@@ -274,7 +282,7 @@ export function PlatformWorkspace({ user }: { user: Profile }) {
     return () => {
       active = false;
     };
-  }, [tab, refresh]);
+  }, [tab, refresh, crmQuery]);
   async function run(work: () => Promise<unknown>, message = "Modifica salvata.") {
     setBusy(true);
     setError("");
@@ -452,6 +460,14 @@ export function PlatformWorkspace({ user }: { user: Profile }) {
             ) : null}
             {tab === "leads" ? (
               <>
+                <section className="platform-card">
+                  <form className="platform-form" key={crmQuery} onSubmit={event => { event.preventDefault(); setCrmQuery(String(new FormData(event.currentTarget).get("search") ?? "").trim().slice(0,100)); }}>
+                    <Field label="Cerca nei contatti autorizzati" name="search" defaultValue={crmQuery} />
+                    <button className="platform-button">Cerca</button>
+                  </form>
+                  <button className="platform-text-button" disabled={busy} onClick={() => run(async () => { const p = await platformApi<Collection>("preferences"); await platformApi("preferences", "PATCH", { optionalEmail: p.preferences?.optionalEmail ?? false, savedFilters: { ...(p.preferences?.savedFilters ?? {}), crm: crmQuery } }); }, "Ricerca salvata per il prossimo accesso.")}>Ricorda questa ricerca</button>
+                  {crmQuery ? <button className="platform-text-button" onClick={() => setCrmQuery("")}>Mostra tutti i contatti autorizzati</button> : null}
+                </section>
                 <div className="platform-grid">
                   {["new", "contacted", "qualified", "proposal", "won", "lost"].map((stage) => (
                     <section className="platform-card" key={stage}>
@@ -1397,6 +1413,15 @@ function QuoteView({ id, user }: { id: string; user: Profile }) {
   if (!detail) return <p role={error ? "alert" : "status"}>{error || "Caricamento…"}</p>;
   return (
     <>
+      {hasPermission(user.grants, "quote.write") && !detail.record.acceptedAt ? <details className="platform-card"><summary>Rivedi la proposta prima dell’accettazione</summary>
+        <p>Il prezzo viene ricalcolato dal listino. La versione precedente rimane in cronologia.</p>
+        <form className="platform-form" key={detail.record.version} onSubmit={event => { event.preventDefault(); const f = new FormData(event.currentTarget); run(() => platformApi(`quotes/${id}`, "PATCH", { version: detail.record.version, input: { ...detail.quote.input, wordCount: Number(f.get("words")), urgency: f.get("urgency") }, ...(f.get("expiry") ? { expiresAt: new Date(String(f.get("expiry"))).toISOString() } : {}) })); }}>
+          <Field label="Conteggio parole aggiornato" name="words" type="number" min={1} defaultValue={detail.quote.input.wordCount} required />
+          <label>Tempi<select name="urgency" defaultValue={detail.quote.input.urgency ?? "standard"}><option value="standard">Standard</option><option value="prioritaria">Prioritari, con maggiorazione</option></select></label>
+          <Field label="Validità concordata della proposta (facoltativa)" name="expiry" type="datetime-local" />
+          <button className="platform-button" disabled={busy}>Salva nuova versione</button>
+        </form>
+      </details> : null}
       <section className="platform-card">
         <h2>La tua proposta editoriale</h2>
         <div className="platform-actions">
@@ -1407,6 +1432,7 @@ function QuoteView({ id, user }: { id: string; user: Profile }) {
           Versione {detail.record.version}. Scegli un percorso, leggi le condizioni e conferma. Il
           pagamento è disponibile dopo l’accettazione.
         </p>
+        {detail.history?.length ? <details><summary>Versioni precedenti</summary><ul>{detail.history.map(v => <li key={v.version}>Versione {v.version} · archiviata il {date(v.createdAt)}</li>)}</ul></details> : null}
         {detail.paymentPolicy ? (
           <p>
             IVA{" "}

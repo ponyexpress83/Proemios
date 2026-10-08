@@ -17,8 +17,8 @@ Stack effettivo: Next 15.5.22, React 19, TypeScript, Node 24; Drizzle 0.45.2/Pos
 | 05 | Ledger idempotente, incassi asincroni, provvigioni e rettifiche proporzionali provati | Stripe test, IVA/regole approvate, documenti fiscali/processo economico |
 | 06 | Identità grafica conservata, SEO centralizzato, demo venditore tolta, noindex | Verifica browser attuale completa e dati editoriali/legali |
 | 07 | Outbox cifrata e retry, jobs persistenti/gated, manutenzione con cancellazione testata | Provider, regioni, limiti/costi, cron/alert e backup live |
-| 08 | Typecheck/lint, 102 test (28 integrazione), build locale; PR/preview da registrare | Nessun percorso con provider reale certificato; lancio vietato finché gate falliscono |
-| 09 | Preferenze, PDF, link protetto, aiuto, notifiche e backlog | Filtri salvati applicati, revisioni UI e integrazioni facoltative da verificare |
+| 08 | Typecheck/lint, 105 test (31 integrazione), build locale; PR15 draft e preview6e55961 READY | Nessun percorso con provider reale certificato; lancio vietato finché gate falliscono |
+| 09 | Preferenze, PDF, link protetto, aiuto, notifiche e backlog | Filtri salvati applicati e revisione UI implementati; flusso browser autenticato bloccato dai provider |
 
 ## Configurazione osservata
 
@@ -29,3 +29,5 @@ Nessun account reale creato o invitato. Le identità `example.test` esistono sol
 Consulta `BUSINESS_INPUTS.md`, `ACCOUNTS.md`, `DATA.md`, `RUNBOOK.md`, `RELEASE.md`, `BACKLOG.md`, `requirements/registry.csv` ed `evidence/` per risultati e criteri. Le voci da verificare non sono dichiarate risolte.
 
 Runtime locale verificato: 74 URL (incluse le 40 storiche), 62 risposte200, 6 redirect307 e 6 vere404. Dieci endpoint dipendenti rispondono503 controllato senza servizi. I dettagli sono in evidence/runtime.json.
+
+Preview6e55961: Vercel READY, desktop1363×936, libro→stima completato senza dati personali, Escape/focus e slider da tastiera verificati. Accesso/analisi mostrano attivazione; header avorio e footer blu confermati. Evidence/browser.json distingue i limiti (sei viewport/zoom/reduced motion e provider autentici non certificati).

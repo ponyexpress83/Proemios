@@ -272,6 +272,7 @@ export async function quoteDetail(request: Request, actor: Actor, id: string) {
   const policy = paymentPolicySchema.safeParse(access.record.taxPolicy);
   return json({
     quote: access.quote,
+    history: await getDb().select({ version: quoteVersions.version, createdAt: quoteVersions.createdAt }).from(quoteVersions).where(eq(quoteVersions.quoteId, id)).orderBy(desc(quoteVersions.version)).limit(100),
     record: {
       version: access.record.version,
       pricingVersion: access.record.pricingVersion,

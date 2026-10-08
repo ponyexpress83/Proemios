@@ -417,3 +417,49 @@ describe("signed callbacks and private maintenance", () => {
     expect((await GET(new Request(`${origin}/api/cron`,{headers:{authorization:"Bearer guessed"}}))).status).toBe(403);
   });
 });
+
+describe("scoped saved searches and proposal history", () => {
+  it("search predicates retain resource isolation after reassignment", async () => {
+    expect((await data(await call("sellerA", "leads?q=Synthetic%20author"))).leads).toHaveLength(0);
+    const found = (await data(await call("sellerB", "leads?q=Synthetic%20author"))).leads;
+    expect(found.map((l: {id:string})=>l.id)).toEqual([leadId]);
+    expect((await data(await call("limited", "leads?q=Scoped"))).leads).toHaveLength(1);
+  });
+  it("exposes only the authorized proposal's version history without internal snapshots", async () => {
+    const detail = await data(await call("authorA", `quotes/${quoteId}`));
+    expect(detail.history.map((v:{version:number})=>v.version)).toEqual([2,1]);
+    expect(detail.history[0]).not.toHaveProperty("snapshot");
+    expect((await call("editorB",`quotes/${quoteId}`)).status).toBe(404);
+  });
+});
+
+describe("durable analysis jobs with an isolated provider boundary", () => {
+  it("claims once, persists provider failure, retries by permission and never calls AI during polling", async () => {
+    const ai = await import("@/lib/ai");
+    const configured = vi.spyOn(ai,"aiConfigurata").mockReturnValue(true);
+    const provider = vi.spyOn(ai,"analizza").mockRejectedValueOnce(new Error("Synthetic provider unavailable")).mockResolvedValue({ sintesi:"Synthetic provider result for the isolated job test.",ritmo:{giudizio:"Synthetic rhythm assessment.",periodareLungo:false},ripetizioni:[],cliche:[],coerenza:{tempiVerbali:"Synthetic tense assessment",puntoDiVista:"Synthetic point of view"},genere:"Synthetic fiction",lettoreTipo:"Synthetic target reader",puntiForza:["Synthetic strength"],areeIntervento:["Synthetic area"],livelloIntervento:"editing-leggero" });
+    const keys=["ANALYSIS_ENABLED","ANALYSIS_POLICY_APPROVED","ANALYSIS_MAX_JOBS_PER_DAY","ANALYSIS_PER_USER_DAILY_LIMIT","MANUSCRIPT_RETENTION_DAYS"];
+    const before=keys.map(k=>process.env[k]);
+    Object.assign(process.env,{ANALYSIS_ENABLED:"1",ANALYSIS_POLICY_APPROVED:"1",ANALYSIS_MAX_JOBS_PER_DAY:"20",ANALYSIS_PER_USER_DAILY_LIMIT:"5",MANUSCRIPT_RETENTION_DAYS:"2"});
+    try {
+      const { submitAnalysis,runAnalysisJob,analysisStatus }=await import("@/lib/platform/analysis");
+      const operationKey=randomUUID();
+      const upload=()=>{const form=new FormData();form.set("file",new File(["Synthetic words for testing. ".repeat(100)],"job-fixture.txt"));form.set("nome","Synthetic author");form.set("email",actors.authorA!.email);form.set("consensoPrivacy","true");return new Request(`${origin}/api/analisi`,{method:"POST",headers:{origin,cookie:actors.authorA!.cookie,"idempotency-key":operationKey},body:form});};
+      const job=await data(await submitAnalysis(upload()),202);
+      expect((await data(await submitAnalysis(upload()),202)).jobId).toBe(job.jobId);
+      await Promise.all([runAnalysisJob(job.jobId),runAnalysisJob(job.jobId)]);
+      expect(provider).toHaveBeenCalledTimes(1);
+      const status=()=>analysisStatus(new Request(`${origin}/api/analisi?jobId=${job.jobId}`,{headers:{cookie:actors.authorA!.cookie}}));
+      for(let i=0;i<3;i++)expect((await data(await status())).status).toBe("failed");
+      expect(provider).toHaveBeenCalledTimes(1);
+      expect((await call("editorA",`operations/${job.jobId}/analysis-retry`,"POST",{confirmProviderCost:true})).status).toBe(403);
+      await data(await call("owner",`operations/${job.jobId}/analysis-retry`,"POST",{confirmProviderCost:true}),202);
+      await runAnalysisJob(job.jobId);await runAnalysisJob(job.jobId);
+      const completed=await data(await status());expect(completed.status).toBe("completed");expect(completed.report.sintesi).toContain("Synthetic provider result");
+      expect(provider).toHaveBeenCalledTimes(2);
+      expect((await db.select().from(platform.analysisJobs).where(eq(platform.analysisJobs.operationKey,operationKey)))).toHaveLength(1);
+    } finally {
+      configured.mockRestore();provider.mockRestore();keys.forEach((k,i)=>{if(before[i]===undefined)delete process.env[k];else process.env[k]=before[i];});
+    }
+  });
+});

@@ -5,9 +5,10 @@
 1. Collegare servizi test separati e variabili nominate in `.env.example` tramite configurazione protetta; nessun segreto nel repo. APP_URL/BETTER_AUTH_URL sono l’origine applicativa autorizzata; NEXT_PUBLIC_SITE_URL resta https://proemios.it.
 2. Verificare backup DB e storage sul piano reale e provare restore in ambiente isolato prima di toccare dati live. Il test PGlite dump/restore non certifica PITR del servizio.
 3. Eseguire `npm ci`, `npm run db:migrate` verso il DB staging; migrazioni 0002–0005 additive dopo 0000–0001. Non usare db:push/reset/seed su produzione. Il seed è bloccato fuori dai test isolati.
-4. Registrare/verificare l’owner autorizzato, configurare TOTP, chiudere bootstrap rimuovendo PROEMIOS_OWNER_EMAIL e controllare il flag DB owner-bootstrap. Invitare soltanto identità e destinatari esplicitamente autorizzati.
-5. Configurare policy economiche approvate/versionate. Controllare nome mittente, Webhook Stripe test e accesso private Blob. Flags analisi e release restano spenti fino alle prove.
-6. Eseguire test provider positivo/errore/retry e percorsi autore/editor/seller/affiliate/finance; annotare ID sintetici senza token.
+4. Prima di abilitare DOCX/PDF, verificare scanner e parser anche con archivi compressi anomali, limiti di espansione/estrazione e file corrotti nello staging. Il solo magic byte non certifica sicurezza del documento.
+5. Registrare/verificare l’owner autorizzato, configurare TOTP, chiudere bootstrap rimuovendo PROEMIOS_OWNER_EMAIL e controllare il flag DB owner-bootstrap. Invitare soltanto identità e destinatari esplicitamente autorizzati.
+6. Configurare policy economiche approvate/versionate. Controllare nome mittente, Webhook Stripe test e accesso private Blob. Flags analisi e release restano spenti fino alle prove.
+7. Eseguire test provider positivo/errore/retry e percorsi autore/editor/seller/affiliate/finance; annotare ID sintetici senza token.
 
 ## Incidenti
 

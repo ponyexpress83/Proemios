@@ -5,9 +5,9 @@
   "typecheck": "passed (build TypeScript check included)",
   "lint": "passed",
   "tests": {
-    "passed": 102,
+    "passed": 105,
     "files": 8,
-    "postgres_integration": 28,
+    "postgres_integration": 31,
     "providers": "isolated local transports; no external sends or money movements"
   },
   "production_build": {
@@ -36,8 +36,9 @@
   "limits": [
     "No DB/Blob/Resend/Anthropic/Stripe provider flow on Vercel",
     "No live identities created or invited",
-    "No complete browser/axe/Lighthouse run yet; local Chromium install failed, cloud preview validation pending",
+    "Cloud browser desktop verified in browser.json. Exact six viewports/zoom/reduced motion/axe/Lighthouse unavailable or not completed.",
     "Postgres dump/restore tested; actual purchased backup plan and Blob restore not verified"
   ],
-  "release": "blocked"
+  "release": "blocked",
+  "followup": "Saved CRM search, proposal revision UI and scoped history added; build/lint and suite rechecked."
 }
