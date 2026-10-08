@@ -1,25 +1,14 @@
 import { demoAttiva } from "@/lib/demo";
-import { DemoLogin } from "@/components/author/demo-login";
-import type { TextState } from "@/lib/pricing";
+import type { QuotePrefill } from "@/lib/quote-brief";
 import { Eyebrow } from "./elements";
 import Link from "./link";
 import { Configuratore } from "@/components/preventivo/configuratore";
 import { FlussoAnalisi } from "@/components/analisi/flusso";
 import { ModuloContatto } from "@/components/moduli/modulo-contatto";
 import { ModuloAgenzia } from "@/components/moduli/modulo-agenzia";
-import type { ProjectType, ServiceKey } from "@/lib/pricing";
 import { publicEnv, env } from "@/lib/env";
-export function QuotePage({
-  precompilato,
-}: {
-  precompilato?: {
-    tipo?: ProjectType;
-    servizi?: ServiceKey[];
-    parole?: number;
-    statoTesto?: TextState;
-    tempi?: "standard" | "prioritaria";
-  };
-}) {
+import { analysisConfigured } from "@/lib/platform/analysis";
+export function QuotePage({ precompilato }: { precompilato?: QuotePrefill }) {
   return (
     <section className="operative quote-operative">
       <div className="container">
@@ -37,46 +26,11 @@ export function QuotePage({
         </div>
         <div className="operative-surface">
           <FormDemoNotice />
-          <Configuratore precompilato={precompilato} demoMode={demoAttiva()} />
-          <details className="quote-analysis-option" id="analisi-facoltativa">
-            <summary>
-              <span>Hai già un testo?</span>
-              <strong>Aggiungi una prima analisi facoltativa</strong>
-              <span className="quote-analysis-toggle" aria-hidden="true">
-                +
-              </span>
-            </summary>
-            <div className="quote-analysis-content">
-              <p>
-                Un report automatico su leggibilità, ritmo e ripetizioni, con un conteggio parole
-                del file. È gratuito e facoltativo: puoi calcolare il preventivo anche senza
-                condividere il testo. La lettura professionale completa è un servizio distinto.
-              </p>
-              <div className="manuscript-privacy">
-                <strong>Prima di condividere il tuo testo</strong>
-                <p>
-                  Il caricamento non trasferisce i tuoi diritti sull’opera. Il file non viene
-                  archiviato dall’applicazione; per il report un estratto viene elaborato dal
-                  servizio di analisi automatica descritto nell’informativa. Nome file, conteggio
-                  parole e report sono associati a una scadenza di {env.MANUSCRIPT_RETENTION_DAYS}{" "}
-                  giorni.
-                </p>
-                <div>
-                  <Link href="/privacy" className="text-link">
-                    Come trattiamo il testo
-                  </Link>
-                  <Link href="/termini" className="text-link">
-                    Diritti e condizioni
-                  </Link>
-                </div>
-              </div>
-              <FormDemoNotice analysis />
-              <FlussoAnalisi
-                giorniConservazione={env.MANUSCRIPT_RETENTION_DAYS}
-                demoMode={demoAttiva()}
-              />
-            </div>
-          </details>
+          <Configuratore
+            precompilato={precompilato}
+            demoMode={demoAttiva()}
+            retention={env.MANUSCRIPT_RETENTION_DAYS}
+          />
         </div>
       </div>
     </section>
@@ -101,7 +55,7 @@ export function AnalysisPage({ retention }: { retention: number }) {
         </div>
         <div className="operative-surface">
           <FormDemoNotice analysis />
-          <FlussoAnalisi giorniConservazione={retention} demoMode={demoAttiva()} />
+          {demoAttiva() || analysisConfigured() ? <FlussoAnalisi giorniConservazione={retention} demoMode={demoAttiva()} /> : <div className="platform-card"><h2>Analisi in attivazione</h2><p>Il servizio sarà disponibile dopo la verifica dei fornitori e delle condizioni sui testi. Puoi già confrontare una stima senza caricare il manoscritto.</p><Link href="/preventivo" className="button">Scopri la stima →</Link><Link href="/contatti?motivo=editor">Parla con un editor →</Link></div>}
         </div>
       </div>
     </section>
@@ -169,9 +123,6 @@ export function AgencyForm() {
       </div>
     </section>
   );
-}
-export function AccessPage() {
-  return <DemoLogin />;
 }
 export function FormDemoNotice({ analysis = false }: { analysis?: boolean }) {
   if (!demoAttiva()) return null;

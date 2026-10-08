@@ -32,7 +32,7 @@ export default function PrivacyPage() {
               Stai usando una demo. Preventivi, contatti e analisi sono simulati: non vengono
               inviate email né eseguiti pagamenti. Non inserire dati o manoscritti personali. L’area
               autore conserva le azioni solo nella scheda del browser, fino all’uscita; l’assistente
-              preventivo conserva le risposte solo finché è aperto. La dettatura facoltativa è
+              preventivo conserva le risposte finché non lasci la pagina. La dettatura facoltativa è
               gestita dal browser e può usare il servizio vocale del suo fornitore. Il testo
               seguente descrive il trattamento previsto per il servizio operativo e va verificato
               prima dell’attivazione.
@@ -170,17 +170,20 @@ export default function PrivacyPage() {
                 testo, pari indicativamente alle prime 8.000 parole.
               </p>
               <p className="mt-3">
-                <strong>Il file che carichi non viene conservato.</strong> Ne estraiamo il testo,
-                generiamo il report e cancelliamo l&rsquo;estratto entro {giorni} giorni. Del
-                caricamento restano soltanto il nome del file, il conteggio delle parole e il report
-                prodotto. Il tuo testo non è utilizzato per addestrare alcun modello, non è ceduto a
-                terzi e non è impiegato per finalità diverse dall&rsquo;analisi richiesta.
+                Il testo integrale viene elaborato per estrarne metriche e un estratto; non viene
+                archiviato nel database applicativo. In produzione conserviamo contatti, nome file,
+                conteggio parole e report. L’estratto viene trasmesso ad Anthropic per il giudizio
+                automatico. In demo il giudizio è simulato e alcuni dati restano temporaneamente
+                nella memoria del server. Il codice assegna ai record una scadenza di {giorni}{" "}
+                giorni: questo campo non attesta una procedura di cancellazione automatica. Puoi
+                richiedere la cancellazione scrivendo al recapito privacy indicato in questa
+                informativa.
               </p>
               <p className="mt-3">
                 Il report non costituisce un processo decisionale automatizzato produttivo di
                 effetti giuridici ai sensi dell&rsquo;art. 22 GDPR: è una valutazione indicativa,
-                che non determina da sola l&rsquo;accesso ad alcun servizio e che viene comunque
-                verificata da una persona prima di qualsiasi proposta contrattuale.
+                che non determina da sola l&rsquo;accesso ad alcun servizio e che richiede un
+                confronto con il team prima di qualsiasi proposta contrattuale.
               </p>
               <p className="mt-3">{BRAND.aiDisclaimer}</p>
             </>
@@ -196,13 +199,17 @@ export default function PrivacyPage() {
                   {CONSERVAZIONE.leadNonConvertiti}.
                 </li>
                 <li>Dati di clienti e documentazione contrattuale: {CONSERVAZIONE.clienti}.</li>
-                <li>Estratti dei manoscritti analizzati: {giorni} giorni.</li>
+                <li>
+                  Metadati e report di analisi: scadenza tecnica impostata a {giorni} giorni, con
+                  procedura operativa di cancellazione da verificare.
+                </li>
                 <li>Dati trattati sulla base del consenso: {CONSERVAZIONE.consensoMarketing}.</li>
                 <li>Dati tecnici e log di sicurezza: {CONSERVAZIONE.logTecnici}.</li>
               </ul>
               <p className="mt-3">
-                Decorsi tali termini i dati sono cancellati o resi anonimi in modo irreversibile,
-                salvo che una diversa conservazione sia richiesta da un obbligo di legge o
+                I termini indicati definiscono la politica di conservazione. La relativa esecuzione
+                operativa, inclusa la cancellazione dei record scaduti, deve essere verificata dal
+                titolare; salvo che una diversa conservazione sia richiesta da un obbligo di legge o
                 necessaria per la difesa di un diritto in giudizio.
               </p>
             </>
@@ -293,10 +300,10 @@ export default function PrivacyPage() {
               Adottiamo misure tecniche e organizzative adeguate a proteggere i dati da distruzione,
               perdita, modifica, divulgazione o accesso non autorizzati: trasmissione cifrata (TLS),
               accesso alle aree riservate protetto da credenziali, minimizzazione dei dati
-              conservati e cancellazione automatica degli estratti dei manoscritti. Nessun sistema è
-              però sicuro in modo assoluto: in caso di violazione dei dati personali che comporti un
-              rischio elevato per i tuoi diritti, ti informeremo senza ingiustificato ritardo ai
-              sensi dell&rsquo;art. 34 GDPR.
+              conservati. La scadenza dei record di analisi è distinta dalla loro cancellazione
+              effettiva. Nessun sistema è però sicuro in modo assoluto: in caso di violazione dei
+              dati personali che comporti un rischio elevato per i tuoi diritti, ti informeremo
+              senza ingiustificato ritardo ai sensi dell&rsquo;art. 34 GDPR.
             </p>
           ),
         },

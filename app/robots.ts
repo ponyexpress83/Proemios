@@ -22,7 +22,7 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: "*",
       allow: "/",
-      disallow: ["/admin", "/api/", "/area-autore", "/accedi", "/preventivo/grazie"],
+      disallow: ["/admin", "/api/", "/area-autore", "/area-team", "/spazio", "/accedi", "/accesso-team", "/registrati", "/recupera-accesso", "/nuova-password", "/verifica-accesso", "/invito", "/collega-preventivo", "/sicurezza", "/preventivo/grazie"],
     },
     sitemap: assoluto("/sitemap.xml"),
     host: assoluto("/"),

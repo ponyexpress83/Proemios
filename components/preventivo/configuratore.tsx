@@ -24,8 +24,12 @@ import {
   type ServiceKey,
   type QuoteResult,
 } from "@/lib/pricing";
+import { FlussoAnalisi } from "@/components/analisi/flusso";
+import { Report } from "@/components/analisi/report";
+import type { ReportCompleto } from "@/lib/ai";
+import { hasManuscript, quoteStep, applyAnalysisWords, type QuotePrefill } from "@/lib/quote-brief";
 import type { MaterialAmount } from "@/config/pricing";
-import { PREVENTIVO, UI } from "@/config/copy";
+import { UI } from "@/config/copy";
 import { euro, numero } from "@/lib/format";
 
 interface Stato {
@@ -43,23 +47,32 @@ interface Stato {
   consensoMarketing: boolean;
 }
 
-const TOTALE_PASSI = 6;
+const TOTALE_PASSI = 7;
+const STEP_LABELS = [
+  "Progetto",
+  "Testo",
+  "Dimensione",
+  "Analisi facoltativa",
+  "Servizi",
+  "Tempi",
+  "Contatti facoltativi per salvare",
+];
 
 export function Configuratore({
   precompilato,
   demoMode = false,
+  retention = 30,
 }: {
   demoMode?: boolean;
-  precompilato?: {
-    tipo?: ProjectType;
-    servizi?: ServiceKey[];
-    parole?: number;
-    statoTesto?: TextState;
-    tempi?: "standard" | "prioritaria";
-  };
+  retention?: number;
+  precompilato?: QuotePrefill;
 }) {
+  const [analysisOpen, setAnalysisOpen] = useState(false);
+  const [analysisReport, setAnalysisReport] = useState<ReportCompleto | null>(null);
+  const [analysisBusy, setAnalysisBusy] = useState(false);
   const [passo, setPasso] = useState(0);
   const question = useRef<HTMLHeadingElement>(null);
+  const submissionKey = useRef<string | null>(null);
   const previousStep = useRef(0);
   useEffect(() => {
     if (previousStep.current === passo) return;
@@ -87,13 +100,13 @@ export function Configuratore({
     statoTesto:
       precompilato?.statoTesto ?? (precompilato?.tipo === "memoir" ? "solo-materiali" : null),
     parole: precompilato?.parole ?? 50_000,
-    materiale: "parziale",
+    materiale: precompilato?.materiale ?? "parziale",
     servizi: precompilato?.servizi ?? [],
     tempi: precompilato?.tempi ?? "standard",
     nome: "",
     email: "",
     telefono: "",
-    note: "",
+    note: precompilato?.contesto ?? "",
     consensoPrivacy: false,
     consensoMarketing: false,
   });
@@ -104,6 +117,10 @@ export function Configuratore({
   }
 
   const soloMateriali = s.statoTesto === "solo-materiali";
+  const manuscript =
+    s.tipo && s.statoTesto
+      ? hasManuscript({ projectType: s.tipo, textState: s.statoTesto })
+      : false;
   const soloGrafica = s.tipo === "solo-grafica";
 
   // Anteprima calcolata in locale: stesso motore puro del server.
@@ -130,11 +147,13 @@ export function Configuratore({
       case 1:
         return s.statoTesto !== null;
       case 2:
-        return s.parole > 0;
+        return Number.isInteger(s.parole) && s.parole > 0 && s.parole <= 2_000_000;
       case 3:
       case 4:
         return true;
       case 5:
+        return true;
+      case 6:
         return s.nome.trim().length >= 2 && /.+@.+\..+/.test(s.email) && s.consensoPrivacy;
       default:
         return false;
@@ -161,11 +180,14 @@ export function Configuratore({
     setInvio(true);
     setErrore("");
     try {
+      submissionKey.current ??= crypto.randomUUID();
+      const ref = new URL(window.location.href).searchParams.get("ref");
       const res = await fetch("/api/preventivo", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "Idempotency-Key": submissionKey.current },
         body: JSON.stringify({
           sito: trap,
+          ...(ref && /^[a-z0-9]{16}$/.test(ref) ? {ref} : {}),
           input: {
             projectType: s.tipo,
             textState: s.statoTesto,
@@ -246,7 +268,7 @@ export function Configuratore({
             <span className="apparato text-ottone">
               {UI.passo} {passo + 1} {UI.di} {TOTALE_PASSI}
             </span>
-            <span className="apparato text-stampa">{PREVENTIVO.passi[passo]}</span>
+            <span className="apparato text-stampa">{STEP_LABELS[passo]}</span>
           </div>
           <div className="bg-filetto-notte mt-3 h-px w-full">
             <div
@@ -263,9 +285,10 @@ export function Configuratore({
                 "Che tipo di libro vuoi realizzare?",
                 "A che punto è il testo?",
                 "Quanto sarà lungo il libro?",
+                "Vuoi una prima valutazione del manoscritto?",
                 "Di quali servizi hai bisogno?",
                 "Hai una scadenza?",
-                "Dove possiamo ricontattarti?",
+                "Vuoi salvare il preventivo e parlarne con noi?",
               ][passo]
             }
           </h2>
@@ -344,6 +367,8 @@ export function Configuratore({
                       type="number"
                       inputMode="numeric"
                       min={1}
+                      max={2_000_000}
+                      step={1}
                       value={s.parole || ""}
                       onChange={(e) => agg("parole", Number(e.target.value))}
                       className="cifre text-lg"
@@ -373,6 +398,59 @@ export function Configuratore({
 
           {/* 4 — Servizi */}
           {passo === 3 && (
+            <div className="optional-analysis-step">
+              <p>
+                Un passaggio facoltativo: metriche del testo e una prima indicazione automatica
+                degli interventi. La valutazione completa di un editor è un servizio distinto.
+              </p>
+              <p>
+                Puoi ottenere la stima anonima senza file e senza contatti. L’analisi richiede
+                invece nome, email e presa visione della privacy.
+              </p>
+              <Bottone className="mt-5" disabled={analysisBusy} onClick={() => setPasso(4)}>
+                Continua senza caricare un testo →
+              </Bottone>
+              {!analysisOpen && !analysisReport && (
+                <Bottone
+                  variante="secondario"
+                  className="mt-4"
+                  onClick={() => setAnalysisOpen(true)}
+                >
+                  Aggiungi la valutazione facoltativa
+                </Bottone>
+              )}
+              {analysisReport ? (
+                <>
+                  <div className="analysis-count-choice">
+                    <button
+                      className="button secondary"
+                      onClick={() =>
+                        setS((prev) => applyAnalysisWords(prev, analysisReport.metriche.parole))
+                      }
+                    >
+                      Usa il conteggio del report
+                    </button>
+                    <span>
+                      {numero(analysisReport.metriche.parole)} parole: applica solo se il file è
+                      completo.
+                    </span>
+                  </div>
+                  <Report report={analysisReport} demo={demoMode} onContinue={() => setPasso(4)} />
+                </>
+              ) : (
+                analysisOpen && (
+                  <FlussoAnalisi
+                    giorniConservazione={retention}
+                    demoMode={demoMode}
+                    onComplete={setAnalysisReport}
+                    onBusyChange={setAnalysisBusy}
+                    onContinue={() => setPasso(4)}
+                  />
+                )
+              )}
+            </div>
+          )}
+          {passo === 4 && (
             <div>
               <p className="glossa text-stampa mb-5">
                 {soloGrafica
@@ -402,7 +480,7 @@ export function Configuratore({
           )}
 
           {/* 5 — Tempi */}
-          {passo === 4 && (
+          {passo === 5 && (
             <Griglia>
               {TEMPI.map((o) => (
                 <Opzione
@@ -417,7 +495,7 @@ export function Configuratore({
           )}
 
           {/* 6 — Contatto */}
-          {passo === 5 && (
+          {passo === 6 && (
             <div className="space-y-5">
               <div className="grid gap-5 sm:grid-cols-2">
                 <Campo id="pv-nome" label="Nome" obbligatorio errore={fieldErrors.nome}>
@@ -526,8 +604,8 @@ export function Configuratore({
           <Bottone
             variante="secondario"
             misura="grande"
-            onClick={() => setPasso((p) => Math.max(0, p - 1))}
-            disabled={passo === 0 || invio}
+            onClick={() => setPasso((p) => quoteStep(p, -1, Boolean(manuscript)))}
+            disabled={passo === 0 || invio || analysisBusy}
           >
             ← {UI.indietro}
           </Bottone>
@@ -536,14 +614,14 @@ export function Configuratore({
             <Bottone
               variante="primario"
               misura="grande"
-              onClick={() => setPasso((p) => p + 1)}
-              disabled={!puoAvanzare}
+              onClick={() => setPasso((p) => quoteStep(p, 1, Boolean(manuscript)))}
+              disabled={!puoAvanzare || analysisBusy}
             >
-              {UI.avanti} →
+              {passo === 3 ? "Continua senza caricare un testo" : UI.avanti} →
             </Bottone>
           ) : (
             <Bottone variante="primario" misura="grande" onClick={calcola} disabled={invio}>
-              {invio ? UI.caricamento : PREVENTIVO.passi[5] && "Calcola il preventivo"}
+              {invio ? UI.caricamento : "Salva e richiedi un confronto"}
             </Bottone>
           )}
         </div>
@@ -552,7 +630,15 @@ export function Configuratore({
       {/* Anteprima live */}
       <aside className="lg:sticky lg:top-24 lg:self-start">
         <div className="rounded-scheda border-filetto bg-carta-alta border p-6">
-          <p className="apparato text-ottone">Anteprima</p>
+          <p className="apparato text-ottone">La tua stima anonima</p>
+          <p className="glossa text-stampa">
+            Indicativa, senza upload né dati personali. Il costo definitivo si concorda con il team.
+          </p>
+          {!manuscript && s.statoTesto && (
+            <p className="glossa text-stampa mt-3">
+              Parti da materiali o da un’idea: non ti chiediamo un manoscritto.
+            </p>
+          )}
           {anteprima ? (
             <>
               <div className="mt-4 space-y-2">

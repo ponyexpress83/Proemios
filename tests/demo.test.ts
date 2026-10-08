@@ -30,8 +30,8 @@ afterEach(() => {
 });
 
 describe("attivazione", () => {
-  it("si accende da sola quando manca il database", () => {
-    expect(demoAttiva()).toBe(true);
+  it("resta spenta quando manca il database", () => {
+    expect(demoAttiva()).toBe(false);
   });
 
   it("resta spenta quando il database è configurato", () => {
@@ -50,6 +50,8 @@ describe("attivazione", () => {
     expect(demoAttiva()).toBe(true);
   });
 });
+
+it("non permette simulazioni in produzione", () => { process.env.VERCEL_ENV="production"; process.env.DEMO_MODE="on"; expect(demoAttiva()).toBe(false); });
 
 describe("report simulato", () => {
   const testoScorrevole = Array.from(

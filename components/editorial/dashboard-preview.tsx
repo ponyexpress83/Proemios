@@ -87,8 +87,8 @@ export function DashboardPreview({ white = false }: { white?: boolean }) {
                 <strong>Il tuo editor ti ha scritto</strong>
               </div>
               <div>
-                <span>Pagamenti</span>
-                <strong>Acconto registrato</strong>
+                <span>Attività recente</span>
+                <strong>Revisione 02 disponibile</strong>
               </div>
             </div>
           </>
@@ -118,7 +118,7 @@ export function DashboardPreview({ white = false }: { white?: boolean }) {
             <ShieldCheck size={26} />
             <strong>Ogni importo, visibile</strong>
             <span>Acconto, saldo e stato del pagamento in un unico spazio.</span>
-            <b>Acconto registrato · esempio</b>
+            <b>Pagamento simulato: nessun addebito</b>
             <Link className="preview-action" href="/accedi?sezione=payments">
               Esplora i pagamenti nella demo
             </Link>

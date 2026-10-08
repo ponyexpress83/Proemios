@@ -182,7 +182,7 @@ function ServicePage({ slug }: { slug: string }) {
               .concat(services.filter((x) => x.slug !== slug && x.group !== s.group).slice(0, 2))
               .map((x) => (
                 <Link key={x.slug} href={"/servizi/" + x.slug}>
-                  {x.title} ↗
+                  {x.title} →
                 </Link>
               ))}
           </div>
@@ -235,6 +235,20 @@ function PathPage({ slug }: { slug: string }) {
               <br />
               <em>il tuo libro.</em>
             </h2>
+            {"materials" in p && p.materials && (
+              <div className="path-starting-materials">
+                <h3>I materiali da cui partire</h3>
+                <ul>
+                  {p.materials.map((material) => (
+                    <li key={material}>{material}</li>
+                  ))}
+                </ul>
+                <p>
+                  Non serve averli tutti: definiamo insieme come raccoglierli e quali autorizzazioni
+                  verificare.
+                </p>
+              </div>
+            )}
             <ol className="path-detail-steps">
               {p.steps.map((x) => (
                 <li key={x}>{x}</li>

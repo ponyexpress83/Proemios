@@ -1,33 +1,13 @@
 "use client";
 
-import { useState } from "react";
-import { Bottone, BottoneLink } from "@/components/ui/bottone";
+
+import { BottoneLink } from "@/components/ui/bottone";
 import { Filetto, Etichetta, cx } from "@/components/ui/primitivi";
 import { euro, numero } from "@/lib/format";
-import { PREVENTIVO, UI } from "@/config/copy";
-import type { QuoteResult, PackageTier } from "@/lib/pricing";
+import { PREVENTIVO } from "@/config/copy";
+import type { QuoteResult } from "@/lib/pricing";
 
 export function RisultatoPreventivo({ esito, quoteId }: { esito: QuoteResult; quoteId: string }) {
-  const [inCorso, setInCorso] = useState<PackageTier | null>(null);
-  const [errore, setErrore] = useState("");
-
-  async function pagaAcconto(pacchetto: PackageTier) {
-    setInCorso(pacchetto);
-    setErrore("");
-    try {
-      const res = await fetch("/api/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ quoteId, pacchetto }),
-      });
-      const dati = (await res.json()) as { url?: string; errore?: string };
-      if (!res.ok || !dati.url) throw new Error(dati.errore ?? UI.erroreGenerico);
-      window.location.assign(dati.url);
-    } catch (err) {
-      setErrore(err instanceof Error ? err.message : UI.erroreGenerico);
-      setInCorso(null);
-    }
-  }
 
   return (
     <div>
@@ -101,23 +81,12 @@ export function RisultatoPreventivo({ esito, quoteId }: { esito: QuoteResult; qu
             )}
             {p.excludes.length === 0 && <div className="flex-1" />}
 
-            <Bottone
-              variante={p.recommended ? "chiaro" : "secondarioNotte"}
-              className="mt-6 w-full"
-              disabled={inCorso !== null}
-              onClick={() => pagaAcconto(p.tier)}
-            >
-              {inCorso === p.tier ? UI.caricamento : PREVENTIVO.accontoCta}
-            </Bottone>
+            <BottoneLink href="/accedi" className="mt-6 w-full">Apri il tuo spazio autore →</BottoneLink>
           </div>
         ))}
       </div>
 
-      {errore && (
-        <p className="text-ottone mt-6 text-center text-sm" role="alert">
-          {errore}
-        </p>
-      )}
+      <p className="prosa mt-6">Abbiamo registrato la richiesta. Riceverai un collegamento personale per associare il preventivo al tuo indirizzo verificato. Nel tuo spazio potrai confermare la proposta e pagare dopo la verifica delle condizioni.</p>
 
       <Filetto className="mt-10" tono="carta" />
       <div className="mt-6 grid gap-6 sm:grid-cols-[auto_1fr] sm:gap-10">

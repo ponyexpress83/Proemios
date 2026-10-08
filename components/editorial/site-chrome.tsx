@@ -5,9 +5,9 @@ import { services, articles } from "@/lib/editorial-content";
 import { Header, Footer } from "./chrome";
 import { Testata } from "@/components/layout/testata";
 import { Colophon } from "@/components/layout/colophon";
-export function SiteChrome({ children }: { children: ReactNode }) {
+export function SiteChrome({ children, analysisReady = false }: { children: ReactNode; analysisReady?: boolean }) {
   const pathname = usePathname();
-  if (pathname.startsWith("/area-autore")) return <div className="proemios-public">{children}</div>;
+  if (["/area-autore","/area-team","/spazio","/admin"].some(p=>pathname.startsWith(p))) return <div className="proemios-public">{children}</div>;
   if (pathname.startsWith("/admin"))
     return (
       <>
@@ -38,7 +38,7 @@ export function SiteChrome({ children }: { children: ReactNode }) {
     articles.some((a) => pathname === "/blog/" + a.slug);
   return (
     <div className="proemios-public">
-      <Header />
+      <Header analysisReady={analysisReady} />
       <main id="contenuto">
         <div className={modern ? "editorial-content" : "legacy-content"}>{children}</div>
       </main>

@@ -1,0 +1,46 @@
+{
+  "date": "2026-10-08",
+  "source_base": "57cedee1e54fd3fc50e0be18731764f4bba01653",
+  "branch": "codex/proemios-production-20261008",
+  "typecheck": "passed (build TypeScript check included)",
+  "lint": "passed",
+  "tests": {
+    "passed": 105,
+    "files": 8,
+    "postgres_integration": 31,
+    "providers": "isolated local transports; no external sends or money movements"
+  },
+  "production_build": {
+    "passed": true,
+    "next": "15.5.22",
+    "node": "24.19.0",
+    "generated_pages": 70,
+    "edge_warnings": "none after removing heavyweight cookie helper from middleware"
+  },
+  "runtime": {
+    "paths": 74,
+    "api": 10,
+    "status_counts": {
+      "200": 62,
+      "307": 6,
+      "404": 6
+    },
+    "private_data": "no providers configured, all ten API dependencies return controlled 503",
+    "metadata": "all public SSR HTML noindex, canonical proemios.it, JSON-LD parseable"
+  },
+  "vercel_config_observed": {
+    "env_names": [],
+    "hidden_production_env_count": 0,
+    "domain": "proemios.vercel.app; proemios.it absent from project"
+  },
+  "limits": [
+    "No DB/Blob/Resend/Anthropic/Stripe provider flow on Vercel",
+    "No live identities created or invited",
+    "Cloud browser desktop verified in browser.json. Exact six viewports/zoom/reduced motion/axe/Lighthouse unavailable or not completed.",
+    "Postgres dump/restore tested; actual purchased backup plan and Blob restore not verified"
+  ],
+  "release": "blocked",
+  "followup": "Saved CRM search, proposal revision UI and scoped history added; build/lint and suite rechecked.",
+  "code_sha": "4989787d43cedd66cce235785f77bc2799201578",
+  "preview": "deployment.json"
+}

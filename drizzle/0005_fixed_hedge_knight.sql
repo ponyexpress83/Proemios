@@ -1,0 +1,4 @@
+ALTER TABLE "platform_quote_records" ADD COLUMN "accepted_seller_id" text;--> statement-breakpoint
+ALTER TABLE "platform_invitations" ADD COLUMN "accepted_seller_id" text;--> statement-breakpoint
+ALTER TABLE "platform_quote_records" ADD CONSTRAINT "platform_quote_records_accepted_seller_id_auth_users_id_fk" FOREIGN KEY ("accepted_seller_id") REFERENCES "public"."auth_users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "platform_invitations" ADD CONSTRAINT "platform_invitations_accepted_seller_id_auth_users_id_fk" FOREIGN KEY ("accepted_seller_id") REFERENCES "public"."auth_users"("id") ON DELETE no action ON UPDATE no action;

@@ -18,6 +18,9 @@ import {
   index,
 } from "drizzle-orm/pg-core";
 
+export * from "./auth-schema";
+export * from "./platform-schema";
+
 export const leadSourceEnum = pgEnum("lead_source", [
   "preventivo",
   "analisi",
