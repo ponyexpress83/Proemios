@@ -15,6 +15,34 @@
       "when": 1788029900000,
       "tag": "0001_ads_attribution",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791388907116,
+      "tag": "0002_groovy_mole_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1791391209544,
+      "tag": "0003_aspiring_quasar",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791445435083,
+      "tag": "0004_left_toad",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1791447151630,
+      "tag": "0005_fixed_hedge_knight",
+      "breakpoints": true
     }
   ]
 }

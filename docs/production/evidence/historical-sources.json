@@ -1,0 +1,121 @@
+[
+  {
+    "source": "Testo incollato(9).txt",
+    "sha256": "f1744cfed4ea19f1c9eb0a347ecb183aea4b62f9468abd39abbbe4f88ef044ff",
+    "bytes": 23143,
+    "date": "2026-10-06",
+    "current_evidence": false
+  },
+  {
+    "source": "Testo incollato (2).txt",
+    "sha256": "97d723a0324eb8d1616055df3a2f5bf770e9121534679327e4532d2fa5c3caaf",
+    "bytes": 14318,
+    "date": "2026-10-06",
+    "current_evidence": false
+  },
+  {
+    "source": "Testo incollato (3).txt",
+    "sha256": "e6c39a150ad132c1b971b51b4781ede66cb0122d6c18b65f33fd92efe4fb6484",
+    "bytes": 18457,
+    "date": "2026-10-06",
+    "current_evidence": false
+  },
+  {
+    "source": "inventario-seo-proemios.csv",
+    "sha256": "b2edc2af0320c687baa0333338073aed8ae1688b35bcaa5ed4a595ed6ed2062d",
+    "bytes": 14797,
+    "date": "2026-10-06",
+    "current_evidence": false
+  },
+  {
+    "source": "evidenze-audit-proemios.zip",
+    "sha256": "c31eea6ef4412b6abe58be082e091afd66c5c18a347c86fc167c8f3ea5181f7a",
+    "bytes": 988144,
+    "date": "2026-10-06",
+    "current_evidence": false
+  },
+  {
+    "source": "evidenze-audit-proemios.zip/audit-results.json",
+    "type": "dict",
+    "keys": [
+      "checked_at",
+      "base",
+      "pages",
+      "axe",
+      "interactions"
+    ]
+  },
+  {
+    "source": "evidenze-audit-proemios.zip/link-results.json",
+    "type": "dict",
+    "keys": [
+      "checked",
+      "anomalies"
+    ]
+  },
+  {
+    "source": "evidenze-audit-proemios.zip/interactions.json",
+    "type": "dict",
+    "keys": [
+      "menuBefore",
+      "menuAfter",
+      "menuLinks",
+      "homeContrast",
+      "wizard",
+      "wizardFinalText",
+      "/accedi",
+      "/blog",
+      "/casi-studio",
+      "/privacy",
+      "/cookie"
+    ]
+  },
+  {
+    "source": "evidenze-audit-proemios.zip/lighthouse-mobile.json",
+    "type": "dict",
+    "keys": [
+      "lighthouseVersion",
+      "requestedUrl",
+      "mainDocumentUrl",
+      "finalDisplayedUrl",
+      "finalUrl",
+      "fetchTime",
+      "gatherMode",
+      "runWarnings",
+      "userAgent",
+      "environment",
+      "audits",
+      "configSettings"
+    ]
+  },
+  {
+    "source": "evidenze-audit-proemios.zip/lighthouse-desktop.json",
+    "type": "dict",
+    "keys": [
+      "lighthouseVersion",
+      "requestedUrl",
+      "mainDocumentUrl",
+      "finalDisplayedUrl",
+      "finalUrl",
+      "fetchTime",
+      "gatherMode",
+      "runWarnings",
+      "userAgent",
+      "environment",
+      "audits",
+      "configSettings"
+    ]
+  },
+  {
+    "source": "evidenze-grafica-ux-seo-geo-aeo.zip",
+    "sha256": "36aec453debaad5e2949cb8e83e4d4c9b54c707aa037df640b1dfc712c71fec0",
+    "bytes": 768168,
+    "date": "2026-10-06",
+    "current_evidence": false
+  },
+  {
+    "source": "evidenze-grafica-ux-seo-geo-aeo.zip/seo_inventory.json",
+    "type": "list",
+    "keys": 40
+  }
+]

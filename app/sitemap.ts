@@ -5,7 +5,6 @@ import {
   articles as editorialArticles,
 } from "@/lib/editorial-content";
 import { SERVICE_SLUGS } from "@/config/services";
-import { CASE_STUDIES } from "@/config/case-studies";
 import { tuttiGliArticoli } from "@/lib/blog";
 import { assoluto, indicizzazioneBloccata } from "@/lib/seo";
 
@@ -33,7 +32,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "/per-agenzie", priorita: 0.8, frequenza: "monthly" },
     { path: "/strumenti-ai", priorita: 0.8, frequenza: "monthly" },
     { path: "/come-funziona", priorita: 0.7, frequenza: "monthly" },
-    { path: "/casi-studio", priorita: 0.6, frequenza: "monthly" },
+
     { path: "/blog", priorita: 0.6, frequenza: "weekly" },
     { path: "/chi-siamo", priorita: 0.6, frequenza: "yearly" },
     { path: "/contatti", priorita: 0.6, frequenza: "monthly" },
@@ -55,15 +54,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
       lastModified: now,
       changeFrequency: "monthly",
       priority: 0.8,
-    });
-  }
-
-  for (const caso of CASE_STUDIES) {
-    voci.push({
-      url: assoluto(`/casi-studio/${caso.slug}`),
-      lastModified: now,
-      changeFrequency: "yearly",
-      priority: 0.5,
     });
   }
 

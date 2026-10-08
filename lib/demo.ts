@@ -1,19 +1,6 @@
-/**
- * Modalità demo.
- *
- * Serve a far vedere il sito funzionante — configuratore, analisi del
- * manoscritto, acconto, cruscotto — senza database, senza chiavi API e senza
- * spendere un euro. Si attiva da sola quando manca `DATABASE_URL`: se non c'è
- * un posto dove scrivere, non c'è nulla di reale da proteggere.
- *
- * Regole che la demo rispetta e che non vanno allentate:
- *  - nessun dato inserito viene persistito o inviato a terzi;
- *  - nessun pagamento viene mai aperto: il checkout resta simulato;
- *  - ogni schermata dichiara di essere una demo, così nessuno la scambia
- *    per l'ambiente di produzione.
- *
- * Per disattivarla anche senza database: `DEMO_MODE=off`.
- * Per forzarla anche con il database configurato: `DEMO_MODE=on`.
+/** Modalità dimostrativa esplicita, disponibile soltanto fuori dalla produzione.
+ * L'assenza di servizi non abilita simulazioni. I percorsi account e checkout
+ * usano sempre identità, dati e pagamenti reali.
  */
 
 import { costBandForAnalysis, computeQuote } from "./pricing";
@@ -23,14 +10,12 @@ import type { LivelloIntervento, ReportAi, ReportCompleto } from "./ai";
 import type { PackageTier, PricingInput, QuotePackage } from "./pricing";
 
 export function demoAttiva(): boolean {
+  if (process.env.VERCEL_ENV === "production") return false;
   const forzatura = process.env.DEMO_MODE?.toLowerCase();
   if (forzatura === "off" || forzatura === "0" || forzatura === "false") return false;
   if (forzatura === "on" || forzatura === "1" || forzatura === "true") return true;
-  return !process.env.DATABASE_URL;
+  return false;
 }
-
-/** Credenziali del cruscotto quando non sono state configurate e siamo in demo. */
-export const ADMIN_DEMO = { utente: "demo", password: "proemios" } as const;
 
 /** Avviso mostrato in testa alle schermate che simulano un'operazione. */
 export const AVVISO_DEMO =

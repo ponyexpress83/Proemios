@@ -7,10 +7,11 @@ import { TITOLARE } from "@/config/legal";
 export function assoluto(path = "/"): string {
   const configured = process.env.NEXT_PUBLIC_SITE_URL?.trim() || BRAND.url;
   const base = new URL(configured).origin;
+  if (new URL(base).protocol !== "https:" || new URL(base).hostname !== "proemios.it") throw new Error("NEXT_PUBLIC_SITE_URL deve essere https://proemios.it.");
   return `${base}${path === "/" ? "" : path}`;
 }
 export function indicizzazioneBloccata(): boolean {
-  return demoAttiva() || process.env.VERCEL_ENV === "preview";
+  return demoAttiva() || process.env.VERCEL_ENV !== "production" || process.env.PROEMIOS_PRODUCTION_READY !== "1";
 }
 
 /** Metadata di pagina con canonical, Open Graph e Twitter coerenti. */
@@ -83,6 +84,7 @@ export function serviceJsonLd(params: {
   nome: string;
   descrizione: string;
   slug: string;
+  path?: string;
   prezzo?: { min: number; max: number } | null;
 }): Json {
   const base: Json = {
@@ -92,7 +94,7 @@ export function serviceJsonLd(params: {
     description: params.descrizione,
     provider: { "@type": "Organization", name: BRAND.name, url: assoluto("/") },
     areaServed: "IT",
-    url: assoluto(`/servizi/${params.slug}`),
+    url: assoluto(params.path ?? `/servizi/${params.slug}`),
   };
   if (params.prezzo) {
     base.offers = {

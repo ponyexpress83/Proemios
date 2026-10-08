@@ -27,6 +27,7 @@ export function FlussoAnalisi({
   onBusyChange?: (busy: boolean) => void;
 }) {
   const controller = useRef<AbortController | null>(null);
+  const operationKey = useRef<string | null>(null);
   useEffect(
     () => () => {
       controller.current?.abort();
@@ -42,6 +43,25 @@ export function FlussoAnalisi({
   const [nomeFile, setNomeFile] = useState("");
   const [consenso, setConsenso] = useState(false);
   const [marketing, setMarketing] = useState(false);
+
+  useEffect(() => {
+    const id = new URLSearchParams(location.search).get("jobId");
+    if (!id || demoMode) return;
+    const abort = new AbortController();
+    let cancelled = false;
+    async function load() {
+      try {
+        const response = await fetch(`/api/analisi?jobId=${encodeURIComponent(id!)}`, { signal: abort.signal, cache: "no-store" });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.errore ?? UI.erroreGenerico);
+        if (cancelled) return;
+        if (result.report) { setReport(result.report); setStato("fatto"); }
+        else { setStato("errore"); setErrore(result.errore ?? "L’analisi è ancora in lavorazione. Aggiorna questa pagina per consultarne lo stato."); }
+      } catch (error) { if (!cancelled) { setStato("errore"); setErrore(error instanceof Error ? error.message : UI.erroreGenerico); } }
+    }
+    void load();
+    return () => { cancelled = true; abort.abort(); };
+  }, [demoMode]);
 
   async function invia(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -72,6 +92,7 @@ export function FlussoAnalisi({
     fd.set("consensoPrivacy", String(consenso));
     fd.set("consensoMarketing", String(marketing));
 
+    operationKey.current ??= crypto.randomUUID();
     setStato("analisi");
     onBusyChange?.(true);
     controller.current = new AbortController();
@@ -79,18 +100,29 @@ export function FlussoAnalisi({
       const res = await fetch("/api/analisi", {
         method: "POST",
         body: fd,
+        headers: { "Idempotency-Key": operationKey.current },
         signal: controller.current.signal,
       });
       if (res.status === 413)
         throw new Error("Il file è troppo grande. Usa un estratto fino a 4 MB.");
       if (!res.headers.get("content-type")?.includes("application/json"))
         throw new Error("Il servizio non è disponibile. Riprova tra poco.");
-      const dati = (await res.json()) as {
+      let dati = (await res.json()) as {
+        jobId?: string;
+        status?: string;
         report?: ReportCompleto;
         errore?: string;
         demo?: boolean;
       };
-      if (!res.ok || !dati.report) throw new Error(dati.errore ?? UI.erroreGenerico);
+      if (!res.ok) throw new Error(dati.errore ?? UI.erroreGenerico);
+      for (let i = 0; !dati.report && dati.jobId && dati.status !== "failed" && i < 45; i++) {
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        const polling = await fetch(`/api/analisi?jobId=${encodeURIComponent(dati.jobId)}`, { signal: controller.current.signal, cache: "no-store" });
+        const update = await polling.json();
+        if (!polling.ok) throw new Error(update.errore ?? UI.erroreGenerico);
+        dati = update;
+      }
+      if (!dati.report) throw new Error(dati.errore ?? "L’analisi è ancora in lavorazione. Il riferimento è conservato nel tuo account; riceverai una notifica quando il report sarà pronto.");
       setReport(dati.report);
       onComplete?.(dati.report);
       setDemo(dati.demo === true);
@@ -128,6 +160,7 @@ export function FlussoAnalisi({
             const f = e.dataTransfer.files[0];
             if (f) {
               setSelectedFile(f);
+              operationKey.current = null;
               setNomeFile(f.name);
               setErrore("");
             }
@@ -169,6 +202,7 @@ export function FlussoAnalisi({
             className="sr-only"
             onChange={(e) => {
               setSelectedFile(e.target.files?.[0] ?? null);
+              operationKey.current = null;
               setNomeFile(e.target.files?.[0]?.name ?? "");
               setErrore("");
             }}
@@ -184,7 +218,7 @@ export function FlussoAnalisi({
         <p className="prosa text-stampa mt-2 text-sm">
           {demoMode
             ? "Il report di esempio compare qui: nessuna email sarà inviata. Usa nome ed email di prova."
-            : "Il report compare qui sulla pagina. Non sostituisce il confronto con un editor."}
+            : "Per usare l’analisi accedi con un account verificato e usa lo stesso indirizzo email. Il report non sostituisce il confronto con un editor."}
         </p>
 
         <div className="mt-5 grid gap-5 sm:grid-cols-2">
@@ -255,7 +289,7 @@ export function FlussoAnalisi({
             setStato("attesa");
           }}
         >
-          Annulla l’analisi
+          Interrompi l’attesa
         </Bottone>
       )}
     </div>

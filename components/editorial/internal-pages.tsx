@@ -182,7 +182,7 @@ function ServicePage({ slug }: { slug: string }) {
               .concat(services.filter((x) => x.slug !== slug && x.group !== s.group).slice(0, 2))
               .map((x) => (
                 <Link key={x.slug} href={"/servizi/" + x.slug}>
-                  {x.title} ↗
+                  {x.title} →
                 </Link>
               ))}
           </div>

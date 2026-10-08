@@ -369,7 +369,7 @@ export function Team() {
                 </div>
               </div>
             ))}
-            <small>Competenze che entrano nel percorso quando servono al tuo libro.</small>
+            <div><div><h3>Valerio Gestri</h3><p>Responsabile di Proemios. Coordina il percorso e il confronto con le persone che lavorano al tuo libro.</p></div></div><small>Competenze che entrano nel percorso quando servono al tuo libro.</small>
           </div>
         </div>
       </div>

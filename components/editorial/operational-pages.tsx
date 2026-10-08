@@ -7,6 +7,7 @@ import { FlussoAnalisi } from "@/components/analisi/flusso";
 import { ModuloContatto } from "@/components/moduli/modulo-contatto";
 import { ModuloAgenzia } from "@/components/moduli/modulo-agenzia";
 import { publicEnv, env } from "@/lib/env";
+import { analysisConfigured } from "@/lib/platform/analysis";
 export function QuotePage({ precompilato }: { precompilato?: QuotePrefill }) {
   return (
     <section className="operative quote-operative">
@@ -54,7 +55,7 @@ export function AnalysisPage({ retention }: { retention: number }) {
         </div>
         <div className="operative-surface">
           <FormDemoNotice analysis />
-          <FlussoAnalisi giorniConservazione={retention} demoMode={demoAttiva()} />
+          {demoAttiva() || analysisConfigured() ? <FlussoAnalisi giorniConservazione={retention} demoMode={demoAttiva()} /> : <div className="platform-card"><h2>Analisi in attivazione</h2><p>Il servizio sarà disponibile dopo la verifica dei fornitori e delle condizioni sui testi. Puoi già confrontare una stima senza caricare il manoscritto.</p><Link href="/preventivo" className="button">Scopri la stima →</Link><Link href="/contatti?motivo=editor">Parla con un editor →</Link></div>}
         </div>
       </div>
     </section>

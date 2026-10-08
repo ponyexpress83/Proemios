@@ -14,10 +14,10 @@ const serverSchema = z.object({
   EMAIL_INTERNAL: z.string().email().optional(),
   ADMIN_USER: z.string().optional(),
   ADMIN_PASSWORD: z.string().optional(),
-  MANUSCRIPT_RETENTION_DAYS: z.coerce.number().int().positive().default(30),
+  MANUSCRIPT_RETENTION_DAYS: z.coerce.number().int().nonnegative().default(0),
   /**
    * Forza la modalità demo ("on") o la esclude ("off"). Senza valore decide
-   * `lib/demo.ts`: demo attiva quando manca DATABASE_URL.
+   * `lib/demo.ts`: demo solo quando attivata esplicitamente fuori produzione.
    *
    * La stringa vuota vale come "non impostata": in `.env.example` la variabile
    * compare vuota, e copiare quel file non deve far fallire l'avvio.
@@ -32,8 +32,10 @@ const clientSchema = z.object({
   NEXT_PUBLIC_ANALYTICS_DOMAIN: z.string().optional(),
 });
 
+const cleanEmpty = (values: Record<string, string | undefined>) => Object.fromEntries(Object.entries(values).map(([key,value]) => [key, value?.trim() || undefined]));
+
 /** Env server-side. Non importare da componenti client. */
-export const env = serverSchema.parse({
+export const env = serverSchema.parse(cleanEmpty({
   DATABASE_URL: process.env.DATABASE_URL,
   ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
   STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,
@@ -45,12 +47,12 @@ export const env = serverSchema.parse({
   ADMIN_PASSWORD: process.env.ADMIN_PASSWORD,
   MANUSCRIPT_RETENTION_DAYS: process.env.MANUSCRIPT_RETENTION_DAYS,
   DEMO_MODE: process.env.DEMO_MODE,
-});
+}));
 
 /** Env pubbliche (safe per il client). */
-export const publicEnv = clientSchema.parse({
+export const publicEnv = clientSchema.parse(cleanEmpty({
   NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
   NEXT_PUBLIC_CALENDAR_URL: process.env.NEXT_PUBLIC_CALENDAR_URL,
   NEXT_PUBLIC_ANALYTICS_DOMAIN: process.env.NEXT_PUBLIC_ANALYTICS_DOMAIN,
-});
+}));

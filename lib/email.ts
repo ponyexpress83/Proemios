@@ -4,8 +4,8 @@ import { BRAND } from "@/config/brand";
 
 /**
  * Email transazionali via Resend.
- * Se la chiave non è configurata (sviluppo locale), l'email viene registrata
- * a log invece di fallire: il flusso utente non si interrompe mai per questo.
+ * L'assenza del provider genera un errore. Solo i test isolati possono usare
+ * il trasporto locale, che conserva gli invii in file privati.
  */
 
 let client: Resend | null = null;
@@ -21,15 +21,22 @@ export interface Messaggio {
   subject: string;
   html: string;
   replyTo?: string;
+  idempotencyKey?: string;
 }
 
-export async function inviaEmail({ to, subject, html, replyTo }: Messaggio): Promise<void> {
+export async function inviaEmail({ to, subject, html, replyTo, idempotencyKey }: Messaggio): Promise<void> {
+  if (process.env.PROEMIOS_TEST_RUN === "1" && !process.env.VERCEL && process.env.PROEMIOS_TEST_MAIL_DIR) {
+    const { mkdir, writeFile } = await import("node:fs/promises");
+    const { randomUUID } = await import("node:crypto");
+    const { join } = await import("node:path");
+    const directory = process.env.PROEMIOS_TEST_MAIL_DIR;
+    await mkdir(directory, { recursive: true, mode: 0o700 });
+    await writeFile(join(directory, `${randomUUID()}.json`), JSON.stringify({ to, subject, html, replyTo }), { mode: 0o600 });
+    return;
+  }
   const api = resend();
   if (!api) {
-    console.warn(
-      JSON.stringify({ evt: "email.saltata", motivo: "RESEND_API_KEY assente", to, subject }),
-    );
-    return;
+    throw new Error("Servizio email non configurato.");
   }
   const { error } = await api.emails.send({
     from: env.EMAIL_FROM ?? `${BRAND.name} <noreply@${BRAND.domain}>`,
@@ -37,9 +44,9 @@ export async function inviaEmail({ to, subject, html, replyTo }: Messaggio): Pro
     subject,
     html,
     replyTo,
-  });
+  }, idempotencyKey ? { idempotencyKey } : undefined);
   if (error) {
-    console.error(JSON.stringify({ evt: "email.errore", to, subject, error: error.message }));
+    console.error(JSON.stringify({ evt: "email.errore", code: error.name }));
     throw new Error(`Invio email fallito: ${error.message}`);
   }
 }

@@ -1,17 +1,19 @@
 import type { Metadata } from "next";
-import Script from "next/script";
+
 import { BRAND } from "@/config/brand";
 import { UI } from "@/config/copy";
 import { SiteChrome } from "@/components/editorial/site-chrome";
 
 import { FasciaDemo } from "@/components/layout/fascia-demo";
-import { AttributionCapture } from "@/components/marketing/attribution-capture";
-import { demoAttiva } from "@/lib/demo";
+import { analysisConfigured } from "@/lib/platform/analysis";
+
+
 import { JsonLd, organizationJsonLd, assoluto, indicizzazioneBloccata } from "@/lib/seo";
 import "./globals.css";
 import "./editorial.css";
 import "./experience.css";
 import "./refinements.css";
+import "./platform.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL(assoluto()),
@@ -43,7 +45,7 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  const gtmId = process.env.NEXT_PUBLIC_GTM_ID?.trim();
+
 
   return (
     <html lang="it">
@@ -57,24 +59,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className="flex min-h-dvh flex-col">
-        {gtmId && !demoAttiva() && (
-          <>
-            <Script id="gtm-init" strategy="afterInteractive">
-              {`(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','${gtmId}');`}
-            </Script>
-            <noscript>
-              <iframe
-                src={`https://www.googletagmanager.com/ns.html?id=${gtmId}`}
-                height="0"
-                width="0"
-                style={{ display: "none", visibility: "hidden" }}
-                title="Google Tag Manager"
-              />
-            </noscript>
-          </>
-        )}
         <JsonLd data={organizationJsonLd()} />
-        <AttributionCapture enabled={!demoAttiva()} />
         <a
           href="#contenuto"
           className="focus:rounded-campo focus:bg-alloro focus:text-carta sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[100] focus:px-4 focus:py-2"
@@ -82,7 +67,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {UI.saltaAlContenuto}
         </a>
         <FasciaDemo />
-        <SiteChrome>{children}</SiteChrome>
+        <SiteChrome analysisReady={analysisConfigured()}>{children}</SiteChrome>
       </body>
     </html>
   );

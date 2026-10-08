@@ -720,7 +720,7 @@
 }
 .login-book .book-imprint,
 .login-book .book-author {
-  font-size: 8px;
+  font-size: 13px;
 }
 .login-card {
   background: #fff;
@@ -1063,10 +1063,10 @@
 }
 .project-card .book-imprint,
 .project-card .book-author {
-  font-size: 7px;
+  font-size: 13px;
 }
 .project-card .book-spine span {
-  font-size: 9px;
+  font-size: 13px;
 }
 .project-card .book-cover-lines {
   width: 95px;
@@ -1785,7 +1785,7 @@
     left: -10px;
   }
   .project-card .book-spine span {
-    font-size: 6px;
+    font-size: 13px;
   }
   .project-card .book-cover {
     transform: translateZ(10px);

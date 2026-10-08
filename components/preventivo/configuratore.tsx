@@ -72,6 +72,7 @@ export function Configuratore({
   const [analysisBusy, setAnalysisBusy] = useState(false);
   const [passo, setPasso] = useState(0);
   const question = useRef<HTMLHeadingElement>(null);
+  const submissionKey = useRef<string | null>(null);
   const previousStep = useRef(0);
   useEffect(() => {
     if (previousStep.current === passo) return;
@@ -179,11 +180,14 @@ export function Configuratore({
     setInvio(true);
     setErrore("");
     try {
+      submissionKey.current ??= crypto.randomUUID();
+      const ref = new URL(window.location.href).searchParams.get("ref");
       const res = await fetch("/api/preventivo", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "Idempotency-Key": submissionKey.current },
         body: JSON.stringify({
           sito: trap,
+          ...(ref && /^[a-z0-9]{16}$/.test(ref) ? {ref} : {}),
           input: {
             projectType: s.tipo,
             textState: s.statoTesto,

@@ -11,10 +11,9 @@ export function FileNotice({ demo, retention }: { demo: boolean; retention: numb
           : "Il giudizio editoriale è automatico: un estratto (fino a circa 8.000 parole) viene elaborato da Anthropic. Non è una lettura integrale di un editor."}
       </p>
       <p>
-        Il testo integrale non viene archiviato nel database dell’applicazione. In produzione
-        l’applicazione conserva contatti, nome file, metriche e report, accessibili al team
-        autorizzato; i fornitori tecnici sono elencati nell’informativa. La scadenza di {retention}{" "}
-        giorni dei record di analisi non certifica una cancellazione automatica. Per chiedere la
+        Il testo integrale non viene archiviato nel database. Per il job si conserva un estratto
+        in un archivio privato, insieme a metriche e report collegati al tuo account.
+        {retention > 0 ? ` La configurazione prevista conserva il report per ${retention} giorni; l’attivazione richiede la verifica del processo di cancellazione.` : " I tempi di conservazione devono essere confermati prima dell’attivazione del servizio."} Per chiedere la
         cancellazione scrivi a <a href={"mailto:" + BRAND.email.privacy}>{BRAND.email.privacy}</a>.
       </p>
       <p>
