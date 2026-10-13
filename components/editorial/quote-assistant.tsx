@@ -12,6 +12,7 @@ import {
   SERVIZI,
 } from "@/components/preventivo/opzioni";
 import {
+  briefFromText,
   projectFromText,
   stateFromText,
   wordsFromText,
@@ -35,7 +36,7 @@ export default function QuoteAssistant({
   onOpenChange: (open: boolean) => void;
   returnFocusRef: RefObject<HTMLButtonElement | null>;
 }) {
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState(-1);
   const [input, setInput] = useState<Partial<PricingInput>>({
     materialAmount: "parziale",
     requestedServices: [],
@@ -70,6 +71,17 @@ export default function QuoteAssistant({
     setError("");
   }
   function send() {
+    if (step === -1) {
+      const parsed = briefFromText(draft);
+      const next = { ...input, ...parsed };
+      stop(); clearError();setInput(next);setDraft("");setError("");
+      if(next.projectType && next.textState && next.wordCount) {
+        setHistory(["Brief completo: puoi rivedere i dettagli prima di inviare"]);setStep(5);
+      } else {
+        setHistory([]);setStep(!next.projectType ? 0 : !next.textState ? 1 : 2);
+      }
+      return;
+    }
     if (step === 0) {
       const type = projectFromText(draft);
       if (type) return advance({ projectType: type }, draft);
@@ -118,7 +130,7 @@ export default function QuoteAssistant({
             <div>
               <Dialog.Title>Il preventivo del tuo libro.</Dialog.Title>
               <Dialog.Description>
-                Cinque domande, una prima stima. Senza lasciare i tuoi dati.
+                Racconta il progetto in un messaggio, anche a voce. Completiamo soltanto i dettagli mancanti.
               </Dialog.Description>
             </div>
             <Dialog.Close className="icon-button" aria-label="Chiudi assistente">
@@ -147,10 +159,12 @@ export default function QuoteAssistant({
             {!result ? (
               <>
                 <div className="assistant-question" aria-live="polite">
-                  <span>PASSO {step + 1} DI 5</span>
-                  <h2>{questions[step]}</h2>
+                  <span>{step === -1 ? "IL TUO BRIEF" : `PASSO ${step + 1} DI 5`}</span>
+                  <h2>{step === -1 ? "Raccontaci il tuo libro, in una volta sola." : questions[step]}</h2>
                 </div>
+                {step === -1 && <p className="assistant-note">Esempio: “Ho scritto un romanzo di 50.000 parole, da revisionare. Mi servono editing, copertina e impaginazione”. Il prezzo viene sempre dal listino, non da un importo inventato dall’AI. Il campione e la capacità vanno verificati prima di confermare la consegna.</p>}
                 <div className="assistant-choices">
+                  {step === -1 && <button onClick={()=>setStep(0)}>Preferisco il percorso guidato <ArrowRight size={16}/></button>}
                   {step === 0 &&
                     TIPI_PROGETTO.map((o) => (
                       <button
@@ -367,3 +381,4 @@ export default function QuoteAssistant({
     </Dialog.Root>
   );
 }
+

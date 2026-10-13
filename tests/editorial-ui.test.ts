@@ -57,12 +57,21 @@ afterEach(() => {
 });
 
 describe("interazioni della homepage", () => {
+  it("ricava il preventivo da un unico brief completo senza inviare dati", async () => {
+    render(createElement(HomePage));
+    fireEvent.click(screen.getByRole("button", {name:"Calcola il preventivo"}));
+    fireEvent.change(screen.getByRole("textbox", {name:"La tua risposta"}), {target:{value:"Ho scritto un romanzo finito di 50.000 parole. Voglio editing, copertina e impaginazione."}});
+    fireEvent.click(screen.getByRole("button", {name:"Conferma risposta"}));
+    expect(screen.getByRole("heading", {name:"Tre percorsi, una storia."})).toBeTruthy();
+    expect(screen.getByText(/50.000 parole/)).toBeTruthy();
+  });
   it("libro e CTA aprono lo stesso assistente, preservano le risposte e restituiscono il focus", async () => {
     render(createElement(HomePage));
     const cta = screen.getByRole("button", { name: "Calcola il preventivo" });
     fireEvent.click(cta);
     expect(screen.getAllByRole("dialog")).toHaveLength(1);
     await waitFor(() => expect(document.activeElement?.id).toBe("assistant-input"));
+    fireEvent.click(screen.getByRole("button", { name: /Preferisco il percorso guidato/ }));
     fireEvent.click(screen.getByRole("button", { name: "Romanzo" }));
     fireEvent.keyDown(document, { key: "Escape" });
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
@@ -215,3 +224,4 @@ describe("azioni della demo autore", () => {
     sessionStorage.clear();
   });
 });
+
