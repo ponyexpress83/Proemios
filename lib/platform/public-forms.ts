@@ -26,6 +26,7 @@ import {
   appOrigin,
 } from "./config";
 import { getSetting } from "./crm";
+import { assignInboundLead } from "./inbound-routing";
 import { protectMailHtml } from "./mail";
 
 export function publicFormReady() {
@@ -82,6 +83,7 @@ export async function publicQuote(request: Request) {
         stage: "new",
       })
       .returning();
+    await assignInboundLead(tx, lead!.id);
     const [quote] = await tx
       .insert(quotes)
       .values({
@@ -201,6 +203,7 @@ export async function publicContact(request: Request, agency = false) {
         note: message,
       })
       .returning();
+    await assignInboundLead(tx, lead!.id);
     if (agencyBody.success)
       await tx.insert(agencyLeads).values({ ...agencyBody.data, leadId: lead!.id });
     await tx.insert(emailOutbox).values(await Promise.all([
