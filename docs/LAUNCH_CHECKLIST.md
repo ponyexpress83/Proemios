@@ -11,8 +11,8 @@ pagamento reale.
 
 - [x] TypeScript strict, nessun errore
 - [x] ESLint pulito
-- [x] 515 test unitari e di integrazione verdi
-- [x] 31 test end-to-end su un'applicazione costruita
+- [x] 606 test unitari e di integrazione verdi (456 + 150)
+- [x] 33 test end-to-end su un'applicazione costruita
 - [x] Build Next.js completa
 - [x] Zero violazioni WCAG 2.1 A/AA su nove pagine (axe-core)
 - [x] I DOCX generati si aprono con un lettore OOXML indipendente (LibreOffice)
