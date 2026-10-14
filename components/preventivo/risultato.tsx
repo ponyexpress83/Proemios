@@ -32,7 +32,7 @@ export function RisultatoPreventivo({ esito, quoteId }: { esito: QuoteResult; qu
       </div>
 
       <div className="grid gap-5 lg:grid-cols-3">
-        {esito.packages.map((p) => (
+        {esito.packages.filter((p,i,all)=>all.findIndex(o=>o.tier===p.tier)===i).map((p) => (
           <div
             key={p.tier}
             className={cx(
