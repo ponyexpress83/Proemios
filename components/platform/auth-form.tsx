@@ -7,17 +7,20 @@ export function AuthForm({
   mode = "login",
   ready = true,
   team = false,
+  realm = "author",
   token,
 }: {
   mode?: Mode;
   ready?: boolean;
   team?: boolean;
+  realm?: "author" | "staff" | "partner";
   token?: string;
 }) {
   const [error, setError] = useState(""),
     [notice, setNotice] = useState(""),
     [busy, setBusy] = useState(false),
     [backup, setBackup] = useState(false);
+  const destination = realm === "staff" ? "/area-team" : realm === "partner" ? "/partner" : "/area-autore";
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
@@ -34,7 +37,7 @@ export function AuthForm({
           password,
           name: String(data.get("name")),
           privacyAccepted: data.get("privacy") === "on",
-          callbackURL: "/spazio",
+          callbackURL: destination,
         });
       else if (mode === "reset")
         result = await authClient.requestPasswordReset({ email, redirectTo: "/nuova-password" });
@@ -77,7 +80,7 @@ export function AuthForm({
         );
       else if (mode === "new-password") {
         setNotice("Password aggiornata. Puoi accedere con la nuova password.");
-      } else if (mode === "challenge") window.location.assign("/spazio");
+      } else if (mode === "challenge") window.location.assign(destination);
       else if (!("twoFactorRedirect" in (result.data ?? {}))) window.location.assign("/spazio");
     } catch {
       setError("Il servizio non risponde. Riprova tra poco.");
@@ -86,7 +89,7 @@ export function AuthForm({
     }
   }
   const title = {
-    login: team ? "Il tuo accesso al team" : "Bentornato, autore.",
+    login: realm === "partner" ? "Accesso partner Proemios" : team ? "Il tuo accesso al team" : "Bentornato, autore.",
     register: "Il tuo libro inizia qui.",
     reset: "Recupera l’accesso.",
     "new-password": "Scegli una nuova password.",
@@ -94,7 +97,7 @@ export function AuthForm({
   }[mode];
   return (
     <section className="platform-auth">
-      <p className="platform-eyebrow">PROEMIOS / {team ? "TEAM" : "IL TUO SPAZIO"}</p>
+      <p className="platform-eyebrow">PROEMIOS / {realm === "partner" ? "PARTNER" : team ? "TEAM" : "IL TUO SPAZIO"}</p>
       <h1>{title}</h1>
       <p>
         {mode === "challenge"
@@ -196,9 +199,7 @@ export function AuthForm({
         {mode === "login" ? (
           <>
             <Link href="/recupera-accesso">Password dimenticata?</Link>
-            {team ? (
-              <Link href="/accedi">Area autori</Link>
-            ) : (
+            {team ? null : (
               <Link href="/registrati">Crea un account autore</Link>
             )}
           </>
