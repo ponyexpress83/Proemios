@@ -77,7 +77,7 @@ export type QuoteResult = {
   wordCount: number;
   estimatedPages: number;
   isGhostwriting: boolean;
-  packages: QuotePackage[];
+  packages: [QuotePackage, QuotePackage, QuotePackage];
   disclaimer: string;
 };
 
@@ -395,7 +395,7 @@ export function computeQuote(input: PricingInput): QuoteResult {
       wordCount,
       estimatedPages: estimatePages(wordCount),
       isGhostwriting: false,
-      packages: [single],
+      packages: [single, single, single],
       disclaimer: DISCLAIMER,
     };
   }
