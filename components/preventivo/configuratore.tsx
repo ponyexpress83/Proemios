@@ -235,7 +235,7 @@ export function Configuratore({
         <div className="mb-10">
           <p className="apparato text-ottone">Preventivo</p>
           <h2 className="font-display text-inchiostro mt-3 text-3xl font-medium">
-            {risultato.esito.packages.length===1 ? "Il preventivo per il tuo servizio" : "Tre modi di fare questo libro"}
+            {new Set(risultato.esito.packages.map(p=>p.tier)).size===1 ? "Il preventivo per il tuo servizio" : "Tre modi di fare questo libro"}
           </h2>
           <p className="prosa text-stampa mt-3 max-w-2xl">
             {risultato.demo
