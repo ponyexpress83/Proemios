@@ -1,3 +1,4 @@
+import { after } from "next/server";
 import { and, eq, lt, or, sql } from "drizzle-orm";
 import { getDb } from "@/db";
 import { emailOutbox } from "@/db/platform-schema";
@@ -87,4 +88,18 @@ export async function flushMail(limit = 20) {
     }
   }
   return { accepted, failed };
+}
+/**
+ * Fa partire la posta in coda appena la risposta è stata inviata, senza
+ * trattenerla. Fuori da una richiesta Next (test, script) non fa nulla: lì la
+ * coda si svuota con una chiamata esplicita a flushMail o con il cron.
+ */
+export function flushMailAfterResponse(limit = 10) {
+  try {
+    after(async () => {
+      await flushMail(limit).catch(() => {});
+    });
+  } catch {
+    /* nessun contesto di richiesta: la coda resta per il cron o per una chiamata esplicita */
+  }
 }

@@ -74,6 +74,9 @@ async function notifyProject(
   const recipients = [...new Set([project.authorId, ...members.map((m) => m.userId)])].filter(
     (id) => id !== actor.id,
   );
+  // L'autore apre il progetto nella sua area; il team nel proprio spazio di lavoro.
+  const hrefFor = (userId: string) =>
+    userId === project.authorId ? `/area-autore?progetto=${project.id}` : `/spazio?progetto=${project.id}`;
   if (recipients.length)
     await getDb()
       .insert(notifications)
@@ -82,14 +85,14 @@ async function notifyProject(
           userId,
           title,
           body,
-          href: `/area-autore?progetto=${project.id}`,
+          href: hrefFor(userId),
         })),
       );
   for (const userId of recipients) {
     const [person] = await getDb().select({ email: user.email }).from(user).where(eq(user.id, userId));
     if (person) await enqueueMail(`notification:${project.id}:${userId}:${Date.now()}`, {
       to: person.email, subject: `${title} · Proemios`,
-      html: impaginaEmail(esc(title), `<p>${esc(body)}</p><p><a href="${appOrigin()}/spazio">Apri il tuo spazio</a></p>`),
+      html: impaginaEmail(esc(title), `<p>${esc(body)}</p><p><a href="${appOrigin()}${hrefFor(userId)}">Apri il progetto</a></p>`),
     });
   }
 }

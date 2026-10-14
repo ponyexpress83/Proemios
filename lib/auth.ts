@@ -13,6 +13,7 @@ import { enqueueMail } from "@/lib/platform/mail";
 import { hashToken } from "@/lib/platform/http";
 import { unavailable } from "@/lib/platform/http";
 import { stagingPasswordOnly } from "@/lib/platform/staging-password-only";
+import { linkLeadsToAuthor } from "@/lib/platform/lead-linking";
 
 function createAuth() {
   return betterAuth({
@@ -42,6 +43,9 @@ function createAuth() {
     databaseHooks: {
       user: { update: { after: async user => {
         if (user.twoFactorEnabled) await getDb().delete(authSchema.session).where(eq(authSchema.session.userId, user.id));
+        // Email verificata: le richieste pubbliche fatte con lo stesso indirizzo
+        // compaiono nell'area autore senza passare dal token di collegamento.
+        if (user.emailVerified) await linkLeadsToAuthor(user.id, user.email).catch(() => {});
       } }, create: { after: async user => {
         await getDb().insert(memberships).values({ userId: user.id, role: "author" }).onConflictDoNothing();
       } } },

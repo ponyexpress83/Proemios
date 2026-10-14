@@ -463,3 +463,58 @@ describe("durable analysis jobs with an isolated provider boundary", () => {
     }
   });
 });
+
+describe("first euro without manual configuration", () => {
+  it("applies the documented default policy so a public proposal can be accepted and paid", async () => {
+    const { defaultPaymentPolicy } = await import("@/lib/platform/config");
+    await db.delete(platform.platformSettings).where(eq(platform.platformSettings.key, "payment-policy"));
+    const { publicQuote } = await import("@/lib/platform/public-forms");
+    const email = "first-euro@example.test";
+    const quoteRequest = await publicQuote(new Request(`${origin}/api/preventivo`, { method: "POST", headers: { origin, "idempotency-key": randomUUID(), "content-type": "application/json" }, body: JSON.stringify({ input: priceInput, contatto: { nome: "First Euro", email, consensoPrivacy: true, consensoMarketing: false } }) }));
+    const created = await data(quoteRequest, 201);
+    const [quoteRow] = await db.select().from(schema.quotes).where(eq(schema.quotes.id, created.quoteId));
+    const leadId = quoteRow!.leadId;
+    const outbox = await db.select().from(platform.emailOutbox);
+    expect(outbox.some(r => r.recipient === email && r.eventKey.startsWith("quote:"))).toBe(true);
+    // The author registers with the same address: verification links the request, no token needed.
+    const registration = await data(await authRequest("sign-up/email", { name: "First Euro", email, password, privacyAccepted: true }));
+    const [before] = await db.select().from(platform.leadOwnership).where(eq(platform.leadOwnership.leadId, leadId));
+    expect(before?.authorId ?? null).toBeNull();
+    const verification = (await db.select().from(platform.emailOutbox)).find(r => r.recipient === email && r.eventKey.startsWith("email-verification:"))!;
+    await auth.handler(new Request(await mailLink(verification.eventKey)));
+    const [linked] = await db.select().from(platform.leadOwnership).where(eq(platform.leadOwnership.leadId, leadId));
+    expect(linked?.authorId).toBe(registration.user.id);
+    const login = await authRequest("sign-in/email", { email, password });
+    actors.firstEuro = { id: registration.user.id, email, cookie: cookies(login) };
+    const list = await data(await call("firstEuro", "quotes"));
+    expect(list.quotes.map((q: { id: string }) => q.id)).toContain(created.quoteId);
+    const detail = await data(await call("firstEuro", `quotes/${created.quoteId}`));
+    expect(detail.paymentPolicy.version).toBe(defaultPaymentPolicy.version);
+    expect(detail.packages[0].money.grossCents).toBe(Math.round(detail.packages[0].total * 100 * 1.22));
+    const tier = detail.packages.find((p: { recommended?: boolean }) => p.recommended)?.tier ?? detail.packages[0].tier;
+    expect((await call("firstEuro", `quotes/${created.quoteId}/accept`, "POST", { tier, version: detail.record.version, policyVersion: "unknown", termsAccepted: true })).status).toBe(409);
+    await data(await call("firstEuro", `quotes/${created.quoteId}/accept`, "POST", { tier, version: detail.record.version, policyVersion: defaultPaymentPolicy.version, termsAccepted: true }));
+    const [record] = await db.select().from(platform.quoteRecords).where(eq(platform.quoteRecords.quoteId, created.quoteId));
+    expect((record!.taxPolicy as { version: string }).version).toBe(defaultPaymentPolicy.version);
+    const payments = await data(await call("firstEuro", `quotes/${created.quoteId}/payments`));
+    expect(payments.accepted).toBe(true); expect(payments.deposit.paid).toBe(false);
+    expect(payments.deposit.grossCents + payments.balance.grossCents).toBe(detail.packages.find((p: { tier: string }) => p.tier === tier).money.grossCents);
+    expect((await call("authorA", `quotes/${created.quoteId}/payments`)).status).toBe(404);
+    // Team and seller learn about the acceptance without being able to change the conditions.
+    const afterAccept = await db.select().from(platform.emailOutbox);
+    expect(afterAccept.some(r => r.eventKey === `quote:${created.quoteId}:accepted:team`)).toBe(true);
+    const own = await db.select().from(platform.notifications).where(eq(platform.notifications.userId, registration.user.id));
+    expect(own.every(n => (n.href ?? "").startsWith("/area-autore"))).toBe(true);
+  });
+  it("never links a request to an unverified address nor to someone else's claimed request", async () => {
+    const { linkLeadsToAuthor } = await import("@/lib/platform/lead-linking");
+    const email = "unverified-link@example.test";
+    const [lead] = await db.insert(schema.leads).values({ nome: "Unverified", email, fonte: "preventivo", consensoPrivacy: true }).returning();
+    const registration = await data(await authRequest("sign-up/email", { name: "Unverified", email, password, privacyAccepted: true }));
+    expect((await db.select().from(platform.leadOwnership).where(eq(platform.leadOwnership.leadId, lead!.id)))).toHaveLength(0);
+    await db.insert(platform.leadOwnership).values({ leadId: lead!.id, authorId: actors.authorB!.id });
+    expect(await linkLeadsToAuthor(registration.user.id, email)).toBe(0);
+    const [owner] = await db.select().from(platform.leadOwnership).where(eq(platform.leadOwnership.leadId, lead!.id));
+    expect(owner!.authorId).toBe(actors.authorB!.id);
+  });
+});

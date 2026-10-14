@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { flushMailAfterResponse } from "@/lib/platform/mail";
 import { route, json, notFound, checkMutationOrigin } from "@/lib/platform/http";
 import { getActor } from "@/lib/platform/access";
 import { quotePdf } from "@/lib/platform/quote-pdf";
@@ -37,6 +38,7 @@ import {
 } from "@/lib/platform/team";
 import {
   checkout,
+  quotePayments,
   financeCollection,
   financeExport,
   commissionCollection,
@@ -57,7 +59,12 @@ import {
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 const handler = route(async (request) => {
-  if (request.method !== "GET") checkMutationOrigin(request);
+  if (request.method !== "GET") {
+    checkMutationOrigin(request);
+    // Le email create da una mutazione (proposte, inviti, notifiche) partono
+    // subito, non al cron del mattino dopo. La risposta non aspetta l'invio.
+    flushMailAfterResponse(10);
+  }
   const parts = new URL(request.url).pathname.split("/").filter(Boolean).slice(2),
     [area, id, action] = parts;
   if (parts.length > 3) throw notFound();
@@ -109,6 +116,7 @@ const handler = route(async (request) => {
       if (action === "accept") return quoteAccept(request, actor, id);
       if (action === "send") return quoteSend(request, actor, id);
       if (action === "pdf" && request.method === "GET") return quotePdf(actor, id);
+      if (action === "payments") return quotePayments(request, actor, id);
       break;
     case "quote-claim":
       if (!id) return quoteClaim(request, actor);

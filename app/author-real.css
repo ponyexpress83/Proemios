@@ -41,3 +41,14 @@
 .proemios-author-real .author-message small {font-size:12px;color:#746b78;margin-left:12px;}
 .proemios-author-real .author-message p {white-space:pre-wrap;font-size:14px;line-height:1.6;}
 .proemios-author-real .author-conversation .author-cta {margin-top:13px;}
+
+/* Pagamenti, caricamento materiali e approvazioni dell'area autore */
+.proemios-author-real .author-payments{margin-top:1.4rem;padding-top:1rem;border-top:1px solid rgba(0,0,0,.08)}
+.proemios-author-real .author-payments.highlighted{border-top-color:currentColor}
+.proemios-author-real .author-payments h3{font-size:1.05rem;margin:0 0 .6rem}
+.proemios-author-real .author-payment-row{align-items:center}
+.proemios-author-real .author-payment-row > small{margin-left:auto;opacity:.7}
+.proemios-author-real .author-upload{display:grid;gap:.6rem;margin-top:1rem}
+.proemios-author-real .author-upload input[type=file],.proemios-author-real .author-upload textarea{display:block;width:100%;margin-top:.4rem;font:inherit;padding:.5rem;border:1px solid rgba(0,0,0,.15);border-radius:8px;background:#fff}
+.proemios-author-real .author-approval{display:flex;gap:.6rem;align-items:center;margin-left:auto}
+.proemios-author-real .author-quote-card.chosen{outline:2px solid currentColor}

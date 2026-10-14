@@ -16,14 +16,15 @@ import {
 } from "@/db/platform-schema";
 import { user } from "@/db/auth-schema";
 import { stripe, stripeConfigurato } from "@/lib/stripe";
-import { quoteAccess } from "./crm";
+import { quoteAccess, ensureQuotePolicy } from "./crm";
 import { demand, demandAvailable, demandRecent, audit, type Actor } from "./access";
 import { can } from "./permissions";
 import { readBody, json, PlatformError, unavailable, notFound, csvCell } from "./http";
 import { paymentPolicySchema, commissionRuleSchema, moneyBreakdown, appOrigin } from "./config";
 import { limitRequest } from "./rate-limit";
 import type { QuotePackage } from "@/lib/pricing";
-import { impaginaEmail } from "@/lib/email";
+import { impaginaEmail, esc, destinatarioInterno } from "@/lib/email";
+import { protectMailHtml } from "./mail";
 
 export async function checkout(request: Request, actor: Actor) {
   if (!stripeConfigurato() || !process.env.STRIPE_WEBHOOK_SECRET) throw unavailable();
@@ -45,13 +46,7 @@ export async function checkout(request: Request, actor: Actor) {
   const access = await quoteAccess(actor, body.quoteId, "quote.accept");
   if (access.record.acceptedBy !== actor.id || !access.record.acceptedAt)
     throw new PlatformError(409, "ACCEPT_FIRST", "Accetta la proposta prima di pagare.");
-  const policy = paymentPolicySchema.safeParse(access.record.taxPolicy);
-  if (!policy.success)
-    throw new PlatformError(
-      409,
-      "POLICY_REQUIRED",
-      "Il team deve confermare le condizioni economiche.",
-    );
+  const policy = { success: true as const, data: await ensureQuotePolicy(access.record) };
   const selected = (access.quote.pacchettiGenerati as QuotePackage[]).find(
     (p) => p.tier === access.record.selectedTier,
   );
@@ -116,8 +111,10 @@ export async function checkout(request: Request, actor: Actor) {
             },
           ],
           metadata: { orderId: order.id, quoteId: order.quoteId },
-          success_url: `${appOrigin()}/spazio?pagamento=in-verifica`,
-          cancel_url: `${appOrigin()}/spazio?pagamento=annullato`,
+          // La pagina di ritorno verifica la sessione su Stripe e che appartenga
+          // a chi è loggato; la conferma definitiva resta quella del webhook.
+          success_url: `${appOrigin()}/preventivo/grazie?session_id={CHECKOUT_SESSION_ID}`,
+          cancel_url: `${appOrigin()}/area-autore?preventivo=${order.quoteId}&pagamento=annullato`,
         },
         { idempotencyKey: `proemios-order-${order.id}` },
       );
@@ -217,14 +214,39 @@ async function recordPayment(tx: Tx, session: Stripe.Checkout.Session) {
           })
           .onConflictDoNothing();
   }
+  const importo = `€ ${(order.amountCents / 100).toLocaleString("it-IT", { minimumFractionDigits: 2 })}`;
+  const cosa = order.kind === "deposit" ? "Acconto" : "Saldo";
   await tx
     .insert(notifications)
     .values({
       userId: order.authorId,
       title: "Pagamento ricevuto",
-      body: "Il pagamento è stato confermato dal servizio di pagamento.",
-      href: "/spazio",
+      body: `${cosa} di ${importo} confermato dal servizio di pagamento.`,
+      href: `/area-autore?preventivo=${order.quoteId}`,
     });
+  // Chi segue la vendita e il team sanno subito che il lavoro può partire.
+  if (record?.acceptedSellerId && record.acceptedSellerId !== order.authorId) {
+    await tx.insert(notifications).values({
+      userId: record.acceptedSellerId,
+      title: `${cosa} ricevuto`,
+      body: `${importo} incassati sulla proposta ${order.quoteId.slice(0, 8)}.`,
+      href: `/spazio?preventivo=${order.quoteId}`,
+    });
+    const [seller] = await tx.select({ email: user.email }).from(user).where(eq(user.id, record.acceptedSellerId));
+    if (seller)
+      await tx.insert(emailOutbox).values({
+        eventKey: `receipt:${intent}:seller`,
+        recipient: seller.email,
+        subject: `${cosa} ricevuto · Proemios`,
+        html: await protectMailHtml(impaginaEmail(`${cosa} ricevuto`, `<p>${esc(importo)} incassati sulla proposta ${esc(order.quoteId)}.</p><p><a href="${esc(appOrigin())}/spazio?preventivo=${esc(order.quoteId)}">Apri la proposta</a></p>`)),
+      }).onConflictDoNothing();
+  }
+  await tx.insert(emailOutbox).values({
+    eventKey: `receipt:${intent}:team`,
+    recipient: destinatarioInterno(),
+    subject: `${cosa} ricevuto · ${importo} · Proemios`,
+    html: await protectMailHtml(impaginaEmail(`${cosa} ricevuto`, `<p>${esc(importo)} incassati sulla proposta ${esc(order.quoteId)} (${esc(order.tier)}).</p><p><a href="${esc(appOrigin())}/spazio?preventivo=${esc(order.quoteId)}">Apri nello spazio del team</a></p>`)),
+  }).onConflictDoNothing();
   const [author] = await tx
     .select({ email: user.email })
     .from(user)
@@ -236,10 +258,10 @@ async function recordPayment(tx: Tx, session: Stripe.Checkout.Session) {
         eventKey: `receipt:${intent}`,
         recipient: author.email,
         subject: "Pagamento ricevuto · Proemios",
-        html: impaginaEmail(
+        html: await protectMailHtml(impaginaEmail(
           "Pagamento ricevuto",
-          `<p>Abbiamo ricevuto € ${(order.amountCents / 100).toLocaleString("it-IT", { minimumFractionDigits: 2 })}.</p><p>Trovi il riepilogo nel tuo spazio. La ricevuta di pagamento non sostituisce la fattura.</p>`,
-        ),
+          `<p>Abbiamo ricevuto ${esc(importo)} (${cosa.toLowerCase()}).</p><p><a href="${esc(appOrigin())}/area-autore?preventivo=${esc(order.quoteId)}">Apri la tua area autore</a>: da lì carichi i materiali e segui la lavorazione. La ricevuta di pagamento non sostituisce la fattura.</p>`,
+        )),
       })
       .onConflictDoNothing();
 }
@@ -380,6 +402,35 @@ export async function refundPrepare(request: Request, actor: Actor) {
   });
   await audit(actor, "refund.prepared", "refund", result.id, { amountCents: body.amountCents });
   return json({ request: result, moneyMoved: false }, 201);
+}
+/**
+ * Stato dei pagamenti di una proposta, visibile a chi può leggerla (l'autore
+ * che l'ha collegata, il venditore assegnato, il team). Importi lordi, perché
+ * sono quelli che Stripe addebita.
+ */
+export async function quotePayments(request: Request, actor: Actor, id: string) {
+  if (request.method !== "GET") throw notFound();
+  const access = await quoteAccess(actor, id, "quote.read");
+  const policy = await ensureQuotePolicy(access.record);
+  const orders = await getDb()
+    .select()
+    .from(paymentOrders)
+    .where(eq(paymentOrders.quoteId, id))
+    .orderBy(desc(paymentOrders.createdAt));
+  const selected = (access.quote.pacchettiGenerati as QuotePackage[]).find(
+    (p) => p.tier === access.record.selectedTier,
+  );
+  const total = selected ? moneyBreakdown(selected.total, policy).grossCents : null,
+    deposit = selected ? moneyBreakdown(selected.deposit, policy).grossCents : null;
+  const paid = (kind: string) => orders.some((o) => o.kind === kind && o.status === "paid");
+  return json({
+    accepted: Boolean(access.record.acceptedAt),
+    vatMode: policy.vatMode,
+    vatRateBps: policy.vatRateBps,
+    deposit: { grossCents: deposit, paid: paid("deposit") },
+    balance: { grossCents: total !== null && deposit !== null ? total - deposit : null, paid: paid("balance") },
+    orders: orders.map((o) => ({ id: o.id, kind: o.kind, amountCents: o.amountCents, status: o.status, createdAt: o.createdAt })),
+  });
 }
 export async function commissionCollection(request: Request, actor: Actor) {
   if (request.method !== "GET") throw notFound();
