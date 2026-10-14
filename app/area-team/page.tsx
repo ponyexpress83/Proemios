@@ -1,2 +1,2 @@
-import { redirect } from "next/navigation";
-export default function Page(){redirect("/spazio");}
+import RoleWorkspace from "@/components/platform/role-workspace";
+export default function Page(){return <RoleWorkspace realm="staff"/>;}
