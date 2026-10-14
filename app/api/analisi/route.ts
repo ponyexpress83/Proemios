@@ -6,7 +6,13 @@ import { gateAnalisiSchema, primoErrore } from "@/lib/validation";
 import { estraiTesto, estensioneDi, MAX_BYTES, EstrazioneError } from "@/lib/extract";
 import { validaFile } from "@/lib/file/validazione";
 import { calcolaMetriche } from "@/lib/metrics";
-import { analizza, aiConfigurata, AiError, type ReportCompleto } from "@/lib/ai";
+import {
+  analizza,
+  aiConfigurata,
+  providerAnalisi,
+  AiError,
+  type ReportCompleto,
+} from "@/lib/ai";
 import { costBandForAnalysis } from "@/lib/pricing";
 import { inviaEmail, impaginaEmail, esc, destinatarioInterno } from "@/lib/email";
 import { env } from "@/lib/env";
@@ -51,7 +57,7 @@ export async function POST(req: Request) {
         approvatoProgettiSensibili: providerPolicies.approvatoProgettiSensibili,
       })
       .from(providerPolicies)
-      .where(eq(providerPolicies.provider, "anthropic"))
+      .where(eq(providerPolicies.provider, providerAnalisi()))
       .limit(1);
 
     const approvata =

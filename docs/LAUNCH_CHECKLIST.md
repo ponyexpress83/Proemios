@@ -41,6 +41,9 @@ pagamento reale.
 - [x] Attribuzione senza dati personali
 - [ ] **[umano]** Informativa privacy rivista da chi di dovere
 - [ ] **[umano]** DPA firmato con ogni sub-responsabile (`PRIVACY.md`)
+- [ ] **[umano]** Il fornitore dello storage (bucket S3) aggiunto fra i
+      responsabili in `config/legal.ts`, con la sede reale: l'informativa
+      elenca chi tratta davvero i file
 - [ ] **[umano]** Procedura di cancellazione scritta, con i termini fiscali
 - [ ] **[umano]** Termini di conservazione dell'audit decisi
 - [ ] **[umano]** Banner di consenso, **se** si attivano tag di profilazione
@@ -62,6 +65,10 @@ pagamento reale.
 - [x] Acconto al 40%, come approvato
 - [x] Servizi senza tariffa approvata marcati «su preventivo»
 - [ ] **[umano]** Stripe in modalità live, con il webhook configurato
+- [ ] **[umano]** Metodi di pagamento scelti nel Dashboard Stripe, Klarna
+      compreso: il checkout usa i metodi dinamici e non c'è codice da toccare.
+      I metodi a esito differito sono già gestiti dal webhook
+      (`payment_intent.succeeded`), quindi attivarli non crea incassi finti
 - [ ] **[umano]** Fatture in Cloud collegato, o decisione esplicita di emettere
       a mano
 - [ ] **[umano]** Un pagamento di prova end-to-end, con importo reale minimo
@@ -72,11 +79,18 @@ pagamento reale.
 - [x] Il router rifiuta i provider senza policy privacy approvata
 - [x] Il livello di servizio limita le categorie di intervento
 - [x] Nessuna proposta raggiunge il cliente senza revisione umana
+- [x] L'analisi gratuita gira su un modello economico, separato dal motore
+      (`ANALISI_PROVIDER`, `ANALISI_MODEL`; predefinito `claude-haiku-5-5`)
+- [x] Nessun parametro di campionamento verso i modelli Claude: i modelli
+      recenti lo rifiutano, e un 400 su ogni Job è un motore che non lavora
 - [ ] **[umano]** Policy dei provider approvate in `/admin/provider`, con i dati veri
       dei contratti firmati. **Finché nessuna è approvata, nessuna lavorazione
       parte**: il router esclude ogni modello e i Job falliscono con «nessun
       modello ammesso»
 - [ ] **[umano]** Chiavi API di produzione, con tetto di spesa impostato
+- [ ] **[umano]** Un'analisi gratuita e un Job di prova con le chiavi vere,
+      prima di aprire il sito: in questo ambiente le chiamate ai fornitori
+      non sono mai partite davvero
 
 ## 7. Marketing
 

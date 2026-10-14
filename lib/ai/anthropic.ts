@@ -36,10 +36,12 @@ export class ProviderAnthropic implements ProviderAi {
     const inizio = Date.now();
 
     try {
+      // Nessun parametro di campionamento: i modelli Claude recenti rifiutano
+      // `temperature` con un 400, quindi `richiesta.temperatura` qui si ignora
+      // di proposito. La ripetibilità la danno il prompt e la validazione.
       const risposta = await client.messages.create({
         model: richiesta.modello.modello,
         max_tokens: richiesta.massimoToken,
-        temperature: richiesta.temperatura ?? 0,
         system: richiesta.istruzioniSistema,
         messages: [{ role: "user", content: richiesta.contenuto }],
       });

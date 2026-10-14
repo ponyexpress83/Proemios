@@ -67,6 +67,28 @@ un'email o emesso una fattura è peggio di uno che dichiara di non poterlo fare.
 | `NEXT_PUBLIC_CALENDAR_URL`             | Nessun pulsante di prenotazione, invece di un link rotto                           |
 | `NEXT_PUBLIC_GTM_ID`                   | Nessun tag caricato                                                                |
 
+## Modelli
+
+Due carichi, due regolazioni.
+
+**Il motore editoriale** lavora il testo del cliente e passa dal router, che
+sceglie fra i modelli di `config/modelli.ts` secondo privacy, capacità e
+qualità. `ANTHROPIC_MODEL`, `ANTHROPIC_MODEL_PREMIUM` e `OPENAI_MODEL`
+sovrascrivono gli identificativi; il costo entra per ultimo, di proposito.
+
+**L'analisi gratuita** della landing è un carico a parte: un report che
+orienta l'autore e non modifica nulla, pagato dalla piattaforma per ogni lead.
+Gira su un modello economico, scelto da `ANALISI_PROVIDER` (`anthropic`,
+predefinito, oppure `openai`) e `ANALISI_MODEL` (predefinito
+`claude-haiku-5-5`, o `gpt-4.1-mini` con OpenAI). Cambiarlo non richiede un
+rilascio. Il cancello privacy in `provider_policies` vale anche qui: il
+provider scelto deve risultare approvato per i manoscritti inediti, altrimenti
+l'analisi risponde «non attiva».
+
+Verso i modelli Claude non viene inviato nessun parametro di campionamento
+(`temperature`, `top_p`): i modelli recenti lo rifiutano con un 400. La
+ripetibilità la danno il prompt e la validazione Zod della risposta.
+
 ## Sicurezza
 
 - `AUTH_SECRET`: `openssl rand -base64 32`. Almeno 32 caratteri, verificato.

@@ -1,19 +1,54 @@
 import Anthropic from "@anthropic-ai/sdk";
+import OpenAI from "openai";
 import { z } from "zod";
-import { env } from "./env";
 import type { MetricheTesto } from "./metrics";
 
 /**
- * Analisi editoriale del manoscritto.
+ * Analisi editoriale del manoscritto: il report gratuito della landing.
  *
  * Il modello riceve un estratto e restituisce SOLO JSON, validato con Zod
  * prima di toccare il resto del sistema. Le metriche numeriche non arrivano
  * da qui: sono calcolate in `lib/metrics.ts` (vedi brief §3.4.4).
+ *
+ * È un carico diverso dal motore editoriale (`lib/produzione`). Lì lavora il
+ * modello migliore ammesso dal router, perché tocca il testo del cliente; qui
+ * basta un modello economico, perché il report orienta l'autore e non modifica
+ * nulla. Provider e modello sono configurazione (`ANALISI_PROVIDER`,
+ * `ANALISI_MODEL`), così il costo per lead si governa senza un rilascio.
+ *
+ * Il cancello privacy vale anche qui: la rotta controlla `provider_policies`
+ * per il provider scelto prima di inviare una riga di testo.
  */
 
-const MODELLO = process.env.ANTHROPIC_MODEL ?? "claude-sonnet-4-6";
+export type ProviderAnalisi = "anthropic" | "openai";
+
+const MODELLO_PREDEFINITO: Record<ProviderAnalisi, string> = {
+  anthropic: "claude-haiku-5-5",
+  openai: "gpt-4.1-mini",
+};
 const PAROLE_INVIATE = 8000;
 const TIMEOUT_MS = 55_000;
+// Il report sta in circa 1.500 token. Il resto è margine per il ragionamento
+// del modello, che sui modelli recenti conta nello stesso limite: un tetto
+// stretto tronca la risposta prima del JSON.
+const MAX_TOKEN_RISPOSTA = 6_000;
+
+/** Quale fornitore esegue l'analisi gratuita. Anthropic se non dichiarato. */
+export function providerAnalisi(): ProviderAnalisi {
+  return process.env.ANALISI_PROVIDER === "openai" ? "openai" : "anthropic";
+}
+
+/** Il modello dell'analisi gratuita: `ANALISI_MODEL`, o il predefinito del provider. */
+export function modelloAnalisi(): string {
+  const scelto = process.env.ANALISI_MODEL?.trim();
+  return scelto || MODELLO_PREDEFINITO[providerAnalisi()];
+}
+
+export function aiConfigurata(): boolean {
+  return providerAnalisi() === "openai"
+    ? Boolean(process.env.OPENAI_API_KEY)
+    : Boolean(process.env.ANTHROPIC_API_KEY);
+}
 
 // ── Schema del report ──────────────────────────────────────────────────────
 
@@ -79,16 +114,19 @@ Regole:
 
 // ── Client ─────────────────────────────────────────────────────────────────
 
-let client: Anthropic | null = null;
+let clientAnthropic: Anthropic | null = null;
+let clientOpenAi: OpenAI | null = null;
 
 function anthropic(): Anthropic {
-  if (!env.ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY non configurata.");
-  if (!client) client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY, timeout: TIMEOUT_MS });
-  return client;
+  if (!process.env.ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY non configurata.");
+  clientAnthropic ??= new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, timeout: TIMEOUT_MS });
+  return clientAnthropic;
 }
 
-export function aiConfigurata(): boolean {
-  return Boolean(env.ANTHROPIC_API_KEY);
+function openai(): OpenAI {
+  if (!process.env.OPENAI_API_KEY) throw new Error("OPENAI_API_KEY non configurata.");
+  clientOpenAi ??= new OpenAI({ apiKey: process.env.OPENAI_API_KEY, timeout: TIMEOUT_MS });
+  return clientOpenAi;
 }
 
 /** Prime N parole del testo: è quanto basta per una prima diagnosi. */
@@ -134,31 +172,57 @@ export class AiError extends Error {
   }
 }
 
-/** Chiama il modello e restituisce il giudizio validato. */
+/**
+ * Niente `temperature` né altri parametri di campionamento: i modelli Claude
+ * recenti li rifiutano con un 400, e il formato della risposta lo garantiscono
+ * il prompt e la validazione, non il campionamento.
+ */
+async function chiediAnthropic(richiesta: string): Promise<string> {
+  const risposta = await anthropic().messages.create({
+    model: modelloAnalisi(),
+    max_tokens: MAX_TOKEN_RISPOSTA,
+    system: SYSTEM,
+    messages: [{ role: "user", content: richiesta }],
+  });
+  const blocco = risposta.content.find((b) => b.type === "text");
+  if (!blocco || blocco.type !== "text") {
+    throw new AiError("api", "Risposta priva di contenuto testuale.");
+  }
+  return blocco.text;
+}
+
+async function chiediOpenAi(richiesta: string): Promise<string> {
+  const risposta = await openai().chat.completions.create({
+    model: modelloAnalisi(),
+    max_completion_tokens: MAX_TOKEN_RISPOSTA,
+    // Il formato JSON è imposto dal fornitore, non solo chiesto nel prompt.
+    response_format: { type: "json_object" },
+    messages: [
+      { role: "system", content: SYSTEM },
+      { role: "user", content: richiesta },
+    ],
+  });
+  const testo = risposta.choices[0]?.message?.content;
+  if (!testo) throw new AiError("api", "Risposta priva di contenuto testuale.");
+  return testo;
+}
+
+/** Chiama il modello configurato e restituisce il giudizio validato. */
 export async function analizza(testo: string): Promise<ReportAi> {
   const brano = estratto(testo);
+  const richiesta = `Estratto del manoscritto da valutare:\n\n---\n${brano}\n---`;
+  const provider = providerAnalisi();
   try {
-    const risposta = await anthropic().messages.create({
-      model: MODELLO,
-      max_tokens: 3000,
-      system: SYSTEM,
-      messages: [
-        {
-          role: "user",
-          content: `Estratto del manoscritto da valutare:\n\n---\n${brano}\n---`,
-        },
-      ],
-    });
-
-    const blocco = risposta.content.find((b) => b.type === "text");
-    if (!blocco || blocco.type !== "text") {
-      throw new AiError("api", "Risposta priva di contenuto testuale.");
-    }
-    return parseReport(blocco.text);
+    const grezzo =
+      provider === "openai" ? await chiediOpenAi(richiesta) : await chiediAnthropic(richiesta);
+    return parseReport(grezzo);
   } catch (err) {
     if (err instanceof AiError) throw err;
-    if (err instanceof Anthropic.APIError) {
-      console.error(JSON.stringify({ evt: "ai.errore", status: err.status, msg: err.message }));
+    if (err instanceof Anthropic.APIError || err instanceof OpenAI.APIError) {
+      // Lo stato e il messaggio del fornitore non contengono il testo inviato.
+      console.error(
+        JSON.stringify({ evt: "ai.errore", provider, status: err.status, msg: err.message }),
+      );
       throw new AiError("api", "Il servizio di analisi non ha risposto.");
     }
     throw new AiError("timeout", "L'analisi ha impiegato troppo tempo.");

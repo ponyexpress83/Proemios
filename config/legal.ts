@@ -57,18 +57,45 @@ export const CONSERVAZIONE = {
   logTecnici: "12 mesi",
 } as const;
 
+export type Responsabile = { nome: string; ruolo: string; sede: string };
+
 /** Fornitori che trattano dati per conto del titolare (art. 28 GDPR). */
-export const RESPONSABILI_ESTERNI = [
+const RESPONSABILI_INFRASTRUTTURA: Responsabile[] = [
   { nome: "Vercel Inc.", ruolo: "hosting e distribuzione del sito", sede: "Stati Uniti" },
   { nome: "Neon Inc.", ruolo: "database gestito", sede: "Unione Europea / Stati Uniti" },
   { nome: "Stripe Payments Europe Ltd.", ruolo: "gestione dei pagamenti", sede: "Irlanda" },
   { nome: "Resend Inc.", ruolo: "invio delle email transazionali", sede: "Stati Uniti" },
-  {
-    nome: "Anthropic PBC",
-    ruolo: "elaborazione dell'estratto di testo per il report di analisi",
-    sede: "Stati Uniti",
-  },
-] as const;
+];
+
+const RUOLO_MODELLI =
+  "elaborazione del testo dei manoscritti con modelli linguistici (report di analisi gratuita e lavorazioni editoriali)";
+
+const RESPONSABILI_MODELLI: Record<"anthropic" | "openai", Responsabile> = {
+  anthropic: { nome: "Anthropic PBC", ruolo: RUOLO_MODELLI, sede: "Stati Uniti" },
+  openai: { nome: "OpenAI, L.L.C.", ruolo: RUOLO_MODELLI, sede: "Stati Uniti" },
+};
+
+/**
+ * I responsabili da elencare nell'informativa.
+ *
+ * I fornitori di modelli compaiono se la piattaforma è configurata per usarli:
+ * l'informativa deve dire chi tratta davvero il testo, non chi potrebbe. La
+ * regola sul provider dell'analisi è la stessa di `lib/ai.ts`, ripetuta qui
+ * per non trascinare gli SDK dei fornitori dentro un file di configurazione
+ * importato da pagine e piè di pagina. La vera autorizzazione resta il
+ * cancello in `provider_policies`: qui si dichiara, non si decide.
+ */
+export function responsabiliEsterni(): Responsabile[] {
+  const analisi = process.env.ANALISI_PROVIDER === "openai" ? "openai" : "anthropic";
+  const modelli: Responsabile[] = [];
+  if (process.env.ANTHROPIC_API_KEY || analisi === "anthropic") {
+    modelli.push(RESPONSABILI_MODELLI.anthropic);
+  }
+  if (process.env.OPENAI_API_KEY || analisi === "openai") {
+    modelli.push(RESPONSABILI_MODELLI.openai);
+  }
+  return [...RESPONSABILI_INFRASTRUTTURA, ...modelli];
+}
 
 /** True se il valore è ancora un segnaposto da compilare. */
 export function daCompilare(valore: string | null): boolean {

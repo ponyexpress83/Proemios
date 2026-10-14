@@ -4,7 +4,7 @@ import { BRAND } from "@/config/brand";
 import {
   TITOLARE,
   CONSERVAZIONE,
-  RESPONSABILI_ESTERNI,
+  responsabiliEsterni,
   AGGIORNAMENTO_DOCUMENTI,
 } from "@/config/legal";
 import { env } from "@/lib/env";
@@ -204,7 +204,7 @@ export default function PrivacyPage() {
                 fornitori, nominati responsabili del trattamento ai sensi dell&rsquo;art. 28 GDPR:
               </p>
               <ul className="mt-3 list-disc pl-5">
-                {RESPONSABILI_ESTERNI.map((r) => (
+                {responsabiliEsterni().map((r) => (
                   <li key={r.nome}>
                     <strong>{r.nome}</strong> — {r.ruolo} ({r.sede}).
                   </li>
