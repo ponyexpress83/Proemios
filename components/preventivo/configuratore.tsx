@@ -38,6 +38,7 @@ interface Stato {
   parole: number;
   materiale: MaterialAmount;
   servizi: ServiceKey[];
+  soloServizio: boolean;
   tempi: "standard" | "prioritaria";
   nome: string;
   email: string;
@@ -102,6 +103,7 @@ export function Configuratore({
     parole: precompilato?.parole ?? 50_000,
     materiale: precompilato?.materiale ?? "parziale",
     servizi: precompilato?.servizi ?? [],
+    soloServizio: Boolean(precompilato?.servizi?.length === 1),
     tempi: precompilato?.tempi ?? "standard",
     nome: "",
     email: "",
@@ -132,7 +134,8 @@ export function Configuratore({
         textState: s.statoTesto,
         wordCount: s.parole,
         materialAmount: soloMateriali ? s.materiale : undefined,
-        requestedServices: s.servizi,
+        requestedServices: s.soloServizio ? [] : s.servizi,
+        singleService: s.soloServizio && s.servizi.length === 1 ? s.servizi[0] : undefined,
         urgency: s.tempi,
       });
     } catch {
@@ -149,8 +152,9 @@ export function Configuratore({
       case 2:
         return Number.isInteger(s.parole) && s.parole > 0 && s.parole <= 2_000_000;
       case 3:
-      case 4:
         return true;
+      case 4:
+        return !s.soloServizio || s.servizi.length === 1;
       case 5:
         return true;
       case 6:
@@ -193,7 +197,8 @@ export function Configuratore({
             textState: s.statoTesto,
             wordCount: s.parole,
             materialAmount: soloMateriali ? s.materiale : undefined,
-            requestedServices: s.servizi,
+            requestedServices: s.soloServizio ? [] : s.servizi,
+        singleService: s.soloServizio && s.servizi.length === 1 ? s.servizi[0] : undefined,
             urgency: s.tempi,
           },
           contatto: {
@@ -230,7 +235,7 @@ export function Configuratore({
         <div className="mb-10">
           <p className="apparato text-ottone">Preventivo</p>
           <h2 className="font-display text-inchiostro mt-3 text-3xl font-medium">
-            Tre modi di fare questo libro
+            {risultato.esito.packages.length===1 ? "Il preventivo per il tuo servizio" : "Tre modi di fare questo libro"}
           </h2>
           <p className="prosa text-stampa mt-3 max-w-2xl">
             {risultato.demo
@@ -455,8 +460,9 @@ export function Configuratore({
               <p className="glossa text-stampa mb-5">
                 {soloGrafica
                   ? "Per la sola grafica contano copertina, impaginazione ed EPUB."
-                  : "Seleziona quello che ti serve. Se non sei sicuro, lascia stare: i tre pacchetti propongono comunque una composizione sensata."}
+                  : "Scegli i servizi che ti interessano, oppure un singolo servizio senza pacchetti aggiuntivi."}
               </p>
+              <div className="mb-5 flex flex-wrap gap-3"><button type="button" className={s.soloServizio ? "rounded-xl border border-[#f16650] bg-[#fff0eb] px-4 py-3" : "rounded-xl border px-4 py-3"} onClick={()=>setS(prev=>({...prev,soloServizio:true,servizi:prev.servizi.slice(0,1)}))}>Solo un servizio</button><button type="button" className={!s.soloServizio ? "rounded-xl border border-[#f16650] bg-[#fff0eb] px-4 py-3" : "rounded-xl border px-4 py-3"} onClick={()=>setS(prev=>({...prev,soloServizio:false}))}>Percorso completo</button></div>
               <Griglia>
                 {SERVIZI.map((o) => (
                   <Opzione
@@ -470,7 +476,7 @@ export function Configuratore({
                         "servizi",
                         s.servizi.includes(o.valore)
                           ? s.servizi.filter((x) => x !== o.valore)
-                          : [...s.servizi, o.valore],
+                          : s.soloServizio ? [o.valore] : [...s.servizi, o.valore],
                       )
                     }
                   />
