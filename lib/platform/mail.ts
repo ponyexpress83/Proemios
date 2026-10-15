@@ -1,11 +1,10 @@
-import { after } from "next/server";
 import { and, eq, lt, or, sql } from "drizzle-orm";
 import { getDb } from "@/db";
 import { emailOutbox } from "@/db/platform-schema";
 import { inviaEmail, type Messaggio } from "@/lib/email";
 import { CompactEncrypt, compactDecrypt } from "jose";
 import { createHash } from "node:crypto";
-import { unavailable } from "./http";
+import { unavailable, afterResponse } from "./http";
 
 function encryptionKey() {
   if ((process.env.BETTER_AUTH_SECRET?.length ?? 0) < 32) throw unavailable();
@@ -95,11 +94,5 @@ export async function flushMail(limit = 20) {
  * coda si svuota con una chiamata esplicita a flushMail o con il cron.
  */
 export function flushMailAfterResponse(limit = 10) {
-  try {
-    after(async () => {
-      await flushMail(limit).catch(() => {});
-    });
-  } catch {
-    /* nessun contesto di richiesta: la coda resta per il cron o per una chiamata esplicita */
-  }
+  afterResponse(() => flushMail(limit));
 }

@@ -1,8 +1,9 @@
 import { getDb } from "@/db";
-import { flushMailAfterResponse } from "@/lib/platform/mail";
+import { flushMail } from "@/lib/platform/mail";
+import { issueQueuedInvoices } from "@/lib/platform/invoices";
 import { auditEvents } from "@/db/platform-schema";
 import { stripe } from "@/lib/stripe";
-import { route, json, PlatformError, unavailable } from "@/lib/platform/http";
+import { route, json, PlatformError, unavailable, afterResponse } from "@/lib/platform/http";
 import { processStripeEvent } from "@/lib/platform/payments";
 export const runtime="nodejs";
 export const POST=route(async request=>{
@@ -10,7 +11,8 @@ export const POST=route(async request=>{
   const signature=request.headers.get("stripe-signature");if(!signature)throw new PlatformError(400,"MISSING_SIGNATURE","Firma mancante.");
   const raw=await request.text();if(raw.length>1_000_000)throw new PlatformError(413,"TOO_LARGE","Richiesta troppo grande.");
   let event;try{event=stripe().webhooks.constructEvent(raw,signature,process.env.STRIPE_WEBHOOK_SECRET);}catch{throw new PlatformError(400,"INVALID_SIGNATURE","Firma non valida.");}
-  try { const result = await processStripeEvent(event); flushMailAfterResponse(10); return json(result); }
+  try { const result = await processStripeEvent(event); // Fattura e ricevute partono dopo la risposta a Stripe, mai dentro la sua transazione.
+    afterResponse(async () => { await issueQueuedInvoices(5); await flushMail(10); }); return json(result); }
   catch (error) {
     await getDb().insert(auditEvents).values({ action: "stripe.event.failed", resourceType: "stripe-event", resourceId: event.id, detail: { code: error instanceof PlatformError ? error.code : "PROCESSING_ERROR" } }).catch(() => {});
     throw error;

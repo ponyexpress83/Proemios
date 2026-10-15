@@ -25,7 +25,36 @@ import { limitRequest } from "./rate-limit";
 import type { QuotePackage } from "@/lib/pricing";
 import { impaginaEmail, esc, destinatarioInterno } from "@/lib/email";
 import { protectMailHtml } from "./mail";
+import { requireBillingProfile, getBillingProfile, type BillingProfile } from "./billing";
+import { queueInvoice, invoiceView } from "./invoices";
+import { billingProfiles, invoices } from "@/db/platform-schema";
 
+/**
+ * Metodi di pagamento offerti nel Checkout. Vuoto: decide la Dashboard di
+ * Stripe (carte, Klarna, Scalapay, addebito SEPA, bonifico… quelli attivati lì).
+ * Impostato (es. "card,klarna,customer_balance"): elenco esplicito.
+ */
+export function configuredPaymentMethods(): string[] {
+  return (process.env.STRIPE_PAYMENT_METHODS ?? "")
+    .split(",")
+    .map((m) => m.trim())
+    .filter((m) => /^[a-z_]+$/.test(m));
+}
+/** Il cliente Stripe dell'autore, creato una volta con i dati di fatturazione: serve a bonifico e rate. */
+async function stripeCustomerFor(actor: Actor, profile: BillingProfile): Promise<string> {
+  if (profile.stripeCustomerId) return profile.stripeCustomerId;
+  const customer = await stripe().customers.create(
+    {
+      email: actor.email,
+      name: profile.name,
+      address: { line1: profile.street, postal_code: profile.postcode, city: profile.city, state: profile.province ?? undefined, country: profile.country },
+      metadata: { userId: actor.id },
+    },
+    { idempotencyKey: `proemios-customer-${actor.id}` },
+  );
+  await getDb().update(billingProfiles).set({ stripeCustomerId: customer.id, updatedAt: new Date() }).where(eq(billingProfiles.userId, actor.id));
+  return customer.id;
+}
 export async function checkout(request: Request, actor: Actor) {
   if (!stripeConfigurato() || !process.env.STRIPE_WEBHOOK_SECRET) throw unavailable();
   if (
@@ -46,6 +75,8 @@ export async function checkout(request: Request, actor: Actor) {
   const access = await quoteAccess(actor, body.quoteId, "quote.accept");
   if (access.record.acceptedBy !== actor.id || !access.record.acceptedAt)
     throw new PlatformError(409, "ACCEPT_FIRST", "Accetta la proposta prima di pagare.");
+  // Senza dati di fatturazione non c'è fattura: si chiedono prima dell'incasso.
+  const profile = await requireBillingProfile(actor.id);
   const policy = { success: true as const, data: await ensureQuotePolicy(access.record) };
   const selected = (access.quote.pacchettiGenerati as QuotePackage[]).find(
     (p) => p.tier === access.record.selectedTier,
@@ -90,13 +121,22 @@ export async function checkout(request: Request, actor: Actor) {
       .returning();
     return saved!;
   });
+  const methods = configuredPaymentMethods();
+  const customer = await stripeCustomerFor(actor, profile);
   const session = order.stripeSessionId
     ? await stripe().checkout.sessions.retrieve(order.stripeSessionId)
     : await stripe().checkout.sessions.create(
         {
           mode: "payment",
           locale: "it",
-          customer_email: actor.email,
+          customer,
+          customer_update: { address: "auto", name: "auto" },
+          ...(methods.length ? { payment_method_types: methods as Stripe.Checkout.SessionCreateParams.PaymentMethodType[] } : {}),
+          // Bonifico tramite Stripe: IBAN virtuale per cliente, riconciliazione
+          // automatica, nessuna contestazione possibile.
+          ...(methods.includes("customer_balance") || !methods.length
+            ? { payment_method_options: { customer_balance: { funding_type: "bank_transfer", bank_transfer: { type: "eu_bank_transfer", eu_bank_transfer: { country: "IT" } } } } }
+            : {}),
           client_reference_id: order.id,
           line_items: [
             {
@@ -264,6 +304,8 @@ async function recordPayment(tx: Tx, session: Stripe.Checkout.Session) {
         )),
       })
       .onConflictDoNothing();
+  // La fattura nasce qui in coda e viene emessa subito dopo la risposta a Stripe.
+  await queueInvoice(tx, { ...order, status: "paid", stripePaymentIntentId: intent }, session, tax.success ? tax.data : null);
 }
 async function recordRefund(tx: Tx, refund: Stripe.Refund) {
   if (refund.status !== "succeeded") return;
@@ -385,7 +427,8 @@ export async function financeCollection(request: Request, actor: Actor) {
     getDb().select().from(commissions).orderBy(desc(commissions.createdAt)).limit(200),
   ]);
   const [totals] = await getDb().select({ balanceCents: sql<number>`coalesce(sum(${ledgerEntries.amountCents}),0)::double precision`, entries: sql<number>`count(*)::integer` }).from(ledgerEntries);
-  return json({ orders, ledger, commissions: payouts, totals, refunds: await getDb().select().from(refundRequests).orderBy(desc(refundRequests.createdAt)).limit(200) });
+  const issued = await getDb().select().from(invoices).orderBy(desc(invoices.createdAt)).limit(200);
+  return json({ orders, ledger, commissions: payouts, totals, refunds: await getDb().select().from(refundRequests).orderBy(desc(refundRequests.createdAt)).limit(200), invoices: issued.map((r) => invoiceView(r, true)) });
 }
 export async function refundPrepare(request: Request, actor: Actor) {
   if (request.method !== "POST") throw notFound();
@@ -423,10 +466,14 @@ export async function quotePayments(request: Request, actor: Actor, id: string) 
   const total = selected ? moneyBreakdown(selected.total, policy).grossCents : null,
     deposit = selected ? moneyBreakdown(selected.deposit, policy).grossCents : null;
   const paid = (kind: string) => orders.some((o) => o.kind === kind && o.status === "paid");
+  const issued = await getDb().select().from(invoices).where(eq(invoices.quoteId, id)).orderBy(desc(invoices.createdAt));
   return json({
     accepted: Boolean(access.record.acceptedAt),
     vatMode: policy.vatMode,
     vatRateBps: policy.vatRateBps,
+    methods: configuredPaymentMethods(),
+    billingReady: Boolean(await getBillingProfile(access.record.acceptedBy ?? actor.id)),
+    invoices: issued.map((r) => invoiceView(r, can(actor.grants, "finance.read"))),
     deposit: { grossCents: deposit, paid: paid("deposit") },
     balance: { grossCents: total !== null && deposit !== null ? total - deposit : null, paid: paid("balance") },
     orders: orders.map((o) => ({ id: o.id, kind: o.kind, amountCents: o.amountCents, status: o.status, createdAt: o.createdAt })),

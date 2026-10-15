@@ -1,5 +1,7 @@
 import { z } from "zod";
 import { flushMailAfterResponse } from "@/lib/platform/mail";
+import { billingProfile } from "@/lib/platform/billing";
+import { invoiceCollection, invoicePdf, invoiceRetry } from "@/lib/platform/invoices";
 import { route, json, notFound, checkMutationOrigin } from "@/lib/platform/http";
 import { getActor } from "@/lib/platform/access";
 import { quotePdf } from "@/lib/platform/quote-pdf";
@@ -83,6 +85,7 @@ const handler = route(async (request) => {
         mfaEnabled: actor.mfaEnabled,
       },
     });
+  if (area === "me" && id === "billing" && !action) return billingProfile(request, actor);
   if (
     id &&
     !["export", "reconcile", "run"].includes(id) &&
@@ -123,6 +126,11 @@ const handler = route(async (request) => {
       break;
     case "checkout":
       if (!id && request.method === "POST") return checkout(request, actor);
+      break;
+    case "invoices":
+      if (!id) return invoiceCollection(request, actor);
+      if (action === "pdf" && request.method === "GET") return invoicePdf(actor, id);
+      if (action === "retry") return invoiceRetry(request, actor, id);
       break;
     case "team":
       if (!id) return teamCollection(request, actor);

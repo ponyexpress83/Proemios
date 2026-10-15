@@ -52,3 +52,8 @@
 .proemios-author-real .author-upload input[type=file],.proemios-author-real .author-upload textarea{display:block;width:100%;margin-top:.4rem;font:inherit;padding:.5rem;border:1px solid rgba(0,0,0,.15);border-radius:8px;background:#fff}
 .proemios-author-real .author-approval{display:flex;gap:.6rem;align-items:center;margin-left:auto}
 .proemios-author-real .author-quote-card.chosen{outline:2px solid currentColor}
+.proemios-author-real .author-billing{margin:1rem 0 1.4rem;padding:1rem;border:1px solid rgba(0,0,0,.1);border-radius:12px}
+.proemios-author-real .author-billing h3{margin:0 0 .4rem;font-size:1.05rem}
+.proemios-author-real .author-billing input,.proemios-author-real .author-billing select{display:block;width:100%;margin-top:.3rem;font:inherit;padding:.5rem;border:1px solid rgba(0,0,0,.15);border-radius:8px;background:#fff}
+.proemios-author-real .author-billing-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:.6rem}
+.proemios-author-real .author-invoices{margin-top:.8rem}

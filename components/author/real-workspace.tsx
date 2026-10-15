@@ -14,7 +14,9 @@ type Detail = { project: Project; files: FileEntry[]; tasks: { id: string; title
 type Money = { grossCents: number; netCents: number; taxCents: number };
 type Package = { tier: string; name: string; total: number; deposit: number; lineItems: { key: string; label: string; amount: number }[]; money?: Money; depositMoney?: Money };
 type QuoteDetail = { quote: Quote & { input: { singleService?: string; requestedServices?: string[] } }; packages: Package[]; record: { version: number; acceptedAt: string | null; selectedTier: string | null }; paymentPolicy: { version: string; vatMode: string; vatRateBps: number } | null };
-type Payments = { accepted: boolean; vatMode: string; vatRateBps: number; deposit: { grossCents: number | null; paid: boolean }; balance: { grossCents: number | null; paid: boolean }; orders: { id: string; kind: string; amountCents: number; status: string; createdAt: string }[] };
+type Invoice = { id: string; kind: string; grossCents: number; number: string | null; issuedOn: string | null; status: string };
+type Payments = { accepted: boolean; vatMode: string; vatRateBps: number; methods: string[]; billingReady: boolean; invoices: Invoice[]; deposit: { grossCents: number | null; paid: boolean }; balance: { grossCents: number | null; paid: boolean }; orders: { id: string; kind: string; amountCents: number; status: string; createdAt: string }[] };
+type Billing = { kind: "private" | "business"; name: string; taxCode: string | null; vatNumber: string | null; street: string; postcode: string; city: string; province: string | null; country: string; sdiCode: string | null; pec: string | null };
 const format = (v: number) => new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(v);
 const cents = (v: number) => format(v / 100);
 const date = (s: string) => new Date(s).toLocaleDateString("it-IT");
@@ -100,7 +102,8 @@ export function RealAuthorWorkspace({ user }: Props) {
               {!quote.paymentPolicy && <p className="platform-notice">Le condizioni fiscali non sono ancora state validate dal team. L’accettazione e il pagamento restano disabilitati.</p>}
               <p><a href={`/api/platform/quotes/${quote.quote.id}/pdf`}>Scarica la proposta in PDF</a> · <Link href="/contatti">Hai domande? Scrivi a Proemios →</Link></p></article> : <p>Caricamento preventivo…</p>}
           </> : <div className="author-real-grid">{quotes.map(q => <button className="workspace-card author-project-choice" key={q.id} onClick={() => setSelected(q.id)}><span className="status-pill lavender">{q.acceptedAt ? "Accettato" : "Da valutare"}</span><h2>{serviceSummary(q)}</h2><p>{q.prezzoTotale ? `${format(q.prezzoTotale)} + IVA` : "Importo da confermare"}{q.name ? ` · ${q.name}` : ""}</p><strong>Apri i dettagli →</strong></button>)}{!quotes.length && <article className="workspace-card"><h2>Nessun preventivo.</h2><p>Vuoi una sola correzione bozze o un percorso completo? Puoi scegliere il servizio.</p><Link className="author-cta" href="/preventivo">Calcola il preventivo <PlusCircle size={16} /></Link></article>}</div>}</>}
-          {view === "payments" && <article className="workspace-card"><span className="eyebrow">PAGAMENTI E SCADENZE</span><h2>Acconto e saldo delle tue proposte.</h2><p>Il pagamento si apre dopo l’accettazione della proposta: prima l’acconto, poi il saldo alla consegna. Lo stato viene confermato da Stripe, non dal solo ritorno a questa pagina.</p>
+          {view === "payments" && <article className="workspace-card"><span className="eyebrow">PAGAMENTI E SCADENZE</span><h2>Acconto e saldo delle tue proposte.</h2><p>Il pagamento si apre dopo l’accettazione della proposta: prima l’acconto, poi il saldo alla consegna. Puoi pagare con carta, a rate (Klarna o Scalapay, dove disponibili), con addebito SEPA o con bonifico dalla stessa pagina sicura di Stripe. Lo stato viene confermato da Stripe, non dal solo ritorno a questa pagina. A ogni incasso ricevi la fattura.</p>
+            <BillingSection user={user} onReady={() => setReload(x => x + 1)} />
             {accepted.map(q => <QuotePayments key={q.id} quote={q} title={serviceSummary(q)} highlighted={selected === q.id} busy={busy} action={action} reload={reload} />)}
             {!accepted.length && <p>Non hai ancora proposte accettate. {pending > 0 && <button className="author-text-link" onClick={() => open("quotes")}>Valuta i preventivi in attesa →</button>}</p>}</article>}
           {view === "messages" && <article className="workspace-card"><h2>Messaggi con il team editoriale</h2>{projects.length ? <AuthorMessages projects={projects} /> : <><p>Non ci sono ancora progetti collegati al tuo account. Per informazioni generali puoi scriverci.</p><Link className="author-cta" href="/contatti">Contatta Proemios <ArrowRight size={16} /></Link></>}</article>}
@@ -113,6 +116,7 @@ function QuotePayments({ quote, title, highlighted, busy, action, reload }: { qu
   const [payments, setPayments] = useState<Payments | null>(null), [error, setError] = useState("");
   useEffect(() => { let live = true; platformApi<Payments>(`quotes/${quote.id}/payments`).then(v => { if (live) setPayments(v); }).catch(e => live && setError(e.message)); return () => { live = false; }; }, [quote.id, reload]);
   const checkout = (kind: "deposit" | "balance") => action(async () => { const r = await platformApi<{ url: string }>("checkout", "POST", { quoteId: quote.id, kind }); if (r.url) window.location.assign(r.url); });
+  const invoiceLabel: Record<string, string> = { queued: "in emissione", processing: "in emissione", retry: "in emissione", failed: "in verifica dal team", created: "emessa", sent: "emessa" };
   if (error) return <p className="platform-error" role="alert">{error}</p>;
   if (!payments) return <p>Caricamento di {title}…</p>;
   const pendingOrder = (kind: string) => payments.orders.find(o => o.kind === kind && o.status === "pending");
@@ -120,14 +124,55 @@ function QuotePayments({ quote, title, highlighted, busy, action, reload }: { qu
   const row = (kind: "deposit" | "balance", label: string, part: { grossCents: number | null; paid: boolean }, enabled: boolean) => <div className="author-action-line author-payment-row" key={kind}>
     <CreditCard size={20} />
     <span><strong>{label}</strong><small>{part.grossCents !== null ? `${cents(part.grossCents)} ${payments.vatMode === "excluded" ? "IVA inclusa" : vat}` : "Importo da definire"}{part.paid ? " · pagato" : pendingOrder(kind) ? " · pagamento avviato, in attesa di conferma" : ""}</small></span>
-    {part.paid ? <span className="status-pill peach">Pagato</span> : enabled ? <button disabled={busy} className="author-cta" onClick={() => checkout(kind)}>{pendingOrder(kind) ? "Riprendi il pagamento →" : `Paga ${label.toLowerCase()} →`}</button> : <small>Dopo l’acconto</small>}
+    {part.paid ? <span className="status-pill peach">Pagato</span> : enabled ? <button disabled={busy || !payments.billingReady} title={payments.billingReady ? "" : "Completa prima i dati di fatturazione"} className="author-cta" onClick={() => checkout(kind)}>{pendingOrder(kind) ? "Riprendi il pagamento →" : `Paga ${label.toLowerCase()} →`}</button> : <small>Dopo l’acconto</small>}
   </div>;
   return <section className={`author-payments${highlighted ? " highlighted" : ""}`} aria-label={`Pagamenti: ${title}`}>
     <h3>{title}{quote.acceptedAt ? ` · accettata il ${date(quote.acceptedAt)}` : ""}</h3>
     {row("deposit", "L’acconto", payments.deposit, !payments.deposit.paid)}
     {row("balance", "Il saldo", payments.balance, payments.deposit.paid && !payments.balance.paid)}
     {payments.deposit.paid && payments.balance.paid && <p>Tutto pagato. Grazie: il percorso continua nel tuo progetto.</p>}
+    {payments.invoices.length > 0 && <div className="author-invoices">{payments.invoices.map(f => <div className="author-action-line" key={f.id}><FileText size={18} /><span><strong>{f.number ? `Fattura n. ${f.number}` : "Fattura"} · {f.kind === "deposit" ? "acconto" : "saldo"}</strong><small>{cents(f.grossCents)}{f.issuedOn ? ` · ${date(f.issuedOn)}` : ""} · {invoiceLabel[f.status] ?? f.status}</small></span>{f.number && <a href={`/api/platform/invoices/${f.id}/pdf`}>Scarica PDF</a>}</div>)}</div>}
   </section>;
+}
+
+/** Dati di fatturazione: chiesti una volta, prima del primo pagamento, e modificabili. */
+function BillingSection({ user, onReady }: { user: Props["user"]; onReady: () => void }) {
+  const [billing, setBilling] = useState<Billing | null | undefined>(undefined), [editing, setEditing] = useState(false), [error, setError] = useState(""), [busy, setBusy] = useState(false);
+  const [form, setForm] = useState<Billing>({ kind: "private", name: user.name, taxCode: "", vatNumber: "", street: "", postcode: "", city: "", province: "", country: "IT", sdiCode: "", pec: "" });
+  useEffect(() => { let live = true; platformApi<{ billing: Billing | null }>("me/billing").then(v => { if (!live) return; setBilling(v.billing); if (v.billing) setForm({ ...v.billing, taxCode: v.billing.taxCode ?? "", vatNumber: v.billing.vatNumber ?? "", province: v.billing.province ?? "", sdiCode: v.billing.sdiCode ?? "", pec: v.billing.pec ?? "" }); }).catch(e => live && setError(e.message)); return () => { live = false; }; }, []);
+  const set = (key: keyof Billing) => (e: { target: { value: string } }) => setForm(f => ({ ...f, [key]: e.target.value }));
+  async function save(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault(); setBusy(true); setError("");
+    try {
+      const body = { ...form, taxCode: form.taxCode || "", vatNumber: form.vatNumber || "", province: form.province || "", sdiCode: form.sdiCode || "", pec: form.pec || "" };
+      const saved = await platformApi<{ billing: Billing }>("me/billing", "PUT", body);
+      setBilling(saved.billing); setEditing(false); onReady();
+    } catch (e) { setError(e instanceof Error ? e.message : "Salvataggio non riuscito."); } finally { setBusy(false); }
+  }
+  if (billing === undefined) return <p>Caricamento dei dati di fatturazione…</p>;
+  if (billing && !editing) return <section className="author-billing"><h3>Dati di fatturazione</h3><p>{billing.name} · {billing.kind === "business" ? `P. IVA ${billing.vatNumber}` : `CF ${billing.taxCode}`} · {billing.street}, {billing.postcode} {billing.city}{billing.province ? ` (${billing.province})` : ""}</p><button className="author-text-link" onClick={() => setEditing(true)}>Modifica →</button></section>;
+  const business = form.kind === "business";
+  return <form className="author-billing author-upload" onSubmit={save}>
+    <h3>Dati di fatturazione</h3>
+    {!billing && <p>Servono per emettere la fattura di ogni pagamento. Li chiediamo una volta sola.</p>}
+    {error && <p role="alert" className="platform-error">{error}</p>}
+    <label>Intestazione<select value={form.kind} onChange={e => setForm(f => ({ ...f, kind: e.target.value as Billing["kind"] }))}><option value="private">Persona fisica</option><option value="business">Azienda o professionista con partita IVA</option></select></label>
+    <label>{business ? "Ragione sociale" : "Nome e cognome"}<input required minLength={2} maxLength={200} value={form.name} onChange={set("name")} /></label>
+    {business ? <>
+      <label>Partita IVA<input required pattern="[0-9]{11}" value={form.vatNumber ?? ""} onChange={set("vatNumber")} /></label>
+      <label>Codice fiscale (se diverso dalla partita IVA)<input value={form.taxCode ?? ""} onChange={set("taxCode")} /></label>
+      <label>Codice destinatario SdI<input maxLength={7} value={form.sdiCode ?? ""} onChange={set("sdiCode")} placeholder="7 caratteri, oppure indica la PEC" /></label>
+      <label>PEC<input type="email" value={form.pec ?? ""} onChange={set("pec")} /></label>
+    </> : <label>Codice fiscale<input required={form.country === "IT"} maxLength={16} value={form.taxCode ?? ""} onChange={set("taxCode")} style={{ textTransform: "uppercase" }} /></label>}
+    <label>Indirizzo<input required minLength={3} maxLength={200} value={form.street} onChange={set("street")} /></label>
+    <div className="author-billing-row">
+      <label>CAP<input required value={form.postcode} onChange={set("postcode")} /></label>
+      <label>Città<input required value={form.city} onChange={set("city")} /></label>
+      <label>Provincia<input maxLength={2} value={form.province ?? ""} onChange={set("province")} placeholder="es. MI" style={{ textTransform: "uppercase" }} /></label>
+      <label>Paese<input required maxLength={2} value={form.country} onChange={set("country")} style={{ textTransform: "uppercase" }} /></label>
+    </div>
+    <div className="author-approval"><button type="submit" className="author-cta" disabled={busy}>Salva i dati</button>{billing && <button type="button" className="author-text-link" onClick={() => setEditing(false)}>Annulla</button>}</div>
+  </form>;
 }
 
 function ProjectDetail({ detail, linkedQuote, serviceSummary, busy, action, onPayments }: { detail: Detail; linkedQuote?: Quote; serviceSummary: (q: Quote) => string; busy: boolean; action: (fn: () => Promise<unknown>) => Promise<void>; onPayments: () => void }) {
