@@ -463,3 +463,138 @@ describe("durable analysis jobs with an isolated provider boundary", () => {
     }
   });
 });
+
+describe("first euro without manual configuration", () => {
+  it("applies the documented default policy so a public proposal can be accepted and paid", async () => {
+    const { defaultPaymentPolicy } = await import("@/lib/platform/config");
+    await db.delete(platform.platformSettings).where(eq(platform.platformSettings.key, "payment-policy"));
+    const { publicQuote } = await import("@/lib/platform/public-forms");
+    const email = "first-euro@example.test";
+    const quoteRequest = await publicQuote(new Request(`${origin}/api/preventivo`, { method: "POST", headers: { origin, "idempotency-key": randomUUID(), "content-type": "application/json" }, body: JSON.stringify({ input: priceInput, contatto: { nome: "First Euro", email, consensoPrivacy: true, consensoMarketing: false } }) }));
+    const created = await data(quoteRequest, 201);
+    const [quoteRow] = await db.select().from(schema.quotes).where(eq(schema.quotes.id, created.quoteId));
+    const leadId = quoteRow!.leadId;
+    const outbox = await db.select().from(platform.emailOutbox);
+    expect(outbox.some(r => r.recipient === email && r.eventKey.startsWith("quote:"))).toBe(true);
+    // The author registers with the same address: verification links the request, no token needed.
+    const registration = await data(await authRequest("sign-up/email", { name: "First Euro", email, password, privacyAccepted: true }));
+    const [before] = await db.select().from(platform.leadOwnership).where(eq(platform.leadOwnership.leadId, leadId));
+    expect(before?.authorId ?? null).toBeNull();
+    const verification = (await db.select().from(platform.emailOutbox)).find(r => r.recipient === email && r.eventKey.startsWith("email-verification:"))!;
+    await auth.handler(new Request(await mailLink(verification.eventKey)));
+    const [linked] = await db.select().from(platform.leadOwnership).where(eq(platform.leadOwnership.leadId, leadId));
+    expect(linked?.authorId).toBe(registration.user.id);
+    const login = await authRequest("sign-in/email", { email, password });
+    actors.firstEuro = { id: registration.user.id, email, cookie: cookies(login) };
+    const list = await data(await call("firstEuro", "quotes"));
+    expect(list.quotes.map((q: { id: string }) => q.id)).toContain(created.quoteId);
+    const detail = await data(await call("firstEuro", `quotes/${created.quoteId}`));
+    expect(detail.paymentPolicy.version).toBe(defaultPaymentPolicy.version);
+    expect(detail.packages[0].money.grossCents).toBe(Math.round(detail.packages[0].total * 100 * 1.22));
+    const tier = detail.packages.find((p: { recommended?: boolean }) => p.recommended)?.tier ?? detail.packages[0].tier;
+    expect((await call("firstEuro", `quotes/${created.quoteId}/accept`, "POST", { tier, version: detail.record.version, policyVersion: "unknown", termsAccepted: true })).status).toBe(409);
+    await data(await call("firstEuro", `quotes/${created.quoteId}/accept`, "POST", { tier, version: detail.record.version, policyVersion: defaultPaymentPolicy.version, termsAccepted: true }));
+    const [record] = await db.select().from(platform.quoteRecords).where(eq(platform.quoteRecords.quoteId, created.quoteId));
+    expect((record!.taxPolicy as { version: string }).version).toBe(defaultPaymentPolicy.version);
+    const payments = await data(await call("firstEuro", `quotes/${created.quoteId}/payments`));
+    expect(payments.accepted).toBe(true); expect(payments.deposit.paid).toBe(false);
+    expect(payments.deposit.grossCents + payments.balance.grossCents).toBe(detail.packages.find((p: { tier: string }) => p.tier === tier).money.grossCents);
+    expect((await call("authorA", `quotes/${created.quoteId}/payments`)).status).toBe(404);
+    // Team and seller learn about the acceptance without being able to change the conditions.
+    const afterAccept = await db.select().from(platform.emailOutbox);
+    expect(afterAccept.some(r => r.eventKey === `quote:${created.quoteId}:accepted:team`)).toBe(true);
+    const own = await db.select().from(platform.notifications).where(eq(platform.notifications.userId, registration.user.id));
+    expect(own.every(n => (n.href ?? "").startsWith("/area-autore"))).toBe(true);
+  });
+  it("never links a request to an unverified address nor to someone else's claimed request", async () => {
+    const { linkLeadsToAuthor } = await import("@/lib/platform/lead-linking");
+    const email = "unverified-link@example.test";
+    const [lead] = await db.insert(schema.leads).values({ nome: "Unverified", email, fonte: "preventivo", consensoPrivacy: true }).returning();
+    const registration = await data(await authRequest("sign-up/email", { name: "Unverified", email, password, privacyAccepted: true }));
+    expect((await db.select().from(platform.leadOwnership).where(eq(platform.leadOwnership.leadId, lead!.id)))).toHaveLength(0);
+    await db.insert(platform.leadOwnership).values({ leadId: lead!.id, authorId: actors.authorB!.id });
+    expect(await linkLeadsToAuthor(registration.user.id, email)).toBe(0);
+    const [owner] = await db.select().from(platform.leadOwnership).where(eq(platform.leadOwnership.leadId, lead!.id));
+    expect(owner!.authorId).toBe(actors.authorB!.id);
+  });
+});
+
+describe("automatic invoicing with Fatture in Cloud", () => {
+  const ficCalls: Array<{ method: string; url: string; body: unknown }> = [];
+  let invoiceId: string;
+  it("collects valid billing data once and refuses checkout without it", async () => {
+    const bad = await call("authorA", "me/billing", "PUT", { kind: "private", name: "Synthetic Author", taxCode: "NOT-A-CODE", street: "Via Prova 1", postcode: "20100", city: "Milano", province: "MI", country: "IT" });
+    expect(bad.status).toBe(422);
+    expect((await call("firstEuro", "checkout", "POST", { quoteId: (await data(await call("firstEuro", "quotes"))).quotes[0].id, kind: "deposit" })).status).toBe(409);
+    const saved = await data(await call("authorA", "me/billing", "PUT", { kind: "private", name: "Synthetic Author", taxCode: "rssmra80a01h501u", street: "Via Prova 1", postcode: "20100", city: "Milano", province: "mi", country: "IT" }));
+    expect(saved.billing.taxCode).toBe("RSSMRA80A01H501U"); expect(saved.billing.province).toBe("MI"); expect(saved.billing).not.toHaveProperty("stripeCustomerId");
+    expect((await data(await call("authorA", "me/billing"))).billing.city).toBe("Milano");
+    expect((await data(await call("firstEuro", "me/billing"))).billing).toBeNull();
+    const business = await call("firstEuro", "me/billing", "PUT", { kind: "business", name: "Casa Editrice Synthetic", vatNumber: "12345678901", street: "Corso Test 2", postcode: "10100", city: "Torino", province: "TO", country: "IT" });
+    expect(business.status).toBe(422);
+  });
+  it("queues the invoice with the payment, issues it after the external call succeeds and serves the PDF only to its owner", async () => {
+    const { issueQueuedInvoices } = await import("@/lib/platform/invoices");
+    const [queued] = await db.select().from(platform.invoices).where(eq(platform.invoices.authorId, actors.authorA!.id));
+    expect(queued?.status).toBe("queued"); invoiceId = queued!.id;
+    expect(await issueQueuedInvoices(5)).toMatchObject({ skipped: true });
+    process.env.FIC_ACCESS_TOKEN = "fic-synthetic-token"; process.env.FIC_COMPANY_ID = "4242"; delete process.env.FIC_SEND_TO_SDI;
+    const realFetch = globalThis.fetch;
+    const pdf = new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d]);
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
+      const url = String(input);
+      if (url.startsWith("https://api-v2.fattureincloud.it/")) {
+        ficCalls.push({ method: init?.method ?? "GET", url, body: init?.body ? JSON.parse(String(init.body)) : null });
+        if (new Headers(init?.headers).get("authorization") !== "Bearer fic-synthetic-token") return new Response("{}", { status: 401 });
+        if (url.endsWith("/issued_documents") && init?.method === "POST") return Response.json({ data: { id: 501, number: 12, numeration: "/A", date: "2026-10-15", url: "https://fic.example.test/doc-501.pdf" } });
+        if (url.includes("/e_invoice/send")) return Response.json({ data: {} });
+        if (url.includes("/issued_documents/501")) return Response.json({ data: { id: 501, number: 12, url: "https://fic.example.test/doc-501.pdf" } });
+        return new Response("not found", { status: 404 });
+      }
+      if (url === "https://fic.example.test/doc-501.pdf") return new Response(pdf, { headers: { "content-type": "application/pdf" } });
+      return realFetch(input, init);
+    });
+    // The author had no billing data when the payment was recorded: the row waits, nothing is sent.
+    await db.delete(platform.billingProfiles).where(eq(platform.billingProfiles.userId, actors.authorA!.id));
+    expect(await issueQueuedInvoices(5)).toMatchObject({ issued: 0, failed: 1 });
+    let [row] = await db.select().from(platform.invoices).where(eq(platform.invoices.id, invoiceId));
+    expect(row!.status).toBe("retry"); expect(row!.attempts).toBe(1); expect(row!.error).toContain("fatturazione"); expect(ficCalls).toHaveLength(0);
+    await data(await call("authorA", "me/billing", "PUT", { kind: "private", name: "Synthetic Author", taxCode: "RSSMRA80A01H501U", street: "Via Prova 1", postcode: "20100", city: "Milano", province: "MI", country: "IT" }));
+    expect((await call("authorA", `invoices/${invoiceId}/retry`, "POST")).status).toBe(403);
+    const retried = await data(await call("finance", `invoices/${invoiceId}/retry`, "POST"));
+    expect(retried.invoice.status).toBe("created"); expect(retried.invoice.number).toBe("12/A");
+    expect(ficCalls.map(c => c.method + " " + new URL(c.url).pathname)).toEqual(["POST /c/4242/issued_documents"]);
+    const sent = ficCalls[0]!.body as { data: Record<string, unknown> };
+    expect(sent.data.e_invoice).toBe(true); expect(sent.data.use_gross_prices).toBe(true);
+    expect((sent.data.entity as Record<string, unknown>).tax_code).toBe("RSSMRA80A01H501U"); expect((sent.data.entity as Record<string, unknown>).ei_code).toBe("0000000");
+    expect((sent.data.items_list as Array<Record<string, unknown>>)[0]!.gross_price).toBe(row!.grossCents / 100);
+    expect((sent.data.payments_list as Array<Record<string, unknown>>)[0]).toMatchObject({ status: "paid", amount: row!.grossCents / 100 });
+    expect((sent.data.ei_data as Record<string, unknown>).payment_method).toBe("MP08");
+    [row] = await db.select().from(platform.invoices).where(eq(platform.invoices.id, invoiceId));
+    expect(row!.ficDocumentId).toBe(501);
+    const mails = await db.select().from(platform.emailOutbox);
+    expect(mails.some(m => m.eventKey.startsWith(`invoice:${invoiceId}:`) && m.recipient.toLowerCase() === actors.authorA!.email.toLowerCase())).toBe(true);
+    const own = await data(await call("authorA", "invoices"));
+    expect(own.invoices.map((i: { id: string }) => i.id)).toContain(invoiceId); expect(own.invoices[0]).not.toHaveProperty("error");
+    expect((await data(await call("finance", "invoices"))).invoices.find((i: { id: string }) => i.id === invoiceId)).toHaveProperty("attempts");
+    const download = await call("authorA", `invoices/${invoiceId}/pdf`);
+    expect(download.status).toBe(200); expect(download.headers.get("content-type")).toBe("application/pdf");
+    expect(new Uint8Array(await download.arrayBuffer())).toEqual(pdf);
+    expect((await call("authorB", `invoices/${invoiceId}/pdf`)).status).toBe(401);
+    expect((await call("sellerA", `invoices/${invoiceId}/pdf`)).status).toBe(404);
+    expect((await call("editorA", "invoices")).status).toBe(200);
+    expect((await data(await call("editorA", "invoices"))).invoices).toHaveLength(0);
+    expect((await data(await call("finance", "finance"))).invoices.some((i: { id: string }) => i.id === invoiceId)).toBe(true);
+    // Already issued: another run leaves it alone and transmits nothing twice.
+    expect(await issueQueuedInvoices(5)).toMatchObject({ issued: 0, failed: 0 });
+    expect(ficCalls.filter(c => c.method === "POST")).toHaveLength(1);
+    vi.mocked(globalThis.fetch).mockRestore();
+    delete process.env.FIC_ACCESS_TOKEN; delete process.env.FIC_COMPANY_ID;
+  });
+  it("lets the dashboard decide payment methods unless they are listed explicitly", async () => {
+    const { configuredPaymentMethods } = await import("@/lib/platform/payments");
+    delete process.env.STRIPE_PAYMENT_METHODS; expect(configuredPaymentMethods()).toEqual([]);
+    process.env.STRIPE_PAYMENT_METHODS = "card, klarna,customer_balance;drop"; expect(configuredPaymentMethods()).toEqual(["card", "klarna"]);
+    delete process.env.STRIPE_PAYMENT_METHODS;
+  });
+});

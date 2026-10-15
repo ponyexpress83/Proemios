@@ -98,6 +98,7 @@ type Collection = {
   commissions?: Payout[];
   orders?: Order[];
   ledger?: Ledger[];
+  invoices?: Array<{ id: string; kind: string; grossCents: number; number: string | null; issuedOn: string | null; status: string; attempts?: number; error?: string | null; createdAt: string }>;
   notifications?: Notification[];
   profiles?: Array<{ userId: string; code: string; active: boolean; link: string }>;
   conversions?: Array<{ id: string; createdAt: string; ruleVersion: string }>;
@@ -668,6 +669,28 @@ export function PlatformWorkspace({ user }: { user: Profile }) {
                       : undefined
                   }
                 />
+                <div className="platform-card">
+                  <h2>Fatture emesse</h2>
+                  <small>Ogni incasso confermato diventa una fattura su Fatture in Cloud. «creata»: da trasmettere allo SdI da Fatture in Cloud. «inviata»: già trasmessa.</small>
+                  {data.invoices?.map((f) => (
+                    <div className="platform-row" key={f.id}>
+                      <span>
+                        {f.number ? `n. ${f.number}` : "in emissione"} · {f.kind === "deposit" ? "Acconto" : "Saldo"}{f.issuedOn ? ` · ${date(f.issuedOn)}` : ""}
+                      </span>
+                      <State value={{ queued: "in coda", processing: "in corso", retry: "riprova", failed: "errore", created: "creata", sent: "inviata" }[f.status] ?? f.status} />
+                      <strong>{money(f.grossCents)}</strong>
+                      {["retry", "failed"].includes(f.status) ? (
+                        <>
+                          <small title={f.error ?? ""}>{(f.error ?? "").slice(0, 80)}</small>
+                          <button className="platform-text-button" disabled={busy} onClick={() => run(() => platformApi(`invoices/${f.id}/retry`, "POST"), "Nuovo tentativo di emissione eseguito.")}>Riprova</button>
+                        </>
+                      ) : f.number ? (
+                        <a className="platform-text-button" href={`/api/platform/invoices/${f.id}/pdf`}>PDF</a>
+                      ) : null}
+                    </div>
+                  ))}
+                  {!data.invoices?.length ? <Empty>Nessuna fattura emessa.</Empty> : null}
+                </div>
                 <div className="platform-card">
                   <h2>Movimenti contabili</h2>
                   {data.ledger?.map((l) => (

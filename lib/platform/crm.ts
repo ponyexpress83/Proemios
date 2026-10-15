@@ -1,4 +1,5 @@
-import { and, desc, eq, ilike, or } from "drizzle-orm";
+import { linkLeadsToAuthor } from "./lead-linking";
+import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { randomBytes } from "node:crypto";
 import { getDb } from "@/db";
@@ -12,6 +13,8 @@ import {
   platformSettings,
   projects,
   quoteVersions,
+  notifications,
+  emailOutbox,
 } from "@/db/platform-schema";
 import { leadAccess, leadPredicate, demandAvailable, demand, audit, type Actor } from "./access";
 import { readBody, json, notFound, forbidden, PlatformError, hashToken, csvCell } from "./http";
@@ -25,9 +28,11 @@ import {
   commissionRuleSchema,
   moneyBreakdown,
   mailConfigured,
+  defaultPaymentPolicy,
+  type PaymentPolicy,
 } from "./config";
-import { impaginaEmail, esc } from "@/lib/email";
-import { enqueueMail } from "./mail";
+import { impaginaEmail, esc, destinatarioInterno } from "@/lib/email";
+import { enqueueMail, protectMailHtml } from "./mail";
 
 export async function getSetting(key: string) {
   const [row] = await getDb()
@@ -36,6 +41,29 @@ export async function getSetting(key: string) {
     .where(eq(platformSettings.key, key))
     .limit(1);
   return row?.value;
+}
+/** La policy approvata dall'owner, oppure quella predefinita. */
+export async function resolvePaymentPolicy(): Promise<PaymentPolicy> {
+  const saved = paymentPolicySchema.safeParse(await getSetting("payment-policy"));
+  return saved.success ? saved.data : defaultPaymentPolicy;
+}
+/**
+ * Le condizioni fiscali di una proposta. Se lo snapshot è vuoto (proposta
+ * nata prima che esistesse una policy) viene completato una volta sola con la
+ * policy corrente, così la proposta torna accettabile e pagabile.
+ */
+export async function ensureQuotePolicy(
+  record: typeof quoteRecords.$inferSelect,
+): Promise<PaymentPolicy> {
+  const saved = paymentPolicySchema.safeParse(record.taxPolicy);
+  if (saved.success) return saved.data;
+  const policy = await resolvePaymentPolicy();
+  await getDb()
+    .update(quoteRecords)
+    .set({ taxPolicy: policy })
+    .where(and(eq(quoteRecords.quoteId, record.quoteId), sql`${quoteRecords.taxPolicy} is null`));
+  record.taxPolicy = policy;
+  return policy;
 }
 export async function leadCollection(request: Request, actor: Actor) {
   demandAvailable(actor, request.method === "POST" ? "crm.write" : "crm.read");
@@ -182,7 +210,7 @@ export async function createQuoteForLead(request: Request, actor: Actor, id: str
   const body = await readBody(request, z.object({ input: pricingInputSchema }).strict());
   const result = computeQuote(body.input),
     recommended = result.packages.find((p) => p.recommended)!;
-  const tax = paymentPolicySchema.safeParse(await getSetting("payment-policy")),
+  const tax = await resolvePaymentPolicy(),
     commissions = commissionRuleSchema.safeParse(await getSetting("commission-rule"));
   const quote = await getDb().transaction(async (tx) => {
     const [saved] = await tx
@@ -202,7 +230,7 @@ export async function createQuoteForLead(request: Request, actor: Actor, id: str
         quoteId: saved!.id,
         createdBy: actor.id,
         pricingVersion,
-        taxPolicy: tax.success ? tax.data : null,
+        taxPolicy: tax,
         commissionPolicy: commissions.success ? commissions.data : null,
       });
     return saved!;
@@ -231,6 +259,10 @@ export async function quoteAccess(
 export async function quoteCollection(request: Request, actor: Actor) {
   if (request.method !== "GET") throw notFound();
   demandAvailable(actor, "quote.read");
+  // L'autore vede anche le richieste fatte dal sito con la sua email verificata
+  // (la sessione esiste solo dopo la verifica): rete di sicurezza se la
+  // richiesta è arrivata dopo la registrazione.
+  if (!actor.staff) await linkLeadsToAuthor(actor.id, actor.email).catch(() => {});
   const rows = await getDb()
     .select({ quote: quotes, record: quoteRecords, name: leads.nome })
     .from(quotes)
@@ -254,7 +286,7 @@ export async function quoteDetail(request: Request, actor: Actor, id: string) {
     const access = await quoteAccess(actor, id, "quote.write");
     const body = await readBody(request, z.object({ input: pricingInputSchema, version: z.number().int().positive(), expiresAt: z.string().datetime().optional() }).strict());
     const result = computeQuote(body.input), recommended = result.packages.find(p => p.recommended)!;
-    const tax = paymentPolicySchema.safeParse(await getSetting("payment-policy"));
+    const tax = await resolvePaymentPolicy();
     const rule = commissionRuleSchema.safeParse(await getSetting("commission-rule"));
     await getDb().transaction(async tx => {
       const [current] = await tx.select().from(quoteRecords).where(eq(quoteRecords.quoteId, id)).for("update");
@@ -262,14 +294,15 @@ export async function quoteDetail(request: Request, actor: Actor, id: string) {
       if (current.acceptedAt) throw new PlatformError(409, "ACCEPTED_QUOTE", "Una proposta accettata richiede un nuovo accordo, non una sovrascrittura.");
       await tx.insert(quoteVersions).values({ quoteId: id, version: current.version, snapshot: { quote: access.quote, record: current }, createdBy: actor.id }).onConflictDoNothing();
       await tx.update(quotes).set({ input: body.input, pacchettiGenerati: result.packages, prezzoTotale: recommended.total, acconto: recommended.deposit, stato: "draft", updatedAt: new Date() }).where(eq(quotes.id, id));
-      await tx.update(quoteRecords).set({ version: current.version + 1, pricingVersion, expiresAt: body.expiresAt ? new Date(body.expiresAt) : current.expiresAt, taxPolicy: tax.success ? tax.data : null, commissionPolicy: rule.success ? rule.data : null }).where(eq(quoteRecords.quoteId, id));
+      await tx.update(quoteRecords).set({ version: current.version + 1, pricingVersion, expiresAt: body.expiresAt ? new Date(body.expiresAt) : current.expiresAt, taxPolicy: tax, commissionPolicy: rule.success ? rule.data : null }).where(eq(quoteRecords.quoteId, id));
     });
     await audit(actor, "quote.revised", "quote", id, { version: body.version + 1 });
     return json({ ok: true });
   }
   if (request.method !== "GET") throw notFound();
   const access = await quoteAccess(actor, id);
-  const policy = paymentPolicySchema.safeParse(access.record.taxPolicy);
+  const current = await ensureQuotePolicy(access.record);
+  const policy = { success: true as const, data: current };
   return json({
     quote: access.quote,
     history: await getDb().select({ version: quoteVersions.version, createdAt: quoteVersions.createdAt }).from(quoteVersions).where(eq(quoteVersions.quoteId, id)).orderBy(desc(quoteVersions.version)).limit(100),
@@ -282,7 +315,8 @@ export async function quoteDetail(request: Request, actor: Actor, id: string) {
     },
     packages: (access.quote.pacchettiGenerati as QuotePackage[]).map((p) => ({
       ...p,
-      money: policy.success ? moneyBreakdown(p.total, policy.data) : null,
+      money: moneyBreakdown(p.total, policy.data),
+      depositMoney: moneyBreakdown(p.deposit, policy.data),
     })),
     paymentPolicy: policy.success
       ? {
@@ -313,12 +347,12 @@ export async function quoteAccept(request: Request, actor: Actor, id: string) {
       })
       .strict(),
   );
-  const policy = paymentPolicySchema.safeParse(access.record.taxPolicy);
-  if (!policy.success || policy.data.version !== body.policyVersion)
+  const policy = { success: true as const, data: await ensureQuotePolicy(access.record) };
+  if (policy.data.version !== body.policyVersion)
     throw new PlatformError(
       409,
       "POLICY_REVIEW_REQUIRED",
-      "Il team deve confermare le condizioni della proposta.",
+      "Le condizioni della proposta sono cambiate. Aggiorna la pagina e rileggile prima di accettare.",
     );
   const selected = (access.quote.pacchettiGenerati as QuotePackage[]).find(
     (p) => p.tier === body.tier,
@@ -379,6 +413,31 @@ export async function quoteAccept(request: Request, actor: Actor, id: string) {
           quoteId: id,
           stage: "materials",
         });
+    // Chi segue la vendita e il team: l'accettazione precede il pagamento.
+    const importo = `€ ${selected.total.toLocaleString("it-IT")}`;
+    const seller = acceptedOwnership?.assignedTo ?? null;
+    if (seller && seller !== actor.id) {
+      await tx.insert(notifications).values({
+        userId: seller,
+        title: "Proposta accettata",
+        body: `${actor.name} ha accettato ${selected.name} (${importo}, IVA esclusa). In attesa dell'acconto.`,
+        href: `/spazio?preventivo=${id}`,
+      });
+      const [person] = await tx.select({ email: user.email }).from(user).where(eq(user.id, seller));
+      if (person)
+        await tx.insert(emailOutbox).values({
+          eventKey: `quote:${id}:accepted:seller`,
+          recipient: person.email,
+          subject: "Proposta accettata · Proemios",
+          html: await protectMailHtml(impaginaEmail("Proposta accettata", `<p>${esc(actor.name)} ha accettato ${esc(selected.name)} (${esc(importo)}, IVA esclusa). Il pagamento dell'acconto arriverà con una notifica separata.</p><p><a href="${esc(appOrigin())}/spazio?preventivo=${esc(id)}">Apri la proposta</a></p>`)),
+        }).onConflictDoNothing();
+    }
+    await tx.insert(emailOutbox).values({
+      eventKey: `quote:${id}:accepted:team`,
+      recipient: destinatarioInterno(),
+      subject: `Proposta accettata · ${importo} · Proemios`,
+      html: await protectMailHtml(impaginaEmail("Proposta accettata", `<p>${esc(actor.name)} (${esc(actor.email)}) ha accettato ${esc(selected.name)} per ${esc(importo)}, IVA esclusa. In attesa dell'acconto.</p><p><a href="${esc(appOrigin())}/spazio?preventivo=${esc(id)}">Apri nello spazio del team</a></p>`)),
+    }).onConflictDoNothing();
   });
   await audit(actor, "quote.accepted", "quote", id, { version: body.version, tier: body.tier });
   return json({ ok: true });

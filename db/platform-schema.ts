@@ -386,3 +386,47 @@ export const refundRequests = pgTable("platform_refund_requests", {
   createdAt: created(),
   updatedAt: updated(),
 });
+/** Dati di fatturazione dell'autore: senza, nessun incasso può diventare fattura. */
+export const billingProfiles = pgTable("platform_billing_profiles", {
+  userId: text("user_id").primaryKey().references(() => user.id),
+  kind: text("kind").notNull().default("private"),
+  name: text("name").notNull(),
+  taxCode: text("tax_code"),
+  vatNumber: text("vat_number"),
+  street: text("street").notNull(),
+  postcode: text("postcode").notNull(),
+  city: text("city").notNull(),
+  province: text("province"),
+  country: text("country").notNull().default("IT"),
+  sdiCode: text("sdi_code"),
+  pec: text("pec"),
+  stripeCustomerId: text("stripe_customer_id"),
+  createdAt: created(),
+  updatedAt: updated(),
+});
+/**
+ * Fatture emesse su Fatture in Cloud per ogni incasso confermato. La riga
+ * nasce "queued" dentro la transazione del webhook; la chiamata esterna avviene
+ * dopo, con tentativi ripetuti dal cron, così un errore dell'API non blocca
+ * mai la registrazione dell'incasso.
+ */
+export const invoices = pgTable("platform_invoices", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  orderId: uuid("order_id").notNull().unique().references(() => paymentOrders.id),
+  authorId: text("author_id").notNull().references(() => user.id),
+  quoteId: uuid("quote_id").notNull(),
+  kind: text("kind").notNull(),
+  grossCents: integer("gross_cents").notNull(),
+  netCents: integer("net_cents").notNull(),
+  taxCents: integer("tax_cents").notNull(),
+  paymentMethod: text("payment_method"),
+  status: text("status").notNull().default("queued"),
+  ficDocumentId: integer("fic_document_id"),
+  number: text("number"),
+  issuedOn: text("issued_on"),
+  error: text("error"),
+  attempts: integer("attempts").notNull().default(0),
+  availableAt: timestamp("available_at", { withTimezone: true }).notNull().defaultNow(),
+  createdAt: created(),
+  updatedAt: updated(),
+}, t => [index("invoices_author_idx").on(t.authorId), index("invoices_status_idx").on(t.status)]);
