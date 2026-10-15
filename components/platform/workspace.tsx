@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
+import type { Route } from "next";
 import type { PricingInput } from "@/lib/pricing";
 import { authClient } from "@/lib/auth-client";
 import {
@@ -103,6 +104,12 @@ type Collection = {
   profiles?: Array<{ userId: string; code: string; active: boolean; link: string }>;
   conversions?: Array<{ id: string; createdAt: string; ruleVersion: string }>;
   settings?: Array<{ key: string; value: Record<string, unknown> }>;
+  defaults?: Record<string, Record<string, unknown>>;
+  today?: Array<{ kind: string; title: string; detail: string; href?: string; urgency: "high" | "normal" | "info"; at?: string }>;
+  summary?: { newLeads24h: number; awaitingReview: number; openOffers: number; acceptedUnpaid: number; blockedProjects: number; failedInvoices: number };
+  decisions?: Array<{ title: string; detail: string; href: string }>;
+  capacity?: Array<{ name: string; count: number }>;
+  funnel?: { days: number; events: Array<{ name: string; kind: string; count: number; quotes: number }> };
   readiness?: Record<string, boolean>;
   mail?: Array<{ id: string; status: string; attempts: number; lastError: string | null }>;
   events?: Array<{ id: string; action: string; createdAt: string }>;
@@ -119,7 +126,9 @@ type ProjectDetail = {
 type QuoteDetail = {
   quote: Quote & { input: PricingInput };
   history: Array<{ version: number; createdAt: string }>;
-  record: { version: number; selectedTier: string | null; acceptedAt: string | null };
+  record: { version: number; selectedTier: string | null; acceptedAt: string | null; commercialState: string; expiresAt: string | null; remindersPausedAt: string | null; reviewNote: string | null; reviewRequestedAt: string | null; preferredTier: string | null };
+  journey: string;
+  attribution?: { responsible: { id: string; name: string } | null; source: { channel: string; attribution: Record<string, string> | null }; affiliate: { ruleVersion: string } | null; salesAssisted: boolean; offeredBy: { name: string } | null; commissionRule: { version: string; sellerBps: number; affiliateBps: number; assistedSalesOnly: boolean } | null };
   packages: Array<{
     tier: string;
     name: string;
@@ -189,8 +198,9 @@ export async function platformApi<T>(path: string, method = "GET", body?: unknow
   });
   const result = await response.json();
   if (!response.ok)
-    throw new Error(
-      [result.errore, ...Object.values(result.fields ?? {})].filter(Boolean).join(" "),
+    throw Object.assign(
+      new Error([result.errore, ...Object.values(result.fields ?? {})].filter(Boolean).join(" ")),
+      { code: typeof result.code === "string" ? result.code : undefined, status: response.status },
     );
   return result as T;
 }
@@ -226,10 +236,12 @@ function Field({
     </label>
   );
 }
+const JOURNEY_STATE_LABELS: Record<string, string> = { "journey-estimate": "stima", "journey-review": "in valutazione", "journey-offer": "acquistabile", "journey-expired": "scaduta", "journey-accepted": "accettata", "journey-processing": "pagamento in corso", "journey-deposit_paid": "acconto incassato", "journey-paid": "saldata", attention: "da fare", ready: "informativo" };
 function State({ value }: { value: string }) {
-  return <span className={`platform-state state-${value}`}>{stages[value] ?? value}</span>;
+  return <span className={`platform-state state-${value}`}>{stages[value] ?? JOURNEY_STATE_LABELS[value] ?? value}</span>;
 }
 const tabRules: Array<{ id: string; label: string; permission?: Permission }> = [
+  { id: "overview", label: "Oggi" },
   { id: "projects", label: "I miei libri", permission: "project.read" },
   { id: "leads", label: "Contatti", permission: "crm.read" },
   { id: "quotes", label: "Preventivi", permission: "quote.read" },
@@ -536,6 +548,9 @@ export function PlatformWorkspace({ user }: { user: Profile }) {
                 ) : null}
               </>
             ) : null}
+            {tab === "overview" ? (
+              <TodayView data={data} />
+            ) : null}
             {tab === "quotes" ? (
               <div className="platform-card">
                 {data.quotes?.map((q) => (
@@ -669,6 +684,7 @@ export function PlatformWorkspace({ user }: { user: Profile }) {
                       : undefined
                   }
                 />
+                <p className="platform-notice">Finance legge incassi, fatture e commissioni e prepara le rettifiche. Liquidare una commissione o autorizzare un rimborso richiede le deleghe esplicite «commission.pay» e «refund.authorize», assegnate dal proprietario in Persone e accessi.</p>
                 <div className="platform-card">
                   <h2>Fatture emesse</h2>
                   <small>Ogni incasso confermato diventa una fattura su Fatture in Cloud. «creata»: da trasmettere allo SdI da Fatture in Cloud. «inviata»: già trasmessa.</small>
@@ -734,7 +750,7 @@ export function PlatformWorkspace({ user }: { user: Profile }) {
               <TeamView users={data.users ?? []} run={run} busy={busy} grants={user.grants} />
             ) : null}
             {tab === "settings" ? (
-              <SettingsView settings={data.settings ?? []} run={run} busy={busy} />
+              <SettingsView settings={data.settings ?? []} defaults={data.defaults} run={run} busy={busy} />
             ) : null}
             {tab === "operations" ? (
               <>
@@ -1446,6 +1462,35 @@ function QuoteView({ id, user }: { id: string; user: Profile }) {
         </form>
       </details> : null}
       <section className="platform-card">
+        <h2>Stato commerciale</h2>
+        <p>
+          <State value={`journey-${detail.journey}`} />{" "}
+          {detail.record.commercialState === "review" ? `L'autore ha chiesto la proposta definitiva${detail.record.reviewRequestedAt ? ` il ${date(detail.record.reviewRequestedAt)}` : ""}.${detail.record.reviewNote ? ` Nota: "${detail.record.reviewNote}"` : ""}` : detail.record.commercialState === "estimate" ? "Stima dal listino: l'autore non può confermarla finché non la rendi acquistabile." : detail.record.commercialState === "offer" ? `Proposta acquistabile${detail.record.expiresAt ? `, valida fino al ${date(detail.record.expiresAt)}` : ""}.` : "Accettata: condizioni bloccate, contano i pagamenti."}
+          {detail.record.preferredTier && !detail.record.acceptedAt ? ` Pacchetto scelto dall'autore: ${detail.record.preferredTier}.` : ""}
+        </p>
+        {hasPermission(user.grants, "quote.write") && !detail.record.acceptedAt ? (
+          <form className="platform-inline" onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); run(() => platformApi(`quotes/${id}/offer`, "POST", { validityDays: Number(f.get("days") || 30), ...(f.get("message") ? { message: String(f.get("message")) } : {}) })); }}>
+            <label>Validità (giorni)<input name="days" type="number" min={1} max={365} defaultValue={30} /></label>
+            <label>Messaggio per l’autore (facoltativo)<input name="message" maxLength={2000} /></label>
+            <button className="platform-button" disabled={busy}>{detail.record.commercialState === "offer" ? "Rinnova l'offerta" : "Rendi acquistabile e avvisa"}</button>
+          </form>
+        ) : null}
+        {hasPermission(user.grants, "quote.write") ? (
+          <button className="platform-text-button" disabled={busy} onClick={() => run(() => platformApi(`quotes/${id}/reminders`, "POST", { paused: !detail.record.remindersPausedAt }))}>
+            {detail.record.remindersPausedAt ? "Riattiva i promemoria automatici" : "Sospendi i promemoria automatici"}
+          </button>
+        ) : null}
+        {detail.attribution ? (
+          <dl className="platform-attribution">
+            <div><dt>Responsabile del contatto</dt><dd>{detail.attribution.responsible?.name ?? "In coda, non assegnato"}</dd></div>
+            <div><dt>Origine</dt><dd>{detail.attribution.source.channel}{detail.attribution.source.attribution?.utmSource ? ` · ${detail.attribution.source.attribution.utmSource}${detail.attribution.source.attribution.utmCampaign ? ` / ${detail.attribution.source.attribution.utmCampaign}` : ""}` : ""}</dd></div>
+            <div><dt>Affiliazione</dt><dd>{detail.attribution.affiliate ? `Sì, regola ${detail.attribution.affiliate.ruleVersion}` : "Nessuna"}</dd></div>
+            <div><dt>Intervento commerciale</dt><dd>{detail.attribution.salesAssisted ? `Sì${detail.attribution.offeredBy ? ` (offerta di ${detail.attribution.offeredBy.name})` : ""}` : "No: vendita autonoma"}</dd></div>
+            <div><dt>Regola provvigionale congelata</dt><dd>{detail.attribution.commissionRule ? `${detail.attribution.commissionRule.version} · venditore ${detail.attribution.commissionRule.sellerBps / 100}% · affiliato ${detail.attribution.commissionRule.affiliateBps / 100}%${detail.attribution.commissionRule.assistedSalesOnly ? " · solo vendite assistite" : ""}` : "Nessuna regola al momento della proposta"}</dd></div>
+          </dl>
+        ) : null}
+      </section>
+      <section className="platform-card">
         <h2>La tua proposta editoriale</h2>
         <div className="platform-actions">
           <a className="platform-text-button" href={`/api/platform/quotes/${id}/pdf`}>Scarica il PDF →</a>
@@ -1740,12 +1785,65 @@ function TeamView({
     </>
   );
 }
+function TodayView({ data }: { data: Collection }) {
+  const labels: Record<string, string> = { quote_started: "Preventivo avviato", estimate_viewed: "Stima vista", package_chosen: "Pacchetto scelto", proposal_viewed: "Proposta vista", checkout_opened: "Checkout aperto (interfaccia)", quote_saved: "Proposte salvate", email_verified: "Email verificate", review_requested: "Valutazioni richieste", offer_made: "Offerte del team", quote_accepted: "Accettazioni", checkout_started: "Checkout avviati", payment_confirmed: "Pagamenti confermati" };
+  const items = data.today ?? [];
+  return (
+    <>
+      {data.summary ? (
+        <div className="platform-metrics">
+          {[["Nuovi contatti (24h)", data.summary.newLeads24h], ["Da valutare", data.summary.awaitingReview], ["Proposte aperte", data.summary.openOffers], ["Accettate senza acconto", data.summary.acceptedUnpaid], ["Progetti bloccati", data.summary.blockedProjects], ["Fatture non emesse", data.summary.failedInvoices]].map(([label, value]) => (
+            <section className="platform-card" key={String(label)}><small>{label}</small><h2>{value}</h2></section>
+          ))}
+        </div>
+      ) : null}
+      {data.decisions?.length ? (
+        <section className="platform-card">
+          <h2>Decisioni che aspettano te</h2>
+          {data.decisions.map((d) => <div className="platform-row" key={d.title}><span><strong>{d.title}</strong><small>{d.detail}</small></span><Link className="platform-text-button" href="/spazio">Regole economiche →</Link></div>)}
+        </section>
+      ) : null}
+      <section className="platform-card">
+        <h2>Oggi</h2>
+        {items.map((item) => (
+          <div className="platform-row" key={`${item.kind}-${item.title}`}>
+            <span><strong>{item.title}</strong><small>{item.detail}</small></span>
+            <State value={item.urgency === "high" ? "attention" : item.urgency === "normal" ? "pending" : "ready"} />
+            {item.href ? <Link className="platform-text-button" href={item.href as Route}>Apri →</Link> : null}
+          </div>
+        ))}
+        {!items.length ? <Empty>Niente in sospeso per te: il lavoro è in carico ad altri o non c’è ancora.</Empty> : null}
+      </section>
+      {data.capacity?.length ? (
+        <section className="platform-card">
+          <h2>Carico del team</h2>
+          {data.capacity.map((c) => <div className="platform-row" key={c.name}><span>{c.name}</span><strong>{c.count} {c.count === 1 ? "progetto" : "progetti"}</strong></div>)}
+        </section>
+      ) : null}
+      {data.funnel ? (
+        <section className="platform-card">
+          <h2>Percorso di acquisto · ultimi {data.funnel.days} giorni</h2>
+          <p>Eventi d’interfaccia (segnali dal browser, anonimi) e fatti economici verificati dal server, tenuti distinti.</p>
+          {["ui", "economic"].map((kind) => (
+            <div key={kind}>
+              <h3>{kind === "ui" ? "Interfaccia" : "Fatti verificati"}</h3>
+              {data.funnel!.events.filter((e) => e.kind === kind).map((e) => <div className="platform-row" key={e.name}><span>{labels[e.name] ?? e.name}</span><strong>{e.count}</strong></div>)}
+              {!data.funnel!.events.some((e) => e.kind === kind) ? <Empty>Nessun evento registrato.</Empty> : null}
+            </div>
+          ))}
+        </section>
+      ) : null}
+    </>
+  );
+}
 function SettingsView({
   settings,
+  defaults,
   run,
   busy,
 }: {
   settings: NonNullable<Collection["settings"]>;
+  defaults?: Collection["defaults"];
   run: Runner;
   busy: boolean;
 }) {
@@ -1758,10 +1856,10 @@ function SettingsView({
           versione precedente. Il salvataggio registra il responsabile e la data di approvazione.
         </p>
       </section>
-      {["payment-policy", "commission-rule"].map((key) => (
+      {["payment-policy", "commission-rule", "purchase-rule", "reminder-rules"].map((key) => (
         <details className="platform-card" key={key}>
           <summary>
-            {key === "payment-policy" ? "IVA e termini" : "Commissioni e attribuzione"}
+            {{ "payment-policy": "IVA e termini", "commission-rule": "Commissioni e attribuzione", "purchase-rule": "Cosa è acquistabile subito", "reminder-rules": "Promemoria automatici" }[key]}
           </summary>
           <form
             className="platform-form"
@@ -1780,16 +1878,19 @@ function SettingsView({
             }}
           >
             <p>
-              {key === "payment-policy"
-                ? "Valori richiesti: version, vatMode (included, excluded o exempt), vatRateBps (100 = 1%), termsVersion."
-                : 'Valori richiesti: version, sellerBps, affiliateBps (100 = 1%), base "collected-excluding-tax", attributionDays (1–365), attribution "code-on-quote".'}
+              {{
+                "payment-policy": "Valori richiesti: version, vatMode (included, excluded o exempt), vatRateBps (100 = 1%), termsVersion. Senza una policy salvata vale quella predefinita mostrata qui sotto.",
+                "commission-rule": 'Valori richiesti: version, sellerBps, affiliateBps (100 = 1%), base "collected-excluding-tax", attributionDays (1–365), attribution "code-on-quote". Facoltativo: assistedSalesOnly (true = provvigione al venditore solo con un intervento tracciato: revisione, invio o offerta; la sola assegnazione del contatto non basta).',
+                "purchase-rule": "Quali richieste pubbliche nascono già acquistabili: autoOfferSingleServices (elenco di servizi singoli a prezzo fisso), autoOfferFullPath (percorsi completi), validityDays. Tutto il resto resta una stima finché il team non la rende acquistabile. Predefinito prudente: solo copertina, EPUB, KDP, ISBN e scheda Amazon.",
+                "reminder-rules": "enabled, unconfirmedDays, expiryDays, unpaidDays, materialsDays, approvalDays. I promemoria si fermano al cambio di stato, non si ripetono e si possono sospendere sulla singola proposta o progetto.",
+              }[key]}
             </p>
             <label>
               Configurazione approvata
               <textarea
                 name="value"
                 defaultValue={JSON.stringify(
-                  settings.find((s) => s.key === key)?.value ?? {},
+                  settings.find((s) => s.key === key)?.value ?? defaults?.[key] ?? {},
                   null,
                   2,
                 )}

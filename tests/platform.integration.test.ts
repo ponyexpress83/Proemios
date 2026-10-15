@@ -492,8 +492,38 @@ describe("first euro without manual configuration", () => {
     expect(detail.paymentPolicy.version).toBe(defaultPaymentPolicy.version);
     expect(detail.packages[0].money.grossCents).toBe(Math.round(detail.packages[0].total * 100 * 1.22));
     const tier = detail.packages.find((p: { recommended?: boolean }) => p.recommended)?.tier ?? detail.packages[0].tier;
+    // A word-count service is an estimate under the prudent default rule: nobody can buy it as is.
+    expect(created.commercialState).toBe("estimate"); expect(detail.journey).toBe("estimate");
+    const blocked = await call("firstEuro", `quotes/${created.quoteId}/accept`, "POST", { tier, version: detail.record.version, policyVersion: defaultPaymentPolicy.version, termsAccepted: true });
+    expect(blocked.status).toBe(409); expect((await blocked.json()).code).toBe("NOT_PURCHASABLE");
+    // The chosen package survives before any account exists, then the author asks for the definitive proposal.
+    const { publicQuotePreference } = await import("@/lib/platform/public-forms");
+    await data(await publicQuotePreference(new Request(`${origin}/api/preventivo/scelta`, { method: "POST", headers: { origin, "content-type": "application/json" }, body: JSON.stringify({ quoteId: created.quoteId, tier }) })));
+    expect((await data(await call("firstEuro", `quotes/${created.quoteId}`))).record.preferredTier).toBe(tier);
+    await data(await call("firstEuro", `quotes/${created.quoteId}/review`, "POST", { note: "Il testo è pronto, vorrei partire presto." }));
+    expect((await call("firstEuro", `quotes/${created.quoteId}/review`, "POST", {})).status).toBe(409);
+    expect((await data(await call("firstEuro", `quotes/${created.quoteId}`))).journey).toBe("review");
+    expect((await db.select().from(platform.emailOutbox)).some(r => r.eventKey === `quote:${created.quoteId}:review:team`)).toBe(true);
+    // Only the team makes it purchasable; the author cannot.
+    expect((await call("firstEuro", `quotes/${created.quoteId}/offer`, "POST", {})).status).toBe(404);
+    const offered = await data(await call("owner", `quotes/${created.quoteId}/offer`, "POST", { validityDays: 10, message: "Confermiamo tutto." }));
+    expect(offered.commercialState).toBe("offer");
+    const offerMail = (await db.select().from(platform.emailOutbox)).find(r => r.eventKey === `quote:${created.quoteId}:offer:${detail.record.version}`);
+    expect(offerMail?.recipient).toBe(email);
+    expect((await db.select().from(platform.quoteRecords).where(eq(platform.quoteRecords.quoteId, created.quoteId)))[0]!.salesAssisted).toBe(true);
     expect((await call("firstEuro", `quotes/${created.quoteId}/accept`, "POST", { tier, version: detail.record.version, policyVersion: "unknown", termsAccepted: true })).status).toBe(409);
-    await data(await call("firstEuro", `quotes/${created.quoteId}/accept`, "POST", { tier, version: detail.record.version, policyVersion: defaultPaymentPolicy.version, termsAccepted: true }));
+    // One step: billing data, acceptance and (without Stripe here) a clear answer instead of a dead end.
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET; delete process.env.STRIPE_WEBHOOK_SECRET;
+    const noBilling = await call("firstEuro", `quotes/${created.quoteId}/confirm`, "POST", { tier, version: detail.record.version, policyVersion: defaultPaymentPolicy.version, termsAccepted: true });
+    expect(noBilling.status).toBe(409); expect((await noBilling.json()).code).toBe("BILLING_REQUIRED");
+    const confirmed = await data(await call("firstEuro", `quotes/${created.quoteId}/confirm`, "POST", { tier, version: detail.record.version, policyVersion: defaultPaymentPolicy.version, termsAccepted: true, billing: { kind: "private", name: "First Euro", taxCode: "RSSMRA80A01H501U", street: "Via Prova 9", postcode: "00100", city: "Roma", province: "RM", country: "IT" } }));
+    expect(confirmed.accepted).toBe(true); expect(confirmed.checkoutAvailable).toBe(false);
+    // Repeating the confirmation is harmless; changing the package after acceptance is not.
+    expect((await call("firstEuro", `quotes/${created.quoteId}/confirm`, "POST", { tier, version: detail.record.version, policyVersion: defaultPaymentPolicy.version, termsAccepted: true })).status).toBe(200);
+    const other = detail.packages.find((p: { tier: string }) => p.tier !== tier)?.tier;
+    if (other) expect((await call("firstEuro", `quotes/${created.quoteId}/confirm`, "POST", { tier: other, version: detail.record.version, policyVersion: defaultPaymentPolicy.version, termsAccepted: true })).status).toBe(409);
+    expect((await data(await call("firstEuro", `quotes/${created.quoteId}`))).journey).toBe("accepted");
+    if (webhookSecret) process.env.STRIPE_WEBHOOK_SECRET = webhookSecret;
     const [record] = await db.select().from(platform.quoteRecords).where(eq(platform.quoteRecords.quoteId, created.quoteId));
     expect((record!.taxPolicy as { version: string }).version).toBe(defaultPaymentPolicy.version);
     const payments = await data(await call("firstEuro", `quotes/${created.quoteId}/payments`));
@@ -517,6 +547,23 @@ describe("first euro without manual configuration", () => {
     const [owner] = await db.select().from(platform.leadOwnership).where(eq(platform.leadOwnership.leadId, lead!.id));
     expect(owner!.authorId).toBe(actors.authorB!.id);
   });
+  it("signs authors in with a single-use email link, never the team, and keeps the return path internal", async () => {
+    expect((await authRequest("sign-in/magic-link", { email: actors.firstEuro!.email, callbackURL: "/area-autore/conferma/abc" })).status).toBe(200);
+    const link = await mailLink("magic-link:");
+    const opened = await auth.handler(new Request(link));
+    expect(opened.status).toBe(302); expect(opened.headers.get("location")).toContain("/area-autore/conferma/abc");
+    const reused = await auth.handler(new Request(link));
+    expect(reused.headers.get("location")).toContain("error=");
+    expect((await authRequest("sign-in/magic-link", { email: actors.sellerA!.email, callbackURL: "/area-team" })).status).toBe(403);
+    expect((await authRequest("sign-in/magic-link", { email: "nobody-here@example.test", callbackURL: "/area-autore" })).status).toBe(200);
+    expect((await db.select().from(platform.emailOutbox)).filter(r => r.recipient === "nobody-here@example.test")).toHaveLength(0);
+    const { safeReturnPath } = await import("@/lib/platform/realms");
+    expect(safeReturnPath("/area-autore/conferma/" + randomUUID() + "?pacchetto=consigliato")).not.toBeNull();
+    expect(safeReturnPath("https://evil.example/area-autore")).toBeNull();
+    const funnel = await db.select().from(platform.funnelEvents);
+    for (const name of ["quote_saved", "email_verified", "review_requested", "offer_made", "quote_accepted"]) expect(funnel.some(e => e.name === name && e.kind === "economic")).toBe(true);
+    expect(funnel.some(e => e.name === "package_chosen" && e.kind === "ui")).toBe(true);
+  });
 });
 
 describe("automatic invoicing with Fatture in Cloud", () => {
@@ -525,7 +572,9 @@ describe("automatic invoicing with Fatture in Cloud", () => {
   it("collects valid billing data once and refuses checkout without it", async () => {
     const bad = await call("authorA", "me/billing", "PUT", { kind: "private", name: "Synthetic Author", taxCode: "NOT-A-CODE", street: "Via Prova 1", postcode: "20100", city: "Milano", province: "MI", country: "IT" });
     expect(bad.status).toBe(422);
-    expect((await call("firstEuro", "checkout", "POST", { quoteId: (await data(await call("firstEuro", "quotes"))).quotes[0].id, kind: "deposit" })).status).toBe(409);
+    await db.delete(platform.billingProfiles).where(eq(platform.billingProfiles.userId, actors.firstEuro!.id));
+    const gated = await call("firstEuro", "checkout", "POST", { quoteId: (await data(await call("firstEuro", "quotes"))).quotes[0].id, kind: "deposit" });
+    expect(gated.status).toBe(409); expect((await gated.json()).code).toBe("BILLING_REQUIRED");
     const saved = await data(await call("authorA", "me/billing", "PUT", { kind: "private", name: "Synthetic Author", taxCode: "rssmra80a01h501u", street: "Via Prova 1", postcode: "20100", city: "Milano", province: "mi", country: "IT" }));
     expect(saved.billing.taxCode).toBe("RSSMRA80A01H501U"); expect(saved.billing.province).toBe("MI"); expect(saved.billing).not.toHaveProperty("stripeCustomerId");
     expect((await data(await call("authorA", "me/billing"))).billing.city).toBe("Milano");
@@ -596,5 +645,75 @@ describe("automatic invoicing with Fatture in Cloud", () => {
     delete process.env.STRIPE_PAYMENT_METHODS; expect(configuredPaymentMethods()).toEqual([]);
     process.env.STRIPE_PAYMENT_METHODS = "card, klarna,customer_balance;drop"; expect(configuredPaymentMethods()).toEqual(["card", "klarna"]);
     delete process.env.STRIPE_PAYMENT_METHODS;
+  });
+});
+
+describe("team overview, reminders and attribution", () => {
+  it("shows each role only its own next actions and the owner the decisions still open", async () => {
+    const seller = await data(await call("sellerA", "overview"));
+    expect(seller.today.some((i: { kind: string }) => ["lead", "estimate", "followup", "unpaid", "handover", "review", "expiring", "expired"].includes(i.kind))).toBe(true);
+    expect(seller.summary).toBeUndefined(); expect(seller.decisions).toBeUndefined();
+    const editor = await data(await call("editorA", "overview"));
+    expect(editor.today.every((i: { kind: string }) => !["lead", "review", "invoice"].includes(i.kind))).toBe(true);
+    const finance = await data(await call("finance", "overview"));
+    expect(finance.today.every((i: { kind: string }) => ["invoice", "order", "commissions", "refund"].includes(i.kind))).toBe(true);
+    const owner = await data(await call("owner", "overview"));
+    expect(owner.summary).toMatchObject({ awaitingReview: expect.any(Number), acceptedUnpaid: expect.any(Number) });
+    expect(owner.decisions.some((d: { title: string }) => /commissioni|acquistabili|promemoria|IVA/i.test(d.title))).toBe(true);
+    expect(owner.funnel.events.some((e: { name: string; kind: string }) => e.name === "quote_accepted" && e.kind === "economic")).toBe(true);
+    expect((await call("authorA", "overview")).status).toBe(404);
+  });
+  it("sends each reminder once, stops when the state changes and respects the responsible's pause", async () => {
+    const { runReminders } = await import("@/lib/platform/reminders");
+    const email = "reminder-author@example.test";
+    const [lead] = await db.insert(schema.leads).values({ nome: "Reminder Author", email, fonte: "preventivo", consensoPrivacy: true }).returning();
+    const { computeQuote } = await import("@/lib/pricing");
+    const packages = computeQuote(priceInput as Parameters<typeof computeQuote>[0]).packages;
+    const [quote] = await db.insert(schema.quotes).values({ leadId: lead!.id, input: priceInput, pacchettiGenerati: packages, prezzoTotale: packages[1].total, acconto: packages[1].deposit, stato: "draft", createdAt: new Date(Date.now() - 8 * 86400_000) }).returning();
+    await db.insert(platform.quoteRecords).values({ quoteId: quote!.id, pricingVersion: "test", commercialState: "offer", offeredAt: new Date(Date.now() - 8 * 86400_000), expiresAt: new Date(Date.now() + 86400_000) });
+    const first = await runReminders();
+    expect(first.sent).toBeGreaterThanOrEqual(3);
+    const keys = (await db.select().from(platform.emailOutbox)).filter(r => r.recipient === email).map(r => r.eventKey);
+    expect(keys).toContain(`reminder:unconfirmed:${quote!.id}:3d`); expect(keys).toContain(`reminder:unconfirmed:${quote!.id}:7d`); expect(keys).toContain(`reminder:expiry:${quote!.id}:1`);
+    expect((await runReminders()).sent).toBe(0);
+    // Accepted: the unconfirmed sequence stops; the unpaid one starts only after its own threshold.
+    await db.update(platform.quoteRecords).set({ commercialState: "accepted", acceptedAt: new Date(Date.now() - 3 * 86400_000) }).where(eq(platform.quoteRecords.quoteId, quote!.id));
+    await runReminders();
+    const after = (await db.select().from(platform.emailOutbox)).filter(r => r.recipient === email).map(r => r.eventKey);
+    expect(after).toContain(`reminder:unpaid:${quote!.id}:2d`); expect(after).not.toContain(`reminder:unpaid:${quote!.id}:5d`);
+    expect(after.filter(k => k.startsWith("reminder:unconfirmed")).length).toBe(2);
+    // Paused by the responsible: nothing more, even past the next threshold.
+    await db.update(platform.quoteRecords).set({ remindersPausedAt: new Date(), acceptedAt: new Date(Date.now() - 6 * 86400_000) }).where(eq(platform.quoteRecords.quoteId, quote!.id));
+    await runReminders();
+    expect((await db.select().from(platform.emailOutbox)).filter(r => r.recipient === email && r.eventKey === `reminder:unpaid:${quote!.id}:5d`)).toHaveLength(0);
+    // Disabled rules send nothing at all.
+    await data(await call("owner", "settings", "PUT", { key: "reminder-rules", value: { version: "off", enabled: false } }));
+    expect(await runReminders()).toMatchObject({ sent: 0, skipped: true });
+    await db.delete(platform.platformSettings).where(eq(platform.platformSettings.key, "reminder-rules"));
+  });
+  it("tracks the sales intervention separately from the assignment and lets the rule decide the commission", async () => {
+    const { publicQuote } = await import("@/lib/platform/public-forms");
+    const saved = await data(await publicQuote(new Request(`${origin}/api/preventivo`, { method: "POST", headers: { origin, "idempotency-key": randomUUID(), "content-type": "application/json" }, body: JSON.stringify({ input: { ...priceInput, requestedServices: [], singleService: "cover" }, contatto: { nome: "Autonomous Buyer", email: "autonomous@example.test", consensoPrivacy: true, consensoMarketing: false, ricontatto: true, telefono: "+39 000 0000" } }) })), 201);
+    // A fixed-price single service is purchasable at once; the lead assignment alone is not an intervention.
+    expect(saved.commercialState).toBe("offer");
+    const [record] = await db.select().from(platform.quoteRecords).where(eq(platform.quoteRecords.quoteId, saved.quoteId));
+    expect(record!.salesAssisted).toBe(false); expect(record!.expiresAt).not.toBeNull();
+    const [lead] = await db.select().from(schema.leads).where(eq(schema.leads.email, "autonomous@example.test"));
+    expect(lead!.note).toContain("ricontattato");
+    const detail = await data(await call("sellerA", `quotes/${saved.quoteId}`)).catch(() => null);
+    if (detail) { expect(detail.attribution.salesAssisted).toBe(false); expect(detail.attribution.responsible).toBeTruthy(); }
+    // Revising the proposal is an intervention.
+    const owner = await data(await call("owner", `quotes/${saved.quoteId}`));
+    await data(await call("owner", `quotes/${saved.quoteId}`, "PATCH", { version: owner.record.version, input: { ...priceInput, requestedServices: [], singleService: "cover", wordCount: 1000 } }));
+    expect((await data(await call("owner", `quotes/${saved.quoteId}`))).attribution.salesAssisted).toBe(true);
+    expect((await data(await call("owner", `quotes/${saved.quoteId}`))).attribution.commissionRule).toMatchObject({ assistedSalesOnly: false });
+  });
+  it("lists for the author what the team is waiting for and what waits for the author", async () => {
+    const projects = await data(await call("authorA", "projects"));
+    const mine = projects.projects.find((p: { quoteId: string | null }) => p.quoteId === quoteId);
+    expect(mine).toMatchObject({ members: expect.any(Array), materialsCount: expect.any(Number), deliveriesAwaiting: expect.any(Array), unreadMessages: expect.any(Number) });
+    const payments = await data(await call("authorA", `quotes/${quoteId}/payments`));
+    expect(payments.project).toMatchObject({ id: mine.id, stage: expect.any(String) });
+    expect(payments.journey).toBeTruthy();
   });
 });

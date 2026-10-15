@@ -62,6 +62,9 @@ export async function billingProfile(request: Request, actor: Actor) {
   if (request.method === "GET") return json({ billing: publicBillingProfile(await getBillingProfile(actor.id)) });
   if (request.method !== "PUT") throw notFound();
   const body = await readBody(request, billingProfileSchema);
+  return json({ billing: publicBillingProfile(await saveBillingProfile(actor, body)) });
+}
+export async function saveBillingProfile(actor: Actor, body: z.infer<typeof billingProfileSchema>): Promise<BillingProfile> {
   const values = {
     kind: body.kind,
     name: body.name,
@@ -82,5 +85,5 @@ export async function billingProfile(request: Request, actor: Actor) {
     .onConflictDoUpdate({ target: billingProfiles.userId, set: values })
     .returning();
   await audit(actor, "billing.updated", "user", actor.id);
-  return json({ billing: publicBillingProfile(saved!) });
+  return saved!;
 }

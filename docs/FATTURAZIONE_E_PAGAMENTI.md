@@ -27,6 +27,10 @@ Senza dati di fatturazione il checkout risponde `409 BILLING_REQUIRED`. L'autore
 | `FIC_PAYMENT_ACCOUNT_ID` | Conto d'incasso (es. "Stripe") su cui registrare il pagamento. |
 | `STRIPE_PAYMENT_METHODS` | Vuoto: decide la Dashboard Stripe. Oppure elenco esplicito (`card,klarna,customer_balance`). |
 
+## Pagina unica di conferma
+
+L'autore accetta e paga da `/area-autore/conferma/[id]` (vedi `docs/PERCORSO_DI_ACQUISTO.md`): dati di fatturazione, accettazione e checkout in una chiamata (`POST quotes/:id/confirm`). Solo una proposta in stato `offer` è acquistabile.
+
 ## Metodi di pagamento in Stripe
 
 Il Checkout non fissa i metodi: espone quelli attivati nella Dashboard Stripe (Impostazioni → Metodi di pagamento). Per il rateale con incasso immediato attivare **Klarna** e **Scalapay** (Scalapay richiede l'accordo con Scalapay dalla Dashboard). Per gli importi alti attivare **Bonifico** (Stripe assegna un IBAN virtuale per cliente e riconcilia da solo, nessuna contestazione possibile) e, se accettabile il rischio di storno a 8 settimane, **Addebito SEPA**. I pagamenti asincroni (bonifico, SEPA) risultano "in attesa" finché Stripe non conferma: la piattaforma li gestisce già.

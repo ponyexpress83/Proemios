@@ -1,6 +1,9 @@
 import { z } from "zod";
 import { flushMailAfterResponse } from "@/lib/platform/mail";
 import { billingProfile } from "@/lib/platform/billing";
+import { quoteConfirm, quotePrefer } from "@/lib/platform/purchase";
+import { overviewCollection } from "@/lib/platform/overview";
+import { quoteReview, quoteOffer, quoteReminders } from "@/lib/platform/crm";
 import { invoiceCollection, invoicePdf, invoiceRetry } from "@/lib/platform/invoices";
 import { route, json, notFound, checkMutationOrigin } from "@/lib/platform/http";
 import { getActor } from "@/lib/platform/access";
@@ -11,6 +14,7 @@ import {
   projectAssignment,
   projectMessages,
   projectUpload,
+  projectReminders,
   fileDownload,
   fileApproval,
   taskCollection,
@@ -99,6 +103,7 @@ const handler = route(async (request) => {
       if (action === "members") return projectAssignment(request, actor, id);
       if (action === "messages") return projectMessages(request, actor, id);
       if (action === "files") return projectUpload(request, actor, id);
+      if (action === "reminders") return projectReminders(request, actor, id);
       break;
     case "files":
       if (id && action === "download" && request.method === "GET") return fileDownload(actor, id);
@@ -120,12 +125,20 @@ const handler = route(async (request) => {
       if (action === "send") return quoteSend(request, actor, id);
       if (action === "pdf" && request.method === "GET") return quotePdf(actor, id);
       if (action === "payments") return quotePayments(request, actor, id);
+      if (action === "confirm") return quoteConfirm(request, actor, id);
+      if (action === "prefer") return quotePrefer(request, actor, id);
+      if (action === "review") return quoteReview(request, actor, id);
+      if (action === "offer") return quoteOffer(request, actor, id);
+      if (action === "reminders") return quoteReminders(request, actor, id);
       break;
     case "quote-claim":
       if (!id) return quoteClaim(request, actor);
       break;
     case "checkout":
       if (!id && request.method === "POST") return checkout(request, actor);
+      break;
+    case "overview":
+      if (!id) return overviewCollection(request, actor);
       break;
     case "invoices":
       if (!id) return invoiceCollection(request, actor);

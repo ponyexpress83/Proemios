@@ -11,6 +11,7 @@ import {
   affiliateConversions,
   emailOutbox,
   notifications,
+  funnelEvents,
 } from "@/db/platform-schema";
 import { user } from "@/db/auth-schema";
 import { preventivoSchema, contattoSchema, agenziaSchema, waitlistSchema } from "@/lib/validation";
@@ -25,7 +26,9 @@ import {
   commissionRuleSchema,
   appOrigin,
 } from "./config";
-import { getSetting, resolvePaymentPolicy } from "./crm";
+import { getSetting, resolvePaymentPolicy, resolvePurchaseRule } from "./crm";
+import { initialCommercialState } from "./commercial";
+import { recordFunnel } from "./funnel";
 import { assignInboundLead } from "./inbound-routing";
 import { protectMailHtml } from "./mail";
 
@@ -73,7 +76,10 @@ export async function publicQuote(request: Request) {
   const result = computeQuote(body.input),
     selected = result.packages.find((p) => p.recommended)!;
   const tax = await resolvePaymentPolicy(),
-    rule = commissionRuleSchema.safeParse(await getSetting("commission-rule"));
+    rule = commissionRuleSchema.safeParse(await getSetting("commission-rule")),
+    purchase = await resolvePurchaseRule();
+  // Stima o proposta acquistabile: lo decide la regola, mai il browser.
+  const commercialState = initialCommercialState(body.input, purchase);
   const token = randomBytes(32).toString("base64url"),
     requestHash = createHash("sha256").update(JSON.stringify(body)).digest("hex");
   const response = await getDb().transaction(async (tx) => {
@@ -91,10 +97,12 @@ export async function publicQuote(request: Request) {
         );
       return previous.result;
     }
+    const { ricontatto, ...contatto } = body.contatto;
     const [lead] = await tx
       .insert(leads)
       .values({
-        ...body.contatto,
+        ...contatto,
+        note: [ricontatto ? `[Chiede di essere ricontattato${contatto.telefono ? ` al ${contatto.telefono}` : ""}]` : "", contatto.note ?? ""].filter(Boolean).join(" ") || null,
         email: body.contatto.email.toLowerCase(),
         fonte: "preventivo",
         stage: "new",
@@ -119,7 +127,11 @@ export async function publicQuote(request: Request) {
         pricingVersion,
         taxPolicy: tax,
         commissionPolicy: rule.success ? rule.data : null,
+        commercialState,
+        offeredAt: commercialState === "offer" ? new Date() : null,
+        expiresAt: commercialState === "offer" ? new Date(Date.now() + purchase.validityDays * 86400_000) : null,
       });
+    await recordFunnel(tx, "quote_saved", quote!.id, { state: commercialState, path: body.input.singleService ? "single" : "full" });
     await tx
       .insert(quoteClaims)
       .values({
@@ -161,7 +173,7 @@ export async function publicQuote(request: Request) {
         ),
       },
     ].map(async m => ({ ...m, html: await protectMailHtml(m.html) }))));
-    const saved = { quoteId: quote!.id, preventivo: result, emailStatus: "queued" };
+    const saved = { quoteId: quote!.id, preventivo: result, emailStatus: "queued", commercialState, expiresAt: commercialState === "offer" ? new Date(Date.now() + purchase.validityDays * 86400_000).toISOString() : null };
     await tx
       .insert(operationKeys)
       .values({
@@ -272,4 +284,28 @@ export async function publicWaitlist(request: Request) {
     return response;
   });
   return json(result, 201);
+}
+
+/**
+ * POST /api/preventivo/scelta: il pacchetto scelto nella pagina del risultato,
+ * prima di avere un account. Si conserva sulla proposta e viene riproposto
+ * dopo registrazione o accesso. Nessun dato personale, nessuna conseguenza
+ * economica: è una preferenza.
+ */
+export async function publicQuotePreference(request: Request) {
+  checkMutationOrigin(request);
+  if (!process.env.DATABASE_URL) throw unavailable();
+  await limitRequest("quote-preference", requestIdentity(request), 60, 3600);
+  const body = await readBody(request, z.object({ quoteId: z.string().uuid(), tier: z.enum(["essenziale", "consigliato", "signature"]) }).strict());
+  // Solo un pacchetto che esiste davvero su quella proposta (un servizio singolo ne ha uno).
+  const [quote] = await getDb().select({ packages: quotes.pacchettiGenerati }).from(quotes).where(eq(quotes.id, body.quoteId));
+  if (!quote || !(quote.packages as Array<{ tier: string }>).some((p) => p.tier === body.tier))
+    throw new PlatformError(422, "INVALID_PACKAGE", "Seleziona un pacchetto valido.");
+  const rows = await getDb()
+    .update(quoteRecords)
+    .set({ preferredTier: body.tier })
+    .where(and(eq(quoteRecords.quoteId, body.quoteId), sql`${quoteRecords.acceptedAt} is null`))
+    .returning({ quoteId: quoteRecords.quoteId });
+  await getDb().insert(funnelEvents).values({ name: "package_chosen", kind: "ui", quoteId: body.quoteId, meta: { tier: body.tier } });
+  return json({ ok: true, stored: rows.length > 0 });
 }

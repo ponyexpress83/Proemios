@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { createElement } from "react";
-import { render, screen, fireEvent, cleanup, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, cleanup, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { HomePage } from "@/components/editorial/proemios";
 import { Configuratore } from "@/components/preventivo/configuratore";
@@ -63,7 +63,7 @@ describe("interazioni della homepage", () => {
     fireEvent.change(screen.getByRole("textbox", {name:"La tua risposta"}), {target:{value:"Ho scritto un romanzo finito di 50.000 parole. Voglio editing, copertina e impaginazione."}});
     fireEvent.click(screen.getByRole("button", {name:"Conferma risposta"}));
     expect(screen.getByRole("heading", {name:"Tre percorsi, una storia."})).toBeTruthy();
-    expect(screen.getByText(/50.000 parole/)).toBeTruthy();
+    expect(within(screen.getByRole("dialog")).getByText(/50.000 parole/)).toBeTruthy();
   });
   it("libro e CTA aprono lo stesso assistente, preservano le risposte e restituiscono il focus", async () => {
     render(createElement(HomePage));
@@ -99,7 +99,7 @@ describe("interazioni della homepage", () => {
     );
   });
 });
-describe("analisi integrata e brief", () => {
+describe("preventivatore in tre momenti", () => {
   const precompilato = {
     tipo: "romanzo" as const,
     statoTesto: "finito-da-revisionare" as const,
@@ -108,71 +108,66 @@ describe("analisi integrata e brief", () => {
     contesto: "Storia di lavoro",
   };
   function next() {
-    fireEvent.click(screen.getByRole("button", { name: "Avanti →" }));
+    fireEvent.click(screen.getByRole("button", { name: /Avanti →|Salva la modifica →/ }));
   }
-  it("ottiene la stima senza upload e senza contatti", () => {
-    const network = vi.fn();
+  it("chiede solo i dati mancanti e arriva alla proposta senza upload né contatti inviati", () => {
+    const network = vi.fn().mockResolvedValue({ ok: true, json: async () => ({}) });
     vi.stubGlobal("fetch", network);
     render(createElement(Configuratore, { precompilato, demoMode: true }));
+    // Tipo, testo, parole e servizi arrivano dall'assistente: resta solo la scadenza.
+    expect(screen.getByRole("heading", { name: "Hai una scadenza?" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Romanzo.*modifica/ })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /50.000 parole.*modifica/ })).toBeTruthy();
     next();
-    next();
-    next();
-    expect(
-      screen.getByRole("heading", { name: "Vuoi una prima valutazione del manoscritto?" }),
-    ).toBeTruthy();
-    fireEvent.click(
-      screen.getAllByRole("button", {
-        name: "Continua senza caricare un testo →",
-      })[0]!,
-    );
+    expect(screen.getByRole("heading", { name: "La tua proposta" })).toBeTruthy();
+    expect(screen.getByLabelText(/^Nome/)).toBeTruthy();
+    expect(network.mock.calls.every((c) => String(c[0]).includes("/api/eventi"))).toBe(true);
+    // Una risposta si modifica dai riepiloghi senza perdere le altre.
+    fireEvent.click(screen.getByRole("button", { name: /Copertina.*modifica/ }));
     expect(screen.getByRole("heading", { name: "Di quali servizi hai bisogno?" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: /Copertina/ }).getAttribute("aria-pressed")).toBe(
-      "true",
-    );
-    expect(network).not.toHaveBeenCalled();
-    expect(screen.queryByLabelText("Nome")).toBeNull();
+    expect(screen.getByRole("button", { name: /Copertina/ }).getAttribute("aria-pressed")).toBe("true");
+    fireEvent.click(screen.getByRole("button", { name: "Percorso completo" }));
+    fireEvent.click(screen.getByRole("button", { name: /Editing/ }));
+    next();
+    expect(screen.getByRole("heading", { name: "La tua proposta" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Copertina, Editing.*modifica/ })).toBeTruthy();
+  });
+  it("conta le parole dal testo incollato senza inviarlo e offre la valutazione facoltativa", () => {
+    const network = vi.fn();
+    vi.stubGlobal("fetch", network);
+    render(createElement(Configuratore, { precompilato: { tipo: "romanzo", statoTesto: "finito-da-revisionare" }, demoMode: true }));
+    expect(screen.getByRole("heading", { name: "Quanto sarà lungo il libro?" })).toBeTruthy();
+    fireEvent.change(screen.getByLabelText("Incolla il testo"), { target: { value: "Una frase di prova con sette parole qui." } });
+    expect((screen.getByLabelText("Oppure indica il numero preciso") as HTMLInputElement).value).toBe("8");
+    expect(screen.getByRole("button", { name: "Aggiungi la valutazione facoltativa" })).toBeTruthy();
+    expect(network.mock.calls.filter((c) => !String(c[0]).includes("/api/eventi"))).toHaveLength(0);
+    expect(screen.queryByLabelText(/^Nome/)).toBeNull();
+    next();
+    expect(screen.getByRole("heading", { name: "Di quali servizi hai bisogno?" })).toBeTruthy();
   });
   it("ritorna dal report mantenendo servizi, lunghezza e contesto", async () => {
-    const report = reportDemo(
-      calcolaMetriche("La barca tornò al molo. Il vento era caduto. ".repeat(25)),
-    );
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue({
-        ok: true,
-        status: 200,
-        headers: new Headers({ "content-type": "application/json" }),
-        json: async () => ({ report, demo: true }),
-      }),
-    );
-    render(createElement(Configuratore, { precompilato, demoMode: true }));
-    next();
-    next();
-    next();
+    const report = reportDemo(calcolaMetriche("La barca tornò al molo. Il vento era caduto. ".repeat(25)));
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, status: 200, headers: new Headers({ "content-type": "application/json" }), json: async () => ({ report, demo: true }) }));
+    render(createElement(Configuratore, { precompilato: { ...precompilato, parole: undefined }, demoMode: true }));
+    expect(screen.getByRole("heading", { name: "Quanto sarà lungo il libro?" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Aggiungi la valutazione facoltativa" }));
-    fireEvent.change(screen.getByLabelText("File del manoscritto"), {
-      target: { files: [new File(["test sintetico"], "test.txt")] },
-    });
+    fireEvent.change(screen.getByLabelText("File del manoscritto"), { target: { files: [new File(["test sintetico"], "test.txt")] } });
     fireEvent.change(screen.getByLabelText(/^Nome/), { target: { value: "Autore test" } });
     fireEvent.change(screen.getByLabelText(/^Email/), { target: { value: "qa@example.test" } });
     fireEvent.click(document.getElementById("an-privacy")!);
     fireEvent.click(screen.getByRole("button", { name: "Analizza il manoscritto" }));
     await screen.findByRole("button", { name: "Torna al tuo preventivo →" });
     fireEvent.click(screen.getByRole("button", { name: "Torna al tuo preventivo →" }));
-    expect(screen.getByRole("button", { name: /Copertina/ }).getAttribute("aria-pressed")).toBe(
-      "true",
-    );
+    expect(screen.getByRole("heading", { name: "Hai una scadenza?" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Copertina.*modifica/ })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "← Indietro" }));
+    expect(screen.getByRole("heading", { name: "Di quali servizi hai bisogno?" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Copertina/ }).getAttribute("aria-pressed")).toBe("true");
     fireEvent.click(screen.getByRole("button", { name: "← Indietro" }));
     expect(screen.getByRole("button", { name: "Torna al tuo preventivo →" })).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "← Indietro" }));
-    expect(
-      (screen.getByLabelText("Oppure indica il numero preciso") as HTMLInputElement).value,
-    ).toBe("50000");
-    fireEvent.click(screen.getByRole("button", { name: "← Indietro" }));
-    fireEvent.click(screen.getByRole("button", { name: "← Indietro" }));
-    expect((screen.getByLabelText(/Descrivi il tuo progetto/) as HTMLTextAreaElement).value).toBe(
-      "Storia di lavoro",
-    );
+    expect((screen.getByLabelText("Oppure indica il numero preciso") as HTMLInputElement).value).toBe("50000");
+    fireEvent.click(screen.getByRole("button", { name: /Romanzo.*modifica/ }));
+    expect((screen.getByLabelText(/Descrivi il tuo progetto/) as HTMLTextAreaElement).value).toBe("Storia di lavoro");
   });
 });
 

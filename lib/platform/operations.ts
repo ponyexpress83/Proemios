@@ -22,6 +22,7 @@ import { authConfigured, mailConfigured, appOrigin } from "./config";
 import { storageConfigured, deletePrivate, readPrivate, scanUpload } from "./storage";
 import { flushMail } from "./mail";
 import { issueQueuedInvoices } from "./invoices";
+import { runReminders } from "./reminders";
 import { analysisConfigured, runAnalysisJob } from "./analysis";
 
 export async function notificationCollection(request: Request, actor: Actor) {
@@ -136,6 +137,7 @@ export async function operationsCollection(request: Request, actor: Actor) {
 }
 export async function maintenance() {
   const invoicing = await issueQueuedInvoices(10);
+  const reminders = await runReminders().catch((error) => ({ sent: 0, skipped: true, error: error instanceof Error ? error.message : "errore" }));
   const mail = await flushMail(20);
   const quarantined = await getDb()
     .select()
@@ -194,7 +196,7 @@ export async function maintenance() {
   if (pending[0]) await runAnalysisJob(pending[0].id);
   await getDb().update(staffInvitations).set({ status: "expired" }).where(and(eq(staffInvitations.status, "pending"), lt(staffInvitations.expiresAt, new Date())));
   await getDb().delete(quoteClaims).where(lt(quoteClaims.expiresAt, new Date()));
-  return { ...mail, scanned, deleted, invoices: invoicing };
+  return { ...mail, scanned, deleted, invoices: invoicing, reminders };
 }
 export async function mailRetry(request: Request, actor: Actor, id: string) {
   if (request.method !== "POST") throw notFound();

@@ -33,6 +33,9 @@ import {
 } from "./config";
 import { impaginaEmail, esc, destinatarioInterno } from "@/lib/email";
 import { enqueueMail, protectMailHtml } from "./mail";
+import { purchaseRuleSchema, defaultPurchaseRule, journeyStage, purchasePath, type PurchaseRule } from "./commercial";
+import { recordFunnel } from "./funnel";
+import { paymentOrders, affiliateConversions } from "@/db/platform-schema";
 
 export async function getSetting(key: string) {
   const [row] = await getDb()
@@ -46,6 +49,11 @@ export async function getSetting(key: string) {
 export async function resolvePaymentPolicy(): Promise<PaymentPolicy> {
   const saved = paymentPolicySchema.safeParse(await getSetting("payment-policy"));
   return saved.success ? saved.data : defaultPaymentPolicy;
+}
+/** La regola di acquistabilità approvata dall'owner, oppure quella predefinita (prudente). */
+export async function resolvePurchaseRule(): Promise<PurchaseRule> {
+  const saved = purchaseRuleSchema.safeParse(await getSetting("purchase-rule"));
+  return saved.success ? saved.data : defaultPurchaseRule;
 }
 /**
  * Le condizioni fiscali di una proposta. Se lo snapshot è vuoto (proposta
@@ -232,6 +240,11 @@ export async function createQuoteForLead(request: Request, actor: Actor, id: str
         pricingVersion,
         taxPolicy: tax,
         commissionPolicy: commissions.success ? commissions.data : null,
+        // Una proposta costruita dal team è già una proposta, non una stima.
+        commercialState: "offer",
+        offeredAt: new Date(),
+        offeredBy: actor.id,
+        salesAssisted: true,
       });
     return saved!;
   });
@@ -272,14 +285,60 @@ export async function quoteCollection(request: Request, actor: Actor) {
     .where(leadPredicate(actor, "quote.read"))
     .orderBy(desc(quotes.createdAt))
     .limit(100);
+  const ids = rows.map((r) => r.quote.id);
+  const orders = ids.length
+    ? await getDb().select({ quoteId: paymentOrders.quoteId, kind: paymentOrders.kind, status: paymentOrders.status }).from(paymentOrders).where(sql`${paymentOrders.quoteId} in ${ids}`)
+    : [];
   return json({
-    quotes: rows.map((r) => ({
-      ...r.quote,
-      version: r.record?.version ?? 1,
-      acceptedAt: r.record?.acceptedAt ?? null,
-      name: r.name,
-    })),
+    quotes: rows.map((r) => {
+      const own = orders.filter((o) => o.quoteId === r.quote.id);
+      const record = r.record ?? { version: 1, acceptedAt: null, expiresAt: null, commercialState: "offer", preferredTier: null, selectedTier: null, reviewRequestedAt: null };
+      return {
+        ...r.quote,
+        version: record.version,
+        acceptedAt: record.acceptedAt,
+        expiresAt: record.expiresAt,
+        commercialState: record.commercialState,
+        preferredTier: record.preferredTier,
+        selectedTier: record.selectedTier,
+        reviewRequestedAt: record.reviewRequestedAt,
+        journey: journeyStage(record, own),
+        depositPaid: own.some((o) => o.kind === "deposit" && o.status === "paid"),
+        balancePaid: own.some((o) => o.kind === "balance" && o.status === "paid"),
+        paymentPending: own.some((o) => o.status === "pending"),
+        name: r.name,
+      };
+    }),
   });
+}
+/** Chi segue la proposta, per nome: l'autore deve sapere con chi parla. */
+async function quoteReferente(leadId: string) {
+  const [ownership] = await getDb().select().from(leadOwnership).where(eq(leadOwnership.leadId, leadId));
+  if (!ownership?.assignedTo) return null;
+  const [person] = await getDb().select({ name: user.name }).from(user).where(eq(user.id, ownership.assignedTo));
+  return person ? { name: person.name } : null;
+}
+type PricingInputLike = { projectType: "romanzo" | "saggio" | "memoir" | "libro-professionale" | "solo-grafica"; textState: "finito-revisionato" | "finito-da-revisionare" | "bozza-incompleta" | "solo-materiali"; singleService?: "editing" | "proofreading" | "layout" | "epub" | "cover" | "kdp" | "isbn" | "amazonListing" };
+/**
+ * Chi ha fatto cosa su una proposta: responsabile del contatto, origine,
+ * affiliazione, intervento commerciale e regola provvigionale congelata.
+ * Sono fatti distinti: assegnare un contatto non è vendere.
+ */
+async function quoteAttribution(access: Awaited<ReturnType<typeof quoteAccess>>) {
+  const [ownership] = await getDb().select().from(leadOwnership).where(eq(leadOwnership.leadId, access.quote.leadId));
+  const [owner] = ownership?.assignedTo ? await getDb().select({ id: user.id, name: user.name }).from(user).where(eq(user.id, ownership.assignedTo)) : [];
+  const [offeredBy] = access.record.offeredBy ? await getDb().select({ id: user.id, name: user.name }).from(user).where(eq(user.id, access.record.offeredBy)) : [];
+  const [conversion] = await getDb().select().from(affiliateConversions).where(eq(affiliateConversions.quoteId, access.quote.id));
+  const rule = commissionRuleSchema.safeParse(access.record.commissionPolicy);
+  return {
+    responsible: owner ?? null,
+    source: { channel: access.lead.fonte, attribution: access.lead.attribution ?? null },
+    affiliate: conversion ? { ruleVersion: conversion.ruleVersion, createdAt: conversion.createdAt } : null,
+    salesAssisted: access.record.salesAssisted,
+    offeredBy: offeredBy ?? null,
+    acceptedSellerId: access.record.acceptedSellerId,
+    commissionRule: rule.success ? { version: rule.data.version, sellerBps: rule.data.sellerBps, affiliateBps: rule.data.affiliateBps, assistedSalesOnly: rule.data.assistedSalesOnly } : null,
+  };
 }
 export async function quoteDetail(request: Request, actor: Actor, id: string) {
   if (request.method === "PATCH") {
@@ -294,7 +353,7 @@ export async function quoteDetail(request: Request, actor: Actor, id: string) {
       if (current.acceptedAt) throw new PlatformError(409, "ACCEPTED_QUOTE", "Una proposta accettata richiede un nuovo accordo, non una sovrascrittura.");
       await tx.insert(quoteVersions).values({ quoteId: id, version: current.version, snapshot: { quote: access.quote, record: current }, createdBy: actor.id }).onConflictDoNothing();
       await tx.update(quotes).set({ input: body.input, pacchettiGenerati: result.packages, prezzoTotale: recommended.total, acconto: recommended.deposit, stato: "draft", updatedAt: new Date() }).where(eq(quotes.id, id));
-      await tx.update(quoteRecords).set({ version: current.version + 1, pricingVersion, expiresAt: body.expiresAt ? new Date(body.expiresAt) : current.expiresAt, taxPolicy: tax, commissionPolicy: rule.success ? rule.data : null }).where(eq(quoteRecords.quoteId, id));
+      await tx.update(quoteRecords).set({ version: current.version + 1, pricingVersion, expiresAt: body.expiresAt ? new Date(body.expiresAt) : current.expiresAt, taxPolicy: tax, commissionPolicy: rule.success ? rule.data : null, salesAssisted: true }).where(eq(quoteRecords.quoteId, id));
     });
     await audit(actor, "quote.revised", "quote", id, { version: body.version + 1 });
     return json({ ok: true });
@@ -303,6 +362,7 @@ export async function quoteDetail(request: Request, actor: Actor, id: string) {
   const access = await quoteAccess(actor, id);
   const current = await ensureQuotePolicy(access.record);
   const policy = { success: true as const, data: current };
+  const orders = await getDb().select({ kind: paymentOrders.kind, status: paymentOrders.status }).from(paymentOrders).where(eq(paymentOrders.quoteId, id));
   return json({
     quote: access.quote,
     history: await getDb().select({ version: quoteVersions.version, createdAt: quoteVersions.createdAt }).from(quoteVersions).where(eq(quoteVersions.quoteId, id)).orderBy(desc(quoteVersions.version)).limit(100),
@@ -312,7 +372,18 @@ export async function quoteDetail(request: Request, actor: Actor, id: string) {
       acceptedAt: access.record.acceptedAt,
       selectedTier: access.record.selectedTier,
       termsVersion: access.record.termsVersion,
+      expiresAt: access.record.expiresAt,
+      commercialState: access.record.commercialState,
+      reviewRequestedAt: access.record.reviewRequestedAt,
+      reviewNote: access.record.reviewNote,
+      offeredAt: access.record.offeredAt,
+      preferredTier: access.record.preferredTier,
+      remindersPausedAt: access.record.remindersPausedAt,
     },
+    journey: journeyStage(access.record, orders),
+    purchasePath: purchasePath(access.quote.input as PricingInputLike),
+    referente: await quoteReferente(access.quote.leadId),
+    attribution: actor.staff ? await quoteAttribution(access) : undefined,
     packages: (access.quote.pacchettiGenerati as QuotePackage[]).map((p) => ({
       ...p,
       money: moneyBreakdown(p.total, policy.data),
@@ -328,25 +399,40 @@ export async function quoteDetail(request: Request, actor: Actor, id: string) {
       : null,
   });
 }
+export const acceptBodySchema = z
+  .object({
+    tier: z.enum(["essenziale", "consigliato", "signature"]),
+    version: z.number().int().positive(),
+    policyVersion: z.string().min(1),
+    termsAccepted: z.literal(true),
+  })
+  .strict();
 export async function quoteAccept(request: Request, actor: Actor, id: string) {
   if (request.method !== "POST") throw notFound();
+  const body = await readBody(request, acceptBodySchema);
+  await acceptQuote(actor, id, body);
+  return json({ ok: true });
+}
+/**
+ * Accettazione di una proposta acquistabile. Idempotente: ripetere con lo
+ * stesso pacchetto non cambia nulla. Solo una proposta in stato "offer" si
+ * può accettare: una stima o una richiesta in valutazione no.
+ */
+export async function acceptQuote(actor: Actor, id: string, body: z.infer<typeof acceptBodySchema>) {
   const access = await quoteAccess(actor, id, "quote.accept");
   const [ownership] = await getDb()
     .select()
     .from(leadOwnership)
     .where(eq(leadOwnership.leadId, access.quote.leadId));
   if (ownership?.authorId !== actor.id) throw forbidden();
-  const body = await readBody(
-    request,
-    z
-      .object({
-        tier: z.enum(["essenziale", "consigliato", "signature"]),
-        version: z.number().int().positive(),
-        policyVersion: z.string().min(1),
-        termsAccepted: z.literal(true),
-      })
-      .strict(),
-  );
+  if (!["offer", "accepted"].includes(access.record.commercialState))
+    throw new PlatformError(
+      409,
+      "NOT_PURCHASABLE",
+      access.record.commercialState === "review"
+        ? "La proposta è in valutazione dal team: riceverai la versione definitiva prima di confermare."
+        : "Questa è una stima indicativa. Chiedi la proposta definitiva prima di confermare.",
+    );
   const policy = { success: true as const, data: await ensureQuotePolicy(access.record) };
   if (policy.data.version !== body.policyVersion)
     throw new PlatformError(
@@ -387,8 +473,10 @@ export async function quoteAccept(request: Request, actor: Actor, id: string) {
         acceptedBy: actor.id,
         selectedTier: body.tier,
         termsVersion: policy.data.termsVersion,
+        commercialState: "accepted",
       })
       .where(eq(quoteRecords.quoteId, id));
+    await recordFunnel(tx, "quote_accepted", id, { tier: body.tier });
     await tx
       .update(quotes)
       .set({
@@ -440,7 +528,69 @@ export async function quoteAccept(request: Request, actor: Actor, id: string) {
     }).onConflictDoNothing();
   });
   await audit(actor, "quote.accepted", "quote", id, { version: body.version, tier: body.tier });
-  return json({ ok: true });
+}
+/** L'autore chiede la proposta definitiva: la stima passa in valutazione al team. */
+export async function quoteReview(request: Request, actor: Actor, id: string) {
+  if (request.method !== "POST") throw notFound();
+  const access = await quoteAccess(actor, id, "quote.read");
+  const [ownership] = await getDb().select().from(leadOwnership).where(eq(leadOwnership.leadId, access.quote.leadId));
+  if (ownership?.authorId !== actor.id) throw forbidden();
+  const body = await readBody(request, z.object({ note: z.string().trim().max(3000).optional() }).strict());
+  const expiredOffer = access.record.commercialState === "offer" && access.record.expiresAt !== null && access.record.expiresAt.getTime() <= Date.now();
+  if (access.record.commercialState !== "estimate" && !expiredOffer)
+    throw new PlatformError(409, "REVIEW_NOT_NEEDED", access.record.commercialState === "review" ? "La richiesta è già in valutazione." : "Questa proposta è già definitiva.");
+  await limitRequest("quote-review", actor.id, 10, 3600);
+  await getDb().transaction(async (tx) => {
+    await tx.update(quoteRecords).set({ commercialState: "review", reviewRequestedAt: new Date(), reviewNote: body.note ?? null }).where(eq(quoteRecords.quoteId, id));
+    const seller = ownership?.assignedTo ?? null;
+    const summary = `${actor.name} chiede la proposta definitiva per ${access.quote.id.slice(0, 8)}${body.note ? `: "${body.note}"` : "."}`;
+    if (seller && seller !== actor.id) {
+      await tx.insert(notifications).values({ userId: seller, title: "Richiesta di proposta definitiva", body: summary, href: `/spazio?preventivo=${id}` });
+      const [person] = await tx.select({ email: user.email }).from(user).where(eq(user.id, seller));
+      if (person) await tx.insert(emailOutbox).values({ eventKey: `quote:${id}:review:seller`, recipient: person.email, subject: "Richiesta di proposta definitiva · Proemios", html: await protectMailHtml(impaginaEmail("Proposta da definire", `<p>${esc(summary)}</p><p><a href="${esc(appOrigin())}/spazio?preventivo=${esc(id)}">Apri la proposta</a></p>`)) }).onConflictDoNothing();
+    }
+    await tx.insert(emailOutbox).values({ eventKey: `quote:${id}:review:team`, recipient: destinatarioInterno(), subject: "Richiesta di proposta definitiva · Proemios", html: await protectMailHtml(impaginaEmail("Proposta da definire", `<p>${esc(summary)}</p><p>${esc(actor.email)}</p><p><a href="${esc(appOrigin())}/spazio?preventivo=${esc(id)}">Apri nello spazio del team</a></p>`)) }).onConflictDoNothing();
+    await tx.insert(notifications).values({ userId: actor.id, title: "Richiesta ricevuta", body: "Il team valuta il progetto e ti manda la proposta definitiva. Nel frattempo non devi fare nulla.", href: `/area-autore/conferma/${id}` });
+    await recordFunnel(tx, "review_requested", id);
+  });
+  await audit(actor, "quote.review_requested", "quote", id);
+  return json({ ok: true, commercialState: "review" });
+}
+/** Il team rende la proposta acquistabile: prezzo e condizioni definitivi, con eventuale scadenza. */
+export async function quoteOffer(request: Request, actor: Actor, id: string) {
+  if (request.method !== "POST") throw notFound();
+  const access = await quoteAccess(actor, id, "quote.write");
+  const body = await readBody(request, z.object({ expiresAt: z.string().datetime().optional(), validityDays: z.number().int().min(1).max(365).optional(), message: z.string().trim().max(2000).optional() }).strict());
+  if (access.record.acceptedAt) throw new PlatformError(409, "ACCEPTED_QUOTE", "La proposta è già stata accettata.");
+  const rule = await resolvePurchaseRule();
+  const expiresAt = body.expiresAt ? new Date(body.expiresAt) : new Date(Date.now() + (body.validityDays ?? rule.validityDays) * 86400_000);
+  const [ownership] = await getDb().select().from(leadOwnership).where(eq(leadOwnership.leadId, access.quote.leadId));
+  await getDb().transaction(async (tx) => {
+    await tx.update(quoteRecords).set({ commercialState: "offer", offeredAt: new Date(), offeredBy: actor.id, salesAssisted: true, expiresAt }).where(eq(quoteRecords.quoteId, id));
+    if (ownership?.authorId) {
+      await tx.insert(notifications).values({ userId: ownership.authorId, title: "La tua proposta definitiva è pronta", body: `Prezzo e condizioni sono confermati${body.message ? `: ${body.message}` : "."} Puoi confermare dalla tua area.`, href: `/area-autore/conferma/${id}` });
+      await tx.insert(emailOutbox).values({
+        eventKey: `quote:${id}:offer:${access.record.version}`,
+        recipient: access.lead.email,
+        subject: "La tua proposta definitiva · Proemios",
+        html: await protectMailHtml(impaginaEmail("La proposta è pronta", `<p>Ciao ${esc(access.lead.nome)}, il team ha verificato il progetto: la proposta è definitiva${expiresAt ? ` e vale fino al ${expiresAt.toLocaleDateString("it-IT")}` : ""}.</p>${body.message ? `<p>${esc(body.message)}</p>` : ""}<p><a href="${esc(appOrigin())}/area-autore/conferma/${esc(id)}">Leggi e conferma la proposta</a></p>`)),
+      }).onConflictDoNothing();
+    }
+    await recordFunnel(tx, "offer_made", id, { by: actor.id });
+  });
+  await audit(actor, "quote.offered", "quote", id, { expiresAt: expiresAt.toISOString() });
+  // Senza account collegato, la proposta viaggia con il collegamento personale.
+  if (!ownership?.authorId && mailConfigured()) return quoteSend(new Request(request.url, { method: "POST", headers: request.headers }), actor, id);
+  return json({ ok: true, commercialState: "offer", expiresAt });
+}
+/** Il responsabile sospende o riattiva i promemoria automatici di una proposta. */
+export async function quoteReminders(request: Request, actor: Actor, id: string) {
+  if (request.method !== "POST") throw notFound();
+  await quoteAccess(actor, id, "quote.write");
+  const body = await readBody(request, z.object({ paused: z.boolean() }).strict());
+  await getDb().update(quoteRecords).set({ remindersPausedAt: body.paused ? new Date() : null }).where(eq(quoteRecords.quoteId, id));
+  await audit(actor, body.paused ? "quote.reminders_paused" : "quote.reminders_resumed", "quote", id);
+  return json({ ok: true, paused: body.paused });
 }
 export async function quoteSend(request: Request, actor: Actor, id: string) {
   if (request.method !== "POST") throw notFound();
@@ -474,6 +624,12 @@ export async function quoteSend(request: Request, actor: Actor, id: string) {
     .update(quotes)
     .set({ stato: "sent", updatedAt: new Date() })
     .where(eq(quotes.id, id));
+  // Inviare una proposta è un atto commerciale: diventa acquistabile e l'intervento resta tracciato.
+  if (!access.record.acceptedAt)
+    await getDb()
+      .update(quoteRecords)
+      .set({ salesAssisted: true, commercialState: "offer", offeredAt: access.record.offeredAt ?? new Date(), offeredBy: access.record.offeredBy ?? actor.id })
+      .where(eq(quoteRecords.quoteId, id));
   await audit(actor, "quote.sent", "quote", id);
   return json({ ok: true, emailStatus: "queued" });
 }

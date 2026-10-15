@@ -54,7 +54,7 @@ export function TokenClaim({
               location.assign(
                 kind === "invite-accept"
                   ? "/sicurezza"
-                  : `/area-autore?preventivo=${encodeURIComponent(data.quoteId ?? "")}`,
+                  : `/area-autore/conferma/${encodeURIComponent(data.quoteId ?? "")}`,
               );
             }
           } catch {

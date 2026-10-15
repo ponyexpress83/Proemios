@@ -71,6 +71,8 @@ export const contattoPreventivoSchema = z.object({
   note: z.string().max(3000).optional().or(z.literal("")),
   consensoPrivacy: consensoSchema,
   consensoMarketing: z.boolean().default(false),
+  /** Richiesta esplicita di essere ricontattati: il telefono da solo non la implica. */
+  ricontatto: z.boolean().default(false),
 });
 
 export const preventivoSchema = z.object({

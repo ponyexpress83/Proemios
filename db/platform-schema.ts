@@ -77,6 +77,7 @@ export const projects = pgTable(
     stage: text("stage").notNull().default("brief"),
     quoteId: uuid("quote_id"),
     dueAt: timestamp("due_at", { withTimezone: true }),
+    remindersPausedAt: timestamp("reminders_paused_at", { withTimezone: true }),
     createdAt: created(),
     updatedAt: updated(),
   },
@@ -218,6 +219,22 @@ export const quoteRecords = pgTable("platform_quote_records", {
   createdAt: created(),
   taxPolicy: jsonb("tax_policy"),
   commissionPolicy: jsonb("commission_policy"),
+  /**
+   * Stato commerciale, distinto dal pagamento e dal progetto:
+   * estimate (stima indicativa) · review (in valutazione dal team) ·
+   * offer (proposta definitiva acquistabile) · accepted (accettata).
+   * Le righe nate prima di questa colonna valgono come proposte del team.
+   */
+  commercialState: text("commercial_state").notNull().default("offer"),
+  reviewRequestedAt: timestamp("review_requested_at", { withTimezone: true }),
+  reviewNote: text("review_note"),
+  offeredAt: timestamp("offered_at", { withTimezone: true }),
+  offeredBy: text("offered_by").references(() => user.id),
+  /** Pacchetto scelto prima di avere un account: si conserva fino alla conferma. */
+  preferredTier: text("preferred_tier"),
+  /** Un venditore ha lavorato la proposta (revisione, invio, offerta): non la sola assegnazione del contatto. */
+  salesAssisted: boolean("sales_assisted").notNull().default(false),
+  remindersPausedAt: timestamp("reminders_paused_at", { withTimezone: true }),
 });
 export const quoteClaims = pgTable("platform_quote_claims", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -430,3 +447,18 @@ export const invoices = pgTable("platform_invoices", {
   createdAt: created(),
   updatedAt: updated(),
 }, t => [index("invoices_author_idx").on(t.authorId), index("invoices_status_idx").on(t.status)]);
+
+/**
+ * Misurazione del percorso di acquisto. Gli eventi "ui" arrivano dal browser
+ * (senza cookie, IP o identità); quelli "economic" li scrive il server quando
+ * un fatto è verificato (email verificata, accettazione, checkout, incasso).
+ */
+export const funnelEvents = pgTable("platform_funnel_events", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: text("name").notNull(),
+  kind: text("kind").notNull().default("ui"),
+  quoteId: uuid("quote_id"),
+  visitorKey: text("visitor_key"),
+  meta: jsonb("meta"),
+  createdAt: created(),
+}, t => [index("funnel_name_idx").on(t.name, t.createdAt)]);

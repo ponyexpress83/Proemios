@@ -17,6 +17,7 @@ import {
 import { user } from "@/db/auth-schema";
 import { stripe, stripeConfigurato } from "@/lib/stripe";
 import { quoteAccess, ensureQuotePolicy } from "./crm";
+import { journeyStage } from "./commercial";
 import { demand, demandAvailable, demandRecent, audit, type Actor } from "./access";
 import { can } from "./permissions";
 import { readBody, json, PlatformError, unavailable, notFound, csvCell } from "./http";
@@ -27,7 +28,8 @@ import { impaginaEmail, esc, destinatarioInterno } from "@/lib/email";
 import { protectMailHtml } from "./mail";
 import { requireBillingProfile, getBillingProfile, type BillingProfile } from "./billing";
 import { queueInvoice, invoiceView } from "./invoices";
-import { billingProfiles, invoices } from "@/db/platform-schema";
+import { recordFunnel } from "./funnel";
+import { billingProfiles, invoices, projects } from "@/db/platform-schema";
 
 /**
  * Metodi di pagamento offerti nel Checkout. Vuoto: decide la Dashboard di
@@ -55,23 +57,30 @@ async function stripeCustomerFor(actor: Actor, profile: BillingProfile): Promise
   await getDb().update(billingProfiles).set({ stripeCustomerId: customer.id, updatedAt: new Date() }).where(eq(billingProfiles.userId, actor.id));
   return customer.id;
 }
+export const checkoutBodySchema = z
+  .object({
+    quoteId: z.string().uuid(),
+    kind: z.enum(["deposit", "balance"]).default("deposit"),
+  })
+  .strict();
+export function checkoutAvailable(): boolean {
+  if (!stripeConfigurato() || !process.env.STRIPE_WEBHOOK_SECRET) return false;
+  if (process.env.VERCEL_ENV === "production" && !process.env.STRIPE_SECRET_KEY?.startsWith("sk_live_")) return false;
+  return true;
+}
 export async function checkout(request: Request, actor: Actor) {
-  if (!stripeConfigurato() || !process.env.STRIPE_WEBHOOK_SECRET) throw unavailable();
-  if (
-    process.env.VERCEL_ENV === "production" &&
-    !process.env.STRIPE_SECRET_KEY?.startsWith("sk_live_")
-  )
-    throw unavailable();
+  const body = await readBody(request, checkoutBodySchema);
+  return json(await createCheckout(actor, body));
+}
+/**
+ * Apre (o riapre) la sessione di pagamento di una proposta accettata. Un
+ * ordine in attesa viene riusato; una sessione scaduta viene chiusa e la
+ * chiamata successiva ne apre una nuova. Doppi clic e richieste ripetute
+ * producono la stessa sessione grazie alla chiave di idempotenza.
+ */
+export async function createCheckout(actor: Actor, body: z.infer<typeof checkoutBodySchema>): Promise<{ url: string }> {
+  if (!checkoutAvailable()) throw unavailable();
   await limitRequest("checkout", actor.id, 10, 3600);
-  const body = await readBody(
-    request,
-    z
-      .object({
-        quoteId: z.string().uuid(),
-        kind: z.enum(["deposit", "balance"]).default("deposit"),
-      })
-      .strict(),
-  );
   const access = await quoteAccess(actor, body.quoteId, "quote.accept");
   if (access.record.acceptedBy !== actor.id || !access.record.acceptedAt)
     throw new PlatformError(409, "ACCEPT_FIRST", "Accetta la proposta prima di pagare.");
@@ -176,7 +185,8 @@ export async function checkout(request: Request, actor: Actor) {
   if (!session.url)
     throw new PlatformError(409, "PAYMENT_PENDING", "Stiamo verificando il pagamento.");
   await audit(actor, "checkout.created", "payment", order.id);
-  return json({ url: session.url });
+  await recordFunnel(getDb(), "checkout_started", order.quoteId, { kind: body.kind });
+  return { url: session.url };
 }
 type Tx = Parameters<Parameters<ReturnType<typeof getDb>["transaction"]>[0]>[0];
 async function recordPayment(tx: Tx, session: Stripe.Checkout.Session) {
@@ -238,8 +248,11 @@ async function recordPayment(tx: Tx, session: Stripe.Checkout.Session) {
       .select()
       .from(affiliateConversions)
       .where(eq(affiliateConversions.quoteId, quote.id));
+    // Vendita assistita o autonoma: la regola congelata sulla proposta decide
+    // se la sola assegnazione del contatto dà diritto alla provvigione.
+    const sellerEligible = !rule.data.assistedSalesOnly || Boolean(record?.salesAssisted);
     for (const b of [
-      { id: record?.acceptedSellerId, bps: rule.data.sellerBps, kind: "seller" },
+      { id: sellerEligible ? record?.acceptedSellerId : null, bps: rule.data.sellerBps, kind: "seller" },
       { id: referral?.affiliateId, bps: rule.data.affiliateBps, kind: "affiliate" },
     ])
       if (b.id && b.id !== order.authorId && b.bps > 0)
@@ -306,6 +319,7 @@ async function recordPayment(tx: Tx, session: Stripe.Checkout.Session) {
       .onConflictDoNothing();
   // La fattura nasce qui in coda e viene emessa subito dopo la risposta a Stripe.
   await queueInvoice(tx, { ...order, status: "paid", stripePaymentIntentId: intent }, session, tax.success ? tax.data : null);
+  await recordFunnel(tx, "payment_confirmed", order.quoteId, { kind: order.kind, amountCents: order.amountCents });
 }
 async function recordRefund(tx: Tx, refund: Stripe.Refund) {
   if (refund.status !== "succeeded") return;
@@ -467,8 +481,12 @@ export async function quotePayments(request: Request, actor: Actor, id: string) 
     deposit = selected ? moneyBreakdown(selected.deposit, policy).grossCents : null;
   const paid = (kind: string) => orders.some((o) => o.kind === kind && o.status === "paid");
   const issued = await getDb().select().from(invoices).where(eq(invoices.quoteId, id)).orderBy(desc(invoices.createdAt));
+  const [project] = await getDb().select({ id: projects.id, stage: projects.stage }).from(projects).where(eq(projects.quoteId, id)).limit(1);
   return json({
+    project: project ?? null,
     accepted: Boolean(access.record.acceptedAt),
+    journey: journeyStage(access.record, orders),
+    checkoutAvailable: checkoutAvailable(),
     vatMode: policy.vatMode,
     vatRateBps: policy.vatRateBps,
     methods: configuredPaymentMethods(),
