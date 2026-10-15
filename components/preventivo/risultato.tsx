@@ -32,7 +32,7 @@ export function RisultatoPreventivo({ esito, quoteId }: { esito: QuoteResult; qu
       </div>
 
       <div className="grid gap-5 lg:grid-cols-3">
-        {esito.packages.map((p) => (
+        {esito.packages.filter((p,i,all)=>all.findIndex(o=>o.tier===p.tier)===i).map((p) => (
           <div
             key={p.tier}
             className={cx(
@@ -52,7 +52,7 @@ export function RisultatoPreventivo({ esito, quoteId }: { esito: QuoteResult; qu
 
             <p className="cifre text-inchiostro text-3xl font-medium">{euro(p.total)}</p>
             <p className="apparato text-stampa mt-2">
-              Acconto {euro(p.deposit)} · saldo a consegna
+              Acconto {euro(p.deposit)}, saldo a consegna. IVA esclusa.
             </p>
 
             <Filetto className="my-5" tono="carta" />
@@ -81,12 +81,12 @@ export function RisultatoPreventivo({ esito, quoteId }: { esito: QuoteResult; qu
             )}
             {p.excludes.length === 0 && <div className="flex-1" />}
 
-            <BottoneLink href="/accedi" className="mt-6 w-full">Apri il tuo spazio autore →</BottoneLink>
+            <BottoneLink href={`/registrati?preventivo=${encodeURIComponent(quoteId)}`} className="mt-6 w-full">Crea l’account e conferma →</BottoneLink>
           </div>
         ))}
       </div>
 
-      <p className="prosa mt-6">Abbiamo registrato la richiesta. Riceverai un collegamento personale per associare il preventivo al tuo indirizzo verificato. Nel tuo spazio potrai confermare la proposta e pagare dopo la verifica delle condizioni.</p>
+      <p className="prosa mt-6">Abbiamo registrato la richiesta e ti abbiamo scritto. Crea l’account con lo stesso indirizzo email: appena lo verifichi, il preventivo compare nella tua area autore, dove puoi confermarlo e pagare l’acconto. Importi IVA esclusa: l’IVA viene mostrata prima della conferma.</p>
 
       <Filetto className="mt-10" tono="carta" />
       <div className="mt-6 grid gap-6 sm:grid-cols-[auto_1fr] sm:gap-10">

@@ -45,6 +45,8 @@ export type PricingInput = {
   materialAmount?: MaterialAmount;
   /** Servizi esplicitamente richiesti dal cliente (inclusi in tutti i pacchetti). */
   requestedServices?: ServiceKey[];
+  /** Acquisto di una sola lavorazione: non aggiunge pacchetti o altri servizi. */
+  singleService?: ServiceKey;
   urgency?: Urgency;
 };
 
@@ -363,6 +365,40 @@ const DISCLAIMER =
 export function computeQuote(input: PricingInput): QuoteResult {
   const wordCount = Math.max(0, Math.floor(input.wordCount || 0));
   const withWords: PricingInput = { ...input, wordCount };
+
+  if (input.singleService) {
+    const key = input.singleService;
+    const amount = serviceCost(key, wordCount);
+    const volumeDiscount = PER_WORD_KEYS.has(key)
+      ? round(amount * volumeDiscountRate(wordCount))
+      : 0;
+    const subtotal = amount - volumeDiscount;
+    const rushSurcharge = input.urgency === "prioritaria" ? round(subtotal * RUSH_SURCHARGE) : 0;
+    const totalBeforeMinimum = subtotal + rushSurcharge;
+    const total = round(Math.max(PROJECT_MINIMUM, totalBeforeMinimum));
+    const single: QuotePackage = {
+      tier: "essenziale",
+      name: LABELS[key]!,
+      headline: "Solo la lavorazione che hai richiesto, senza servizi aggiunti.",
+      recommended: true,
+      lineItems: [{ key, label: LABELS[key]!, amount }],
+      includes: [LABELS[key]!],
+      excludes: (ALL_PUBLICATION_KEYS as readonly string[]).filter((k) => k !== key).map((k) => LABELS[k]!),
+      subtotal: amount,
+      volumeDiscount,
+      rushSurcharge,
+      minimumApplied: total > totalBeforeMinimum,
+      total,
+      deposit: round(total * DEPOSIT_RATE),
+    };
+    return {
+      wordCount,
+      estimatedPages: estimatePages(wordCount),
+      isGhostwriting: false,
+      packages: [single, single, single],
+      disclaimer: DISCLAIMER,
+    };
+  }
 
   const tiers = composeTiers(withWords);
 

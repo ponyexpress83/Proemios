@@ -2,6 +2,8 @@ import { timingSafeEqual } from "node:crypto";
 import { route, json, forbidden, unavailable } from "@/lib/platform/http";
 import { maintenance } from "@/lib/platform/operations";
 export const runtime="nodejs";
+// Scansioni e un job di analisi possono superare il limite predefinito.
+export const maxDuration=300;
 export const GET=route(async request=>{
   const secret=process.env.CRON_SECRET;if(!secret || !process.env.DATABASE_URL)throw unavailable();
   const expected=Buffer.from(`Bearer ${secret}`),given=Buffer.from(request.headers.get("authorization")??"");

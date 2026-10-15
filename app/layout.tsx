@@ -14,6 +14,7 @@ import "./editorial.css";
 import "./experience.css";
 import "./refinements.css";
 import "./platform.css";
+import "./author-real.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL(assoluto()),

@@ -10,6 +10,7 @@ import {
   affiliateProfiles,
   affiliateConversions,
   emailOutbox,
+  notifications,
 } from "@/db/platform-schema";
 import { user } from "@/db/auth-schema";
 import { preventivoSchema, contattoSchema, agenziaSchema, waitlistSchema } from "@/lib/validation";
@@ -21,14 +22,30 @@ import {
   mailConfigured,
   authConfigured,
   pricingVersion,
-  paymentPolicySchema,
   commissionRuleSchema,
   appOrigin,
 } from "./config";
-import { getSetting } from "./crm";
+import { getSetting, resolvePaymentPolicy } from "./crm";
 import { assignInboundLead } from "./inbound-routing";
 import { protectMailHtml } from "./mail";
 
+type Tx = Parameters<Parameters<ReturnType<typeof getDb>["transaction"]>[0]>[0];
+/** Il venditore assegnato lo sa subito: notifica nello spazio e email con il link. */
+async function notifySeller(tx: Tx, sellerId: string | null, leadId: string, title: string, body: string) {
+  if (!sellerId) return;
+  await tx.insert(notifications).values({ userId: sellerId, title, body, href: `/spazio?lead=${leadId}` });
+  const [seller] = await tx.select({ email: user.email }).from(user).where(eq(user.id, sellerId));
+  if (seller)
+    await tx
+      .insert(emailOutbox)
+      .values({
+        eventKey: `lead:${leadId}:seller`,
+        recipient: seller.email,
+        subject: `${title} · Proemios`,
+        html: await protectMailHtml(impaginaEmail(title, `<p>${esc(body)}</p><p><a href="${esc(appOrigin())}/spazio?lead=${esc(leadId)}">Apri il contatto nello spazio del team</a></p>`)),
+      })
+      .onConflictDoNothing();
+}
 export function publicFormReady() {
   return Boolean(
     process.env.DATABASE_URL &&
@@ -55,7 +72,7 @@ export async function publicQuote(request: Request) {
     throw new PlatformError(400, "IDEMPOTENCY_REQUIRED", "Aggiorna la pagina e riprova.");
   const result = computeQuote(body.input),
     selected = result.packages.find((p) => p.recommended)!;
-  const tax = paymentPolicySchema.safeParse(await getSetting("payment-policy")),
+  const tax = await resolvePaymentPolicy(),
     rule = commissionRuleSchema.safeParse(await getSetting("commission-rule"));
   const token = randomBytes(32).toString("base64url"),
     requestHash = createHash("sha256").update(JSON.stringify(body)).digest("hex");
@@ -83,7 +100,7 @@ export async function publicQuote(request: Request) {
         stage: "new",
       })
       .returning();
-    await assignInboundLead(tx, lead!.id);
+    const seller = await assignInboundLead(tx, lead!.id);
     const [quote] = await tx
       .insert(quotes)
       .values({
@@ -100,7 +117,7 @@ export async function publicQuote(request: Request) {
       .values({
         quoteId: quote!.id,
         pricingVersion,
-        taxPolicy: tax.success ? tax.data : null,
+        taxPolicy: tax,
         commissionPolicy: rule.success ? rule.data : null,
       });
     await tx
@@ -109,7 +126,7 @@ export async function publicQuote(request: Request) {
         quoteId: quote!.id,
         email: body.contatto.email.toLowerCase(),
         tokenHash: hashToken(token),
-        expiresAt: new Date(Date.now() + 48 * 3600_000),
+        expiresAt: new Date(Date.now() + 30 * 86400_000),
       });
     if (body.ref && rule.success) {
       const [referral] = await tx
@@ -122,6 +139,7 @@ export async function publicQuote(request: Request) {
           .insert(affiliateConversions)
           .values({ affiliateId: referral.id, quoteId: quote!.id, ruleVersion: rule.data.version });
     }
+    await notifySeller(tx, seller, lead!.id, "Nuovo preventivo da seguire", `${body.contatto.nome} (${body.contatto.email}) ha chiesto un preventivo: ${result.packages.map((p) => `${p.name} € ${p.total.toLocaleString("it-IT")}`).join(", ")}. ${body.contatto.note ? `Nota: ${body.contatto.note}` : ""}`.trim());
     const link = `${appOrigin()}/collega-preventivo?token=${token}`;
     await tx.insert(emailOutbox).values(await Promise.all([
       {
@@ -130,7 +148,7 @@ export async function publicQuote(request: Request) {
         subject: "Il tuo preventivo · Proemios",
         html: impaginaEmail(
           "Tre percorsi per il tuo libro",
-          `<p>Ciao ${esc(body.contatto.nome)}, abbiamo ricevuto la tua richiesta.</p><p>Le stime sono ${result.packages.map((p) => `${esc(p.name)}: € ${p.total.toLocaleString("it-IT")}`).join(" · ")}. Il team confermerà condizioni e servizi dopo aver esaminato il progetto.</p><p><a href="${esc(link)}">Collega il preventivo al tuo account</a></p><p>Usa questo indirizzo verificato. Il collegamento scade tra 48 ore.</p>`,
+          `<p>Ciao ${esc(body.contatto.nome)}, abbiamo ricevuto la tua richiesta.</p><p>Le stime sono ${result.packages.map((p) => `${esc(p.name)}: € ${p.total.toLocaleString("it-IT")}`).join(" · ")}. Il team confermerà condizioni e servizi dopo aver esaminato il progetto.</p><p><a href="${esc(link)}">Collega il preventivo al tuo account</a></p><p>Usa questo indirizzo verificato. Il collegamento vale 30 giorni. Se crei l’account con lo stesso indirizzo, il preventivo compare da solo nella tua area autore.</p>`,
         ),
       },
       {
@@ -139,7 +157,7 @@ export async function publicQuote(request: Request) {
         subject: "Nuova richiesta di preventivo · Proemios",
         html: impaginaEmail(
           "Nuova richiesta",
-          `<p>${esc(body.contatto.nome)} · ${esc(body.contatto.email)}</p><p>${esc(body.contatto.note ?? "")}</p><p>Proposta ${quote!.id}. Apri lo spazio del team per assegnare il contatto.</p>`,
+          `<p>${esc(body.contatto.nome)} · ${esc(body.contatto.email)}${body.contatto.telefono ? ` · ${esc(body.contatto.telefono)}` : ""}</p><p>${esc(body.contatto.note ?? "")}</p><p>${result.packages.map((p) => `${esc(p.name)}: € ${p.total.toLocaleString("it-IT")}`).join(" · ")} (IVA esclusa, ${result.wordCount.toLocaleString("it-IT")} parole).</p><p>${seller ? "Assegnata a un venditore." : "Nessun venditore attivo: resta nella coda del team."} <a href="${esc(appOrigin())}/spazio?preventivo=${esc(quote!.id)}">Apri la proposta</a></p>`,
         ),
       },
     ].map(async m => ({ ...m, html: await protectMailHtml(m.html) }))));
@@ -203,9 +221,10 @@ export async function publicContact(request: Request, agency = false) {
         note: message,
       })
       .returning();
-    await assignInboundLead(tx, lead!.id);
+    const seller = await assignInboundLead(tx, lead!.id);
     if (agencyBody.success)
       await tx.insert(agencyLeads).values({ ...agencyBody.data, leadId: lead!.id });
+    await notifySeller(tx, seller, lead!.id, agency ? "Nuova richiesta da un'agenzia" : "Nuovo contatto da seguire", `${name} (${body.email}${body.telefono ? `, ${body.telefono}` : ""}): ${message}`);
     await tx.insert(emailOutbox).values(await Promise.all([
       {
         eventKey: `contact:${lead!.id}:author`,
@@ -223,7 +242,7 @@ export async function publicContact(request: Request, agency = false) {
         subject: "Nuovo contatto · Proemios",
         html: impaginaEmail(
           "Nuovo contatto",
-          `<p>${esc(name)} · ${esc(body.email)}</p><p>${esc(message)}</p>`,
+          `<p>${esc(name)} · ${esc(body.email)}${body.telefono ? ` · ${esc(body.telefono)}` : ""}</p>${agencyBody.success ? `<p>Agenzia: ${esc(agencyBody.data.nomeAgenzia)}${agencyBody.data.sito ? ` · ${esc(agencyBody.data.sito)}` : ""}${agencyBody.data.volumeStimato ? ` · volume: ${esc(agencyBody.data.volumeStimato)}` : ""}</p>` : ""}<p>${esc(message)}</p><p><a href="${esc(appOrigin())}/spazio?lead=${esc(lead!.id)}">Apri il contatto</a></p>`,
         ),
       },
     ].map(async m => ({ ...m, html: await protectMailHtml(m.html) }))));

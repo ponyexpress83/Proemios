@@ -65,6 +65,22 @@ export const paymentPolicySchema = z
   })
   .refine((p) => p.vatMode !== "exempt" || p.vatRateBps === 0);
 export type PaymentPolicy = z.infer<typeof paymentPolicySchema>;
+/**
+ * Policy predefinita, in vigore finché l'owner non ne approva una in
+ * Regole economiche: IVA ordinaria al 22 %, esclusa dai prezzi del listino
+ * (`config/pricing.ts` li dichiara IVA esclusa). Senza una policy i preventivi
+ * pubblici nascevano senza condizioni fiscali e non si potevano né accettare
+ * né pagare. La versione esplicita «predefinita» resta visibile nello snapshot
+ * di ogni proposta, così si sa quali condizioni valevano al momento.
+ */
+export const defaultPaymentPolicy: PaymentPolicy = {
+  version: "predefinita-2026-10-v1",
+  vatMode: "excluded",
+  vatRateBps: 2200,
+  termsVersion,
+  approvedAt: "2026-10-14T00:00:00.000Z",
+  approvedBy: "predefinita",
+};
 export function moneyBreakdown(euros: number, policy: PaymentPolicy) {
   const original = Math.round(euros * 100);
   const gross =

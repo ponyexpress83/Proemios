@@ -56,8 +56,12 @@ export const pricingInputSchema = z.object({
     .max(2_000_000, "Oltre due milioni di parole conviene che ne parliamo a voce."),
   materialAmount: materialAmountSchema.optional(),
   requestedServices: z.array(serviceKeySchema).default([]),
+  singleService: serviceKeySchema.optional(),
   urgency: z.enum(["standard", "prioritaria"]).default("standard"),
-});
+}).refine(
+  input => !input.singleService || input.requestedServices.every(key => key === input.singleService),
+  { path: ["requestedServices"], message: "Per il servizio singolo puoi selezionare una sola lavorazione." },
+);
 export type PricingInputDto = z.infer<typeof pricingInputSchema>;
 
 export const contattoPreventivoSchema = z.object({

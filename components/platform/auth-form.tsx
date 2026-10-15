@@ -1,23 +1,51 @@
 "use client";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { authClient } from "@/lib/auth-client";
+import { REALM_HOME, realmFor, safeReturnPath } from "@/lib/platform/realms";
 type Mode = "login" | "register" | "reset" | "new-password" | "challenge";
 export function AuthForm({
   mode = "login",
   ready = true,
   team = false,
+  realm = "author",
   token,
 }: {
   mode?: Mode;
   ready?: boolean;
   team?: boolean;
+  realm?: "author" | "staff" | "partner";
   token?: string;
 }) {
   const [error, setError] = useState(""),
     [notice, setNotice] = useState(""),
     [busy, setBusy] = useState(false),
     [backup, setBackup] = useState(false);
+  const [ritorno, setRitorno] = useState<string | null>(null);
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    setRitorno(safeReturnPath(params.get("ritorno")));
+    if (mode === "login" && params.get("verificata") === "1")
+      setNotice("Indirizzo verificato. Accedi con la tua email e la password scelta.");
+    if (mode === "login" && params.get("sessione") === "scaduta")
+      setNotice("La sessione è scaduta. Accedi di nuovo per continuare.");
+  }, [mode]);
+  // Ogni persona ha un'area: il team va al proprio spazio, i partner al loro,
+  // gli autori all'area autore. La si legge dal profilo dopo l'accesso, mai
+  // dalla pagina da cui si è entrati.
+  async function destinationFor(): Promise<string> {
+    if (ritorno) return ritorno;
+    try {
+      const response = await fetch("/api/platform/me", { credentials: "same-origin", cache: "no-store" });
+      if (response.ok) {
+        const body = (await response.json()) as { user?: { roles?: string[] } };
+        return REALM_HOME[realmFor(body.user?.roles ?? [])];
+      }
+    } catch {
+      /* il profilo non risponde: si cade sull'area della pagina di accesso */
+    }
+    return REALM_HOME[realm];
+  }
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
@@ -34,7 +62,7 @@ export function AuthForm({
           password,
           name: String(data.get("name")),
           privacyAccepted: data.get("privacy") === "on",
-          callbackURL: "/spazio",
+          callbackURL: "/accedi?verificata=1",
         });
       else if (mode === "reset")
         result = await authClient.requestPasswordReset({ email, redirectTo: "/nuova-password" });
@@ -55,7 +83,6 @@ export function AuthForm({
           email,
           password,
           rememberMe: !team,
-          callbackURL: "/spazio",
         });
       if (result.error) {
         setError(
@@ -69,7 +96,7 @@ export function AuthForm({
       }
       if (mode === "register")
         setNotice(
-          "Controlla la tua email: usa il collegamento per verificare l’indirizzo e poi accedi.",
+          "Ti abbiamo scritto: apri il collegamento nell’email per verificare l’indirizzo, poi accedi. Se non lo trovi, controlla la posta indesiderata.",
         );
       else if (mode === "reset")
         setNotice(
@@ -77,8 +104,10 @@ export function AuthForm({
         );
       else if (mode === "new-password") {
         setNotice("Password aggiornata. Puoi accedere con la nuova password.");
-      } else if (mode === "challenge") window.location.assign("/spazio");
-      else if (!("twoFactorRedirect" in (result.data ?? {}))) window.location.assign("/spazio");
+      } else if (mode === "challenge") window.location.assign(await destinationFor());
+      else if ("twoFactorRedirect" in (result.data ?? {}))
+        window.location.assign(`/verifica-accesso${ritorno ? `?ritorno=${encodeURIComponent(ritorno)}` : ""}`);
+      else window.location.assign(await destinationFor());
     } catch {
       setError("Il servizio non risponde. Riprova tra poco.");
     } finally {
@@ -86,7 +115,7 @@ export function AuthForm({
     }
   }
   const title = {
-    login: team ? "Il tuo accesso al team" : "Bentornato, autore.",
+    login: realm === "partner" ? "Accesso partner Proemios" : team ? "Il tuo accesso al team" : "Bentornato, autore.",
     register: "Il tuo libro inizia qui.",
     reset: "Recupera l’accesso.",
     "new-password": "Scegli una nuova password.",
@@ -94,7 +123,7 @@ export function AuthForm({
   }[mode];
   return (
     <section className="platform-auth">
-      <p className="platform-eyebrow">PROEMIOS / {team ? "TEAM" : "IL TUO SPAZIO"}</p>
+      <p className="platform-eyebrow">PROEMIOS / {realm === "partner" ? "PARTNER" : team ? "TEAM" : "IL TUO SPAZIO"}</p>
       <h1>{title}</h1>
       <p>
         {mode === "challenge"
@@ -196,10 +225,8 @@ export function AuthForm({
         {mode === "login" ? (
           <>
             <Link href="/recupera-accesso">Password dimenticata?</Link>
-            {team ? (
-              <Link href="/accedi">Area autori</Link>
-            ) : (
-              <Link href="/registrati">Crea un account autore</Link>
+            {team ? null : (
+              <Link href={ritorno ? `/registrati?ritorno=${encodeURIComponent(ritorno)}` : "/registrati"}>Crea un account autore</Link>
             )}
           </>
         ) : (
