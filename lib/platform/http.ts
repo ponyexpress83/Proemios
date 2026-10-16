@@ -44,6 +44,8 @@ export function route(handler: (request: Request) => Promise<Response>) {
           evt: "platform.request.failed",
           requestId,
           error: error instanceof Error ? error.name : "Unknown",
+          // Fuori produzione il messaggio aiuta a capire il guasto; in produzione resta solo l'id.
+          ...(process.env.NODE_ENV !== "production" && error instanceof Error ? { message: error.message.slice(0, 500) } : {}),
         }),
       );
       return json(

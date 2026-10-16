@@ -7,6 +7,7 @@ export const ROLES = [
   "affiliate",
   "finance",
   "coordinator",
+  "marketing",
 ] as const;
 export type Role = (typeof ROLES)[number];
 export const ROLE_NAMES: Record<Role, string> = {
@@ -18,6 +19,7 @@ export const ROLE_NAMES: Record<Role, string> = {
   affiliate: "Affiliato",
   finance: "Finance",
   coordinator: "Coordinatore editoriale",
+  marketing: "Marketing",
 };
 export const PERMISSIONS = [
   "project.read",
@@ -36,6 +38,7 @@ export const PERMISSIONS = [
   "crm.read",
   "crm.write",
   "crm.assign",
+  "crm.import",
   "quote.read",
   "quote.write",
   "quote.send",
@@ -55,6 +58,14 @@ export const PERMISSIONS = [
   "export",
   "operations.read",
   "operations.write",
+  /** Marketing: ogni voce è separata e si delega una per una (anche a un Admin). */
+  "marketing.read", // dashboard
+  "marketing.campaigns", // registro campagne e link tracciati
+  "marketing.contacts", // contatti autorizzati alle comunicazioni facoltative (campi minimi)
+  "automation.draft", // bozze delle automazioni
+  "automation.activate", // attivazione delle automazioni
+  "revenue.aggregate", // ricavi aggregati (mai il dettaglio finanziario)
+  "integrations.manage", // stato e configurazione dei collegamenti esterni (solo amministratori)
 ] as const;
 export type Permission = (typeof PERMISSIONS)[number];
 export type Scope = "own" | "assigned" | "organization";
@@ -84,6 +95,7 @@ export const ROLE_GRANTS: Record<Role, Grant[]> = {
     "crm.read",
     "crm.write",
     "crm.assign",
+    "crm.import",
     "quote.read",
     "quote.write",
     "quote.send",
@@ -129,7 +141,14 @@ export const ROLE_GRANTS: Record<Role, Grant[]> = {
     "quote.read",
     "export",
   ]),
+  // Marketing non vede manoscritti, documenti editoriali, fatture, dettaglio
+  // finanziario, chiavi o utenti: solo dashboard, campagne, contatti autorizzati
+  // e bozze di automazione. Attivazione, assegnazione, ricavi aggregati, export
+  // e collegamenti si delegano a parte.
+  marketing: grant("organization", ["marketing.read", "marketing.campaigns", "marketing.contacts", "automation.draft"]),
 };
+/** Permessi dell'area marketing, delegabili uno per uno a un Admin (profilo «Admin 2»). */
+export const MARKETING_PERMISSIONS: Permission[] = ["marketing.read", "marketing.campaigns", "marketing.contacts", "automation.draft", "automation.activate", "crm.assign", "revenue.aggregate", "export", "integrations.manage"];
 export function effectiveGrants(memberships: Membership[]): Grant[] {
   return memberships.filter((m) => m.active).flatMap((m) => m.grants ?? ROLE_GRANTS[m.role]);
 }

@@ -24,7 +24,10 @@ import {
 } from "./permissions";
 import { demand, demandRecent, projectAccess, audit, type Actor } from "./access";
 import { readBody, json, hashToken, PlatformError, forbidden, notFound } from "./http";
-import { mailConfigured, appOrigin, paymentPolicySchema, commissionRuleSchema } from "./config";
+import { mailConfigured, appOrigin, paymentPolicySchema, commissionRuleSchema, defaultPaymentPolicy } from "./config";
+import { purchaseRuleSchema, defaultPurchaseRule } from "./commercial";
+import { reminderRulesSchema, defaultReminderRules } from "./reminders";
+import { recoveryRulesSchema, defaultRecoveryRules } from "./recovery";
 import { impaginaEmail, esc } from "@/lib/email";
 import { enqueueMail } from "./mail";
 import { limitRequest } from "./rate-limit";
@@ -269,18 +272,19 @@ export async function settingsCollection(request: Request, actor: Actor) {
   if (request.method === "GET")
     return json({
       settings: (await getDb().select().from(platformSettings)).filter((s) =>
-        ["payment-policy", "commission-rule"].includes(s.key),
+        ["payment-policy", "commission-rule", "purchase-rule", "reminder-rules", "recovery-rules"].includes(s.key),
       ),
+      defaults: { "purchase-rule": defaultPurchaseRule, "reminder-rules": defaultReminderRules, "payment-policy": defaultPaymentPolicy, "recovery-rules": defaultRecoveryRules },
     });
   if (request.method !== "PUT") throw notFound();
   demandRecent(actor);
   const body = await readBody(
     request,
     z
-      .object({ key: z.enum(["payment-policy", "commission-rule"]), value: z.record(z.unknown()) })
+      .object({ key: z.enum(["payment-policy", "commission-rule", "purchase-rule", "reminder-rules", "recovery-rules"]), value: z.record(z.unknown()) })
       .strict(),
   );
-  const schema = body.key === "payment-policy" ? paymentPolicySchema : commissionRuleSchema;
+  const schema = { "payment-policy": paymentPolicySchema, "commission-rule": commissionRuleSchema, "purchase-rule": purchaseRuleSchema, "reminder-rules": reminderRulesSchema, "recovery-rules": recoveryRulesSchema }[body.key];
   const result = schema.safeParse({
     ...body.value,
     approvedAt: new Date().toISOString(),

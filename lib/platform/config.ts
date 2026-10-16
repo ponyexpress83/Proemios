@@ -50,6 +50,8 @@ export const commissionRuleSchema = z.object({
   base: z.literal("collected-excluding-tax"),
   attributionDays: z.number().int().min(1).max(365),
   attribution: z.literal("code-on-quote"),
+  /** Provvigione al venditore solo con un intervento commerciale tracciato (revisione, invio, offerta), non per la sola assegnazione. */
+  assistedSalesOnly: z.boolean().default(false),
   approvedAt: z.string().datetime(),
   approvedBy: z.string().min(1),
 });

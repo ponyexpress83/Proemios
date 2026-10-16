@@ -11,6 +11,17 @@
 
 Acconto e saldo generano due fatture distinte; quella del saldo cita la fattura di acconto (numero e data).
 
+## Attivazione e verifica del collegamento
+
+L’emissione è già automatica nel codice: si accende quando esistono `FIC_ACCESS_TOKEN` e `FIC_COMPANY_ID`. Per non indovinare gli id:
+
+1. In Fatture in Cloud → Impostazioni → API crea un token con gli ambiti **Fatture emesse (lettura e scrittura)** e **Impostazioni (lettura)**; annota l’id azienda.
+2. Imposta le due variabili nell’ambiente (anteprima prima, produzione poi) e rilancia il deploy.
+3. In **Finance → Fatturazione automatica** premi **Verifica il collegamento**: la piattaforma chiama `GET /api/platform/invoices/status?verifica=1`, che legge azienda, aliquote e conti d’incasso **senza creare documenti** ed elenca gli id da copiare in `FIC_VAT_ID` e `FIC_PAYMENT_ACCOUNT_ID`.
+4. Fai un incasso di prova in modalità test di Stripe, controlla la fattura creata (stato `created`, non trasmessa) e solo poi imposta `FIC_SEND_TO_SDI=1`.
+
+Le fatture in coda vengono riprovate a ogni webhook Stripe, ogni notte dal cron e ogni volta che Finance apre la propria scheda; quelle in errore si riprovano con **Riprova**.
+
 ## Dati di fatturazione
 
 Senza dati di fatturazione il checkout risponde `409 BILLING_REQUIRED`. L'autore li inserisce una volta nella sezione Pagamenti (`PUT /api/platform/me/billing`): persona fisica con codice fiscale, oppure azienda con partita IVA e codice destinatario o PEC. Gli stessi dati creano il cliente Stripe (serve per bonifico e rate).
@@ -26,6 +37,18 @@ Senza dati di fatturazione il checkout risponde `409 BILLING_REQUIRED`. L'autore
 | `FIC_VAT_ID_EXEMPT` | Id aliquota esente, solo se la policy è `exempt`. |
 | `FIC_PAYMENT_ACCOUNT_ID` | Conto d'incasso (es. "Stripe") su cui registrare il pagamento. |
 | `STRIPE_PAYMENT_METHODS` | Vuoto: decide la Dashboard Stripe. Oppure elenco esplicito (`card,klarna,customer_balance`). |
+
+## Rate, rimborsi e contestazioni
+
+- **Rate del saldo concesse dall'azienda**: ordini `kind = balance` con `sequence` 1..N e `plan = company_installment`; importi calcolati dal server (`installmentSchedule`), l'ultima rata assorbe l'arrotondamento. Ogni rata incassata genera la propria fattura di saldo. Distinte dalle rate Klarna/Scalapay (pagamento unico per noi; `payment_method` registrato quando Stripe lo indica).
+- **Rimborsi**: Finance prepara (`POST refunds`, `refund.prepare`, nessun movimento); un **secondo** utente con `refund.authorize` e verifica in due passaggi recente autorizza (`POST refunds/:id/authorize`): la piattaforma chiama Stripe (`refunds.create`, chiave di idempotenza `proemios-refund-<id>`), e solo l'evento `refund.updated` verificato scrive registro, stato dell'ordine (`partially_refunded`/`refunded`) e storni delle commissioni; la richiesta passa a `executed`. Errore del provider → `failed`, riautorizzabile. Nessuna nota di credito automatica su Fatture in Cloud: da emettere a mano (limite dichiarato).
+- **Contestazioni**: `charge.dispute.created` → ordine `disputed` e commissioni trattenute; `charge.dispute.closed` con esito `won` → torna `paid`, altrimenti `review_required`.
+- **Recesso del consumatore**: blocca nuovi checkout (`WITHDRAWN`); il rimborso segue il percorso sopra.
+- **Progetto**: creato dal webhook al primo acconto verificato (una sola volta per proposta); la lavorazione (`editing`) parte dopo l'incasso previsto per il servizio (`purchase-rule.startAfter`, predefinito acconto); la consegna finale (`delivered`) richiede il saldo completo se `balanceBeforeDelivery` è attivo.
+
+## Pagina unica di conferma
+
+L'autore accetta e paga da `/area-autore/conferma/[id]` (vedi `docs/PERCORSO_DI_ACQUISTO.md`): dati di fatturazione, accettazione e checkout in una chiamata (`POST quotes/:id/confirm`). Solo una proposta in stato `offer` è acquistabile.
 
 ## Metodi di pagamento in Stripe
 

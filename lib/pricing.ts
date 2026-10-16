@@ -403,8 +403,28 @@ export function computeQuote(input: PricingInput): QuoteResult {
   const tiers = composeTiers(withWords);
 
   // Ogni proposta deve rispettare i servizi richiesti, senza duplicarne il costo.
+  // La revisione richiesta (editing o correzione bozze) sostituisce quella di
+  // base del pacchetto invece di sommarsi: nessun cliente paga due revisioni
+  // che non ha chiesto. Solo Signature, il percorso completo, le tiene entrambe.
   if (input.requestedServices?.length) {
+    const requested = new Set(input.requestedServices);
+    const wantsEditing = requested.has("editing");
+    const wantsProofreading = requested.has("proofreading");
+    const revisionRequested = (wantsEditing || wantsProofreading) && !(wantsEditing && wantsProofreading);
+    if (revisionRequested && input.projectType !== "solo-grafica" && input.textState !== "solo-materiali") {
+      const chosen: ServiceKey = wantsEditing ? "editing" : "proofreading";
+      tiers.essenziale.serviceKeys = tiers.essenziale.serviceKeys.filter((k) => k !== "editing" && k !== "proofreading");
+      tiers.essenziale.serviceKeys.push(chosen);
+      // Consigliato porta sempre l'editing: se il cliente ha chiesto la sola
+      // correzione, qui la correzione è compresa nel livello superiore.
+      tiers.consigliato.serviceKeys = tiers.consigliato.serviceKeys.filter((k) => k !== "proofreading");
+      if (!tiers.consigliato.serviceKeys.includes("editing")) tiers.consigliato.serviceKeys.push("editing");
+      for (const key of ["editing", "proofreading"] as const) {
+        if (!tiers.signature.serviceKeys.includes(key)) tiers.signature.serviceKeys.push(key);
+      }
+    }
     for (const key of input.requestedServices) {
+      if (revisionRequested && (key === "editing" || key === "proofreading")) continue;
       for (const tier of Object.values(tiers)) {
         if (!tier.serviceKeys.includes(key)) tier.serviceKeys.push(key);
       }

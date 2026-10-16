@@ -22,16 +22,18 @@ export interface Messaggio {
   html: string;
   replyTo?: string;
   idempotencyKey?: string;
+  /** Allegati su supporto durevole (contratti, ricevute): mai manoscritti. */
+  attachments?: Array<{ filename: string; content: Buffer; mime: string }>;
 }
 
-export async function inviaEmail({ to, subject, html, replyTo, idempotencyKey }: Messaggio): Promise<void> {
+export async function inviaEmail({ to, subject, html, replyTo, idempotencyKey, attachments }: Messaggio): Promise<void> {
   if (process.env.PROEMIOS_TEST_RUN === "1" && !process.env.VERCEL && process.env.PROEMIOS_TEST_MAIL_DIR) {
     const { mkdir, writeFile } = await import("node:fs/promises");
     const { randomUUID } = await import("node:crypto");
     const { join } = await import("node:path");
     const directory = process.env.PROEMIOS_TEST_MAIL_DIR;
     await mkdir(directory, { recursive: true, mode: 0o700 });
-    await writeFile(join(directory, `${randomUUID()}.json`), JSON.stringify({ to, subject, html, replyTo }), { mode: 0o600 });
+    await writeFile(join(directory, `${randomUUID()}.json`), JSON.stringify({ to, subject, html, replyTo, attachments: attachments?.map((a) => ({ filename: a.filename, mime: a.mime, size: a.content.byteLength })) }), { mode: 0o600 });
     return;
   }
   const api = resend();
@@ -44,6 +46,7 @@ export async function inviaEmail({ to, subject, html, replyTo, idempotencyKey }:
     subject,
     html,
     replyTo,
+    ...(attachments?.length ? { attachments: attachments.map((a) => ({ filename: a.filename, content: a.content, contentType: a.mime })) } : {}),
   }, idempotencyKey ? { idempotencyKey } : undefined);
   if (error) {
     console.error(JSON.stringify({ evt: "email.errore", code: error.name }));

@@ -2,6 +2,7 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
 import { twoFactor } from "better-auth/plugins/two-factor";
+import { magicLink } from "better-auth/plugins/magic-link";
 import { APIError, createAuthMiddleware } from "better-auth/api";
 import { eq } from "drizzle-orm";
 import { getDb } from "@/db";
@@ -14,6 +15,7 @@ import { hashToken } from "@/lib/platform/http";
 import { unavailable } from "@/lib/platform/http";
 import { stagingPasswordOnly } from "@/lib/platform/staging-password-only";
 import { linkLeadsToAuthor } from "@/lib/platform/lead-linking";
+import { recordFunnel } from "@/lib/platform/funnel";
 
 function createAuth() {
   return betterAuth({
@@ -45,7 +47,10 @@ function createAuth() {
         if (user.twoFactorEnabled) await getDb().delete(authSchema.session).where(eq(authSchema.session.userId, user.id));
         // Email verificata: le richieste pubbliche fatte con lo stesso indirizzo
         // compaiono nell'area autore senza passare dal token di collegamento.
-        if (user.emailVerified) await linkLeadsToAuthor(user.id, user.email).catch(() => {});
+        if (user.emailVerified) {
+          await linkLeadsToAuthor(user.id, user.email).catch(() => {});
+          await recordFunnel(getDb(), "email_verified").catch(() => {});
+        }
       } }, create: { after: async user => {
         await getDb().insert(memberships).values({ userId: user.id, role: "author" }).onConflictDoNothing();
       } } },
@@ -58,7 +63,17 @@ function createAuth() {
     },
     hooks: { before: createAuthMiddleware(async context => {
       if (context.path === "/sign-up/email" && context.body?.privacyAccepted !== true) throw new APIError("BAD_REQUEST", { message: "Leggi e accetta l'informativa sulla privacy per creare l'account." });
-      if (["/sign-up/email", "/request-password-reset", "/send-verification-email"].includes(context.path) && !mailConfigured()) throw new APIError("SERVICE_UNAVAILABLE", { message: "Il servizio di accesso non è disponibile al momento." });
+      if (["/sign-up/email", "/request-password-reset", "/send-verification-email", "/sign-in/magic-link"].includes(context.path) && !mailConfigured()) throw new APIError("SERVICE_UNAVAILABLE", { message: "Il servizio di accesso non è disponibile al momento." });
+      // Il link di accesso è solo per gli autori: team e partner entrano con
+      // password e verifica in due passaggi, che il link salterebbe.
+      if (context.path === "/sign-in/magic-link") {
+        const email = String(context.body?.email ?? "").trim().toLowerCase();
+        const [person] = email ? await getDb().select({ id: authSchema.user.id, twoFactorEnabled: authSchema.user.twoFactorEnabled }).from(authSchema.user).where(eq(authSchema.user.email, email)) : [];
+        if (person) {
+          const access = await getDb().select().from(memberships).where(eq(memberships.userId, person.id));
+          if (person.twoFactorEnabled || access.some(m => m.active && m.role !== "author")) throw new APIError("FORBIDDEN", { message: "Per questo account serve l'accesso con password e codice di verifica." });
+        }
+      }
       if (context.path === "/two-factor/disable") {
         const session = await getAuth().api.getSession({ headers: context.headers! });
         if (session) {
@@ -67,7 +82,24 @@ function createAuth() {
         }
       }
     }) },
-    plugins: [twoFactor({ issuer: "Proemios", skipVerificationOnEnable: false }), nextCookies()],
+    plugins: [
+      twoFactor({ issuer: "Proemios", skipVerificationOnEnable: false }),
+      // Accesso senza password per gli autori: link monouso, 15 minuti, solo
+      // account esistenti (la registrazione resta esplicita, con privacy).
+      magicLink({
+        disableSignUp: true,
+        expiresIn: 15 * 60,
+        rateLimit: { window: 60, max: 3 },
+        sendMagicLink: async ({ email, url }) => {
+          // Nessuna email a indirizzi sconosciuti: la risposta resta identica, così
+          // l'esistenza di un account non si indovina dal comportamento.
+          const [known] = await getDb().select({ id: authSchema.user.id }).from(authSchema.user).where(eq(authSchema.user.email, email.toLowerCase()));
+          if (!known) return;
+          await enqueueMail(`magic-link:${hashToken(url)}`, { to: email, subject: "Il tuo link di accesso a Proemios", html: impaginaEmail("Entra nella tua area", `<p>Apri questo collegamento per accedere senza password. Vale 15 minuti e funziona una sola volta.</p><p><a href="${esc(url)}">Accedi alla tua area</a></p><p>Se non hai richiesto tu l'accesso, ignora questa email: nessuno può entrare senza questo collegamento.</p>`) });
+        },
+      }),
+      nextCookies(),
+    ],
   });
 }
 type Auth = ReturnType<typeof createAuth>;

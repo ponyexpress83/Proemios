@@ -10,6 +10,7 @@ import {
   uniqueIndex,
   bigint,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { user } from "./auth-schema";
 import type { Grant, Role } from "@/lib/platform/permissions";
 
@@ -77,10 +78,21 @@ export const projects = pgTable(
     stage: text("stage").notNull().default("brief"),
     quoteId: uuid("quote_id"),
     dueAt: timestamp("due_at", { withTimezone: true }),
+    remindersPausedAt: timestamp("reminders_paused_at", { withTimezone: true }),
+    /** Chi segue l'autore (il venditore della proposta o chi viene assegnato dopo). */
+    referentId: text("referent_id").references(() => user.id),
+    /** Da quale incasso parte la lavorazione: deposit (acconto) o balance (saldo). */
+    startCondition: text("start_condition").notNull().default("deposit"),
+    /** Quando la condizione economica di avvio è stata soddisfatta. */
+    startedAt: timestamp("started_at", { withTimezone: true }),
     createdAt: created(),
     updatedAt: updated(),
   },
-  (t) => [index("project_author_idx").on(t.authorId)],
+  (t) => [
+    index("project_author_idx").on(t.authorId),
+    // Un solo progetto per proposta pagata: il vincolo vale a livello di database.
+    uniqueIndex("project_quote_idx").on(t.quoteId).where(sql`${t.quoteId} is not null`),
+  ],
 );
 export const projectMembers = pgTable(
   "platform_project_members",
@@ -194,6 +206,28 @@ export const leadOwnership = pgTable("platform_lead_ownership", {
   assignedTo: text("assigned_to").references(() => user.id),
   updatedAt: updated(),
 });
+/**
+ * Storia del contatto: attività manuali (telefonate, WhatsApp, SMS, incontri),
+ * cambi di stato, assegnazioni, automazioni inviate, importazioni. Le note
+ * libere restano in platform_lead_notes; qui ogni riga ha un tipo e un canale.
+ */
+export const leadActivities = pgTable(
+  "platform_lead_activities",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    leadId: uuid("lead_id").notNull(),
+    actorId: text("actor_id").references(() => user.id),
+    kind: text("kind").notNull(),
+    channel: text("channel"),
+    direction: text("direction").notNull().default("outbound"),
+    purpose: text("purpose"),
+    body: text("body"),
+    outcome: text("outcome"),
+    eventKey: text("event_key").unique(),
+    createdAt: created(),
+  },
+  (t) => [index("lead_activity_lead_idx").on(t.leadId, t.createdAt)],
+);
 export const leadNotes = pgTable("platform_lead_notes", {
   id: uuid("id").defaultRandom().primaryKey(),
   leadId: uuid("lead_id").notNull(),
@@ -218,7 +252,41 @@ export const quoteRecords = pgTable("platform_quote_records", {
   createdAt: created(),
   taxPolicy: jsonb("tax_policy"),
   commissionPolicy: jsonb("commission_policy"),
+  /**
+   * Stato commerciale, distinto dal pagamento e dal progetto:
+   * estimate (stima indicativa) · review (in valutazione dal team) ·
+   * offer (proposta definitiva acquistabile) · accepted (accettata).
+   * Le righe nate prima di questa colonna valgono come proposte del team.
+   */
+  commercialState: text("commercial_state").notNull().default("offer"),
+  reviewRequestedAt: timestamp("review_requested_at", { withTimezone: true }),
+  reviewNote: text("review_note"),
+  offeredAt: timestamp("offered_at", { withTimezone: true }),
+  offeredBy: text("offered_by").references(() => user.id),
+  /** Pacchetto scelto prima di avere un account: si conserva fino alla conferma. */
+  preferredTier: text("preferred_tier"),
+  /** Un venditore ha lavorato la proposta (revisione, invio, offerta): non la sola assegnazione del contatto. */
+  salesAssisted: boolean("sales_assisted").notNull().default(false),
+  remindersPausedAt: timestamp("reminders_paused_at", { withTimezone: true }),
+  /**
+   * Rateizzazione concessa dall'azienda sul saldo (distinta dalle rate che il
+   * cliente ottiene da Klarna/Scalapay dentro Stripe, che per noi restano un
+   * pagamento unico). Null: acconto + saldo.
+   */
+  paymentPlan: jsonb("payment_plan").$type<PaymentPlan>(),
+  /** Sconto commerciale applicato dal team entro le soglie (basis points), con chi lo ha concesso. */
+  discountBps: integer("discount_bps").notNull().default(0),
+  discountBy: text("discount_by").references(() => user.id),
+  discountNote: text("discount_note"),
+  discountApprovedBy: text("discount_approved_by").references(() => user.id),
 });
+export type PaymentPlan = {
+  installments: number;
+  grantedBy: string;
+  grantedAt: string;
+  approvedBy?: string | null;
+  note?: string | null;
+};
 export const quoteClaims = pgTable("platform_quote_claims", {
   id: uuid("id").defaultRandom().primaryKey(),
   quoteId: uuid("quote_id").notNull(),
@@ -258,6 +326,13 @@ export const paymentOrders = pgTable("platform_payment_orders", {
   status: text("status").notNull().default("pending"),
   stripeSessionId: text("stripe_session_id").unique(),
   stripePaymentIntentId: text("stripe_payment_intent_id"),
+  /** Numero della rata dello stesso tipo (1 per acconto e saldo unico). */
+  sequence: integer("sequence").notNull().default(1),
+  /** standard: acconto o saldo; company_installment: rata concessa dall'azienda. */
+  plan: text("plan").notNull().default("standard"),
+  dueAt: timestamp("due_at", { withTimezone: true }),
+  /** Metodo con cui Stripe ha confermato l'incasso (card, klarna, customer_balance…), se noto. */
+  paymentMethod: text("payment_method"),
   createdAt: created(),
   updatedAt: updated(),
 });
@@ -318,6 +393,8 @@ export const emailOutbox = pgTable("platform_email_outbox", {
   lockedUntil: timestamp("locked_until", { withTimezone: true }),
   lastError: text("last_error"),
   providerId: text("provider_id"),
+  /** Allegati su supporto durevole (es. contratto): riferimenti allo storage privato, mai il contenuto. */
+  attachments: jsonb("attachments").$type<Array<{ filename: string; storageKey: string; mime: string }>>(),
   createdAt: created(),
 });
 export const operationKeys = pgTable("platform_operation_keys", {
@@ -382,10 +459,127 @@ export const refundRequests = pgTable("platform_refund_requests", {
   reason: text("reason").notNull(),
   preparedBy: text("prepared_by").notNull().references(() => user.id),
   authorizedBy: text("authorized_by").references(() => user.id),
+  /** prepared → authorized (richiesta a Stripe) → executed (evento refund.succeeded) | failed */
   status: text("status").notNull().default("prepared"),
+  authorizedAt: timestamp("authorized_at", { withTimezone: true }),
+  executedAt: timestamp("executed_at", { withTimezone: true }),
+  stripeRefundId: text("stripe_refund_id").unique(),
+  lastError: text("last_error"),
   createdAt: created(),
   updatedAt: updated(),
 });
+/**
+ * Contratto concluso online: scheda d'ordine strutturata + condizioni generali
+ * nella versione accettata, con prova proporzionata dell'accettazione. La copia
+ * stabile (PDF) sta nello storage privato; qui restano snapshot e impronte.
+ */
+export const contracts = pgTable(
+  "platform_contracts",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    quoteId: uuid("quote_id").notNull(),
+    version: integer("version").notNull(),
+    tier: text("tier").notNull(),
+    authorId: text("author_id").notNull().references(() => user.id),
+    termsVersion: text("terms_version").notNull(),
+    termsHash: text("terms_hash").notNull(),
+    orderSheet: jsonb("order_sheet").$type<OrderSheet>().notNull(),
+    orderSheetHash: text("order_sheet_hash").notNull(),
+    storageKey: text("storage_key"),
+    pdfHash: text("pdf_hash"),
+    acceptances: jsonb("acceptances").$type<ContractAcceptances>().notNull(),
+    acceptedAt: timestamp("accepted_at", { withTimezone: true }).notNull(),
+    acceptedIp: text("accepted_ip"),
+    acceptedUserAgent: text("accepted_user_agent"),
+    /** Cliente consumatore (persona fisica senza partita IVA): tutele del Codice del Consumo. */
+    consumer: boolean("consumer").notNull().default(true),
+    withdrawalDeadline: timestamp("withdrawal_deadline", { withTimezone: true }),
+    withdrawalRequestedAt: timestamp("withdrawal_requested_at", { withTimezone: true }),
+    withdrawalNote: text("withdrawal_note"),
+    withdrawalHandledAt: timestamp("withdrawal_handled_at", { withTimezone: true }),
+    withdrawalOutcome: text("withdrawal_outcome"),
+    createdAt: created(),
+  },
+  (t) => [uniqueIndex("contract_quote_version_idx").on(t.quoteId, t.version), index("contract_author_idx").on(t.authorId)],
+);
+/**
+ * Registro delle campagne: ogni campagna ha UTM propri e un link tracciato.
+ * L'attribuzione a lead, proposte e incassi avviene per id di campagna (parametro
+ * «pc» del link) o, in mancanza, per corrispondenza degli UTM. La spesa arriva
+ * da import CSV o inserimento manuale, mai da collegamenti pubblicitari automatici.
+ */
+export const campaigns = pgTable(
+  "platform_campaigns",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    name: text("name").notNull(),
+    channel: text("channel").notNull().default("other"),
+    status: text("status").notNull().default("draft"),
+    startsAt: timestamp("starts_at", { withTimezone: true }),
+    endsAt: timestamp("ends_at", { withTimezone: true }),
+    destination: text("destination").notNull().default("/preventivo"),
+    utmSource: text("utm_source").notNull(),
+    utmMedium: text("utm_medium").notNull(),
+    utmCampaign: text("utm_campaign").notNull(),
+    utmContent: text("utm_content"),
+    utmTerm: text("utm_term"),
+    partnerId: text("partner_id").references(() => user.id),
+    sellerId: text("seller_id").references(() => user.id),
+    budgetCents: integer("budget_cents").notNull().default(0),
+    notes: text("notes"),
+    createdBy: text("created_by").references(() => user.id),
+    createdAt: created(),
+    updatedAt: updated(),
+  },
+  (t) => [uniqueIndex("campaign_utm_idx").on(t.utmSource, t.utmMedium, t.utmCampaign)],
+);
+export const campaignSpend = pgTable(
+  "platform_campaign_spend",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    campaignId: uuid("campaign_id").notNull().references(() => campaigns.id, { onDelete: "cascade" }),
+    day: text("day").notNull(),
+    spendCents: integer("spend_cents").notNull().default(0),
+    impressions: integer("impressions"),
+    clicks: integer("clicks"),
+    source: text("source").notNull().default("manual"),
+    createdBy: text("created_by").references(() => user.id),
+    createdAt: created(),
+  },
+  (t) => [uniqueIndex("campaign_spend_day_idx").on(t.campaignId, t.day, t.source)],
+);
+export type ContractAcceptances = {
+  terms: true;
+  orderSheet: true;
+  earlyStart: boolean;
+  marketing: boolean;
+};
+export type OrderSheetLine = { key: string; label: string; amount: number };
+export type OrderSheet = {
+  reference: string;
+  quoteVersion: number;
+  pricingVersion: string;
+  policyVersion: string;
+  termsVersion: string;
+  service: string;
+  projectType: string;
+  packageName: string;
+  tier: string;
+  quantity: { wordCount: number; textState: string; urgency: string };
+  lines: OrderSheetLine[];
+  includes: string[];
+  excludes: string[];
+  revisions: string;
+  deliveries: string;
+  deadlines: string;
+  startConditions: string;
+  amounts: { vatMode: string; vatRateBps: number; netCents: number; taxCents: number; grossCents: number; depositCents: number; balanceCents: number };
+  installments: Array<{ kind: "deposit" | "balance"; sequence: number; amountCents: number; label: string }>;
+  customer: { name: string; kind: string; taxCode: string | null; vatNumber: string | null; address: string; email: string } | null;
+  supplier: { name: string; legalForm: string; address: string; vat: string; email: string };
+  earlyStartText: string;
+  withdrawalText: string;
+};
 /** Dati di fatturazione dell'autore: senza, nessun incasso può diventare fattura. */
 export const billingProfiles = pgTable("platform_billing_profiles", {
   userId: text("user_id").primaryKey().references(() => user.id),
@@ -430,3 +624,18 @@ export const invoices = pgTable("platform_invoices", {
   createdAt: created(),
   updatedAt: updated(),
 }, t => [index("invoices_author_idx").on(t.authorId), index("invoices_status_idx").on(t.status)]);
+
+/**
+ * Misurazione del percorso di acquisto. Gli eventi "ui" arrivano dal browser
+ * (senza cookie, IP o identità); quelli "economic" li scrive il server quando
+ * un fatto è verificato (email verificata, accettazione, checkout, incasso).
+ */
+export const funnelEvents = pgTable("platform_funnel_events", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: text("name").notNull(),
+  kind: text("kind").notNull().default("ui"),
+  quoteId: uuid("quote_id"),
+  visitorKey: text("visitor_key"),
+  meta: jsonb("meta"),
+  createdAt: created(),
+}, t => [index("funnel_name_idx").on(t.name, t.createdAt)]);

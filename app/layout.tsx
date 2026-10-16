@@ -3,6 +3,9 @@ import type { Metadata } from "next";
 import { BRAND } from "@/config/brand";
 import { UI } from "@/config/copy";
 import { SiteChrome } from "@/components/editorial/site-chrome";
+import { SessionAttribution } from "@/components/marketing/session-attribution";
+import { Analytics } from "@/components/marketing/analytics";
+import { publicEnv } from "@/lib/env";
 
 import { FasciaDemo } from "@/components/layout/fascia-demo";
 import { analysisConfigured } from "@/lib/platform/analysis";
@@ -68,6 +71,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {UI.saltaAlContenuto}
         </a>
         <FasciaDemo />
+        <SessionAttribution />
+        <Analytics measurementId={publicEnv.NEXT_PUBLIC_GA4_MEASUREMENT_ID} />
         <SiteChrome analysisReady={analysisConfigured()}>{children}</SiteChrome>
       </body>
     </html>

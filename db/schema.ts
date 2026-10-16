@@ -26,6 +26,10 @@ export const leadSourceEnum = pgEnum("lead_source", [
   "analisi",
   "contatto",
   "agenzie",
+  /** Contatto preso da un marketplace di servizi (es. AddLance) con inserimento autorizzato. */
+  "marketplace",
+  /** Importazione autorizzata da file (CSV) o inserimento manuale del team. */
+  "import",
 ]);
 
 export const quoteStatusEnum = pgEnum("quote_status", [
@@ -36,6 +40,7 @@ export const quoteStatusEnum = pgEnum("quote_status", [
   "lost",
 ]);
 
+export type ContactPreferences = { email: boolean; phone: boolean; whatsapp: boolean; sms: boolean; note?: string | null };
 export const leads = pgTable(
   "leads",
   {
@@ -53,11 +58,29 @@ export const leads = pgTable(
     attribution: jsonb("attribution"),
     consensoPrivacy: boolean("consenso_privacy").notNull().default(false),
     consensoMarketing: boolean("consenso_marketing").notNull().default(false),
+    /** Quando il consenso alle comunicazioni facoltative è stato dato o revocato. */
+    marketingConsentAt: timestamp("marketing_consent_at", { withTimezone: true }),
+    marketingRevokedAt: timestamp("marketing_revoked_at", { withTimezone: true }),
+    /** Canali ammessi per il contatto commerciale, scelti dalla persona o registrati dal team. */
+    contactPreferences: jsonb("contact_preferences").$type<ContactPreferences>(),
+    /** Dettaglio dell'origine: nome del marketplace, campagna, file importato. */
+    sourceDetail: varchar("source_detail", { length: 200 }),
+    /** Identificativo esterno (es. id dell'offerta sul marketplace) per non importare due volte. */
+    externalRef: varchar("external_ref", { length: 200 }),
+    /** Prossima azione concordata e scadenza: una sola per contatto. */
+    nextAction: varchar("next_action", { length: 300 }),
+    nextActionAt: timestamp("next_action_at", { withTimezone: true }),
+    lastContactAt: timestamp("last_contact_at", { withTimezone: true }),
+    lostReason: text("lost_reason"),
+    closedAt: timestamp("closed_at", { withTimezone: true }),
     note: text("note"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => ({
     emailIdx: index("leads_email_idx").on(t.email),
+    externalRefIdx: index("leads_external_ref_idx").on(t.externalRef),
+    nextActionIdx: index("leads_next_action_idx").on(t.nextActionAt),
     fonteIdx: index("leads_fonte_idx").on(t.fonte),
     stageIdx: index("leads_stage_idx").on(t.stage),
     scoreIdx: index("leads_score_idx").on(t.leadScore),

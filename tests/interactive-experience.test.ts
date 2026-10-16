@@ -15,16 +15,36 @@ import {
 } from "@/lib/author-demo";
 
 describe("pacchetti e servizi richiesti", () => {
-  it("rispetta la correzione bozze in tutti i pacchetti del caso segnalato nell’audit", () => {
+  it("la correzione bozze richiesta sostituisce l’editing di base, non si somma", () => {
     const q = computeQuote({
       projectType: "romanzo",
       textState: "finito-da-revisionare",
       wordCount: 50000,
       requestedServices: ["proofreading"],
     });
-    expect(q.packages.map((p) => p.total)).toEqual([2210, 2710, 4260]);
+    // Essenziale: solo correzione + produzione; Consigliato: editing (livello superiore); Signature: entrambe.
+    expect(q.packages.map((p) => p.total)).toEqual([1260, 2260, 4260]);
+    const keys = (i: number) => q.packages[i]!.lineItems.map((li) => li.key);
+    expect(keys(0)).toContain("proofreading");
+    expect(keys(0)).not.toContain("editing");
+    expect(keys(1)).toContain("editing");
+    expect(keys(1)).not.toContain("proofreading");
+    expect(keys(2)).toEqual(expect.arrayContaining(["editing", "proofreading"]));
     for (const p of q.packages)
-      expect(p.lineItems.filter((i) => i.key === "proofreading")).toHaveLength(1);
+      expect(p.lineItems.filter((i) => i.key === "proofreading").length).toBeLessThanOrEqual(1);
+  });
+  it("il servizio singolo dell’assistente arriva al configuratore come acquisto singolo", () => {
+    const single = new URL(
+      quoteWizardUrl({ projectType: "romanzo", textState: "finito-da-revisionare", wordCount: 50000, singleService: "proofreading", requestedServices: [] }),
+      "https://proemios.it",
+    );
+    expect(single.searchParams.get("servizi")).toBe("proofreading");
+    expect(single.searchParams.get("singolo")).toBe("1");
+    const full = new URL(
+      quoteWizardUrl({ projectType: "romanzo", textState: "finito-da-revisionare", wordCount: 50000, requestedServices: ["cover"] }),
+      "https://proemios.it",
+    );
+    expect(full.searchParams.get("singolo")).toBe("0");
   });
   it("deduplica i servizi mantenendo la stessa composizione e gli stessi costi", () => {
     const requested: ServiceKey[] = ["editing", "proofreading", "cover", "epub"];

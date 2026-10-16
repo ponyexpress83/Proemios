@@ -57,3 +57,27 @@
 .proemios-author-real .author-billing input,.proemios-author-real .author-billing select{display:block;width:100%;margin-top:.3rem;font:inherit;padding:.5rem;border:1px solid rgba(0,0,0,.15);border-radius:8px;background:#fff}
 .proemios-author-real .author-billing-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:.6rem}
 .proemios-author-real .author-invoices{margin-top:.8rem}
+
+/* Pagina unica di conferma */
+.proemios-author-real.author-confirm .author-main{max-width:980px;margin:0 auto}
+.proemios-author-real .author-confirm-head{margin:1.2rem 0 1.4rem}
+.proemios-author-real .author-confirm-head h1{font-size:clamp(1.6rem,3vw,2.2rem);margin:.6rem 0 .3rem}
+.proemios-author-real .author-confirm-meta{list-style:none;padding:0;margin:.8rem 0 0;display:flex;flex-wrap:wrap;gap:.6rem 1.2rem;font-size:.92rem;opacity:.85}
+.proemios-author-real .author-confirm-meta li{display:inline-flex;align-items:center;gap:.4rem}
+.proemios-author-real .author-confirm-table{display:grid;gap:.8rem;margin:1.2rem 0}
+.proemios-author-real .author-confirm-table > div{display:grid;grid-template-columns:minmax(140px,1fr) 2fr;gap:.6rem;padding:.7rem 0;border-top:1px solid rgba(0,0,0,.08)}
+.proemios-author-real .author-confirm-table dt{font-weight:600}
+.proemios-author-real .author-confirm-table dd{margin:0}
+.proemios-author-real .author-confirm-table ul{margin:0;padding-left:1.1rem}
+.proemios-author-real .author-amounts{list-style:none;padding:0 !important;margin:0 0 .5rem}
+.proemios-author-real .author-amounts li{display:flex;justify-content:space-between;gap:1rem;padding:.2rem 0}
+.proemios-author-real .author-tier-choice{border:0;padding:0;margin:0 0 1rem}
+.proemios-author-real .author-tier-choice legend{font-weight:600;margin-bottom:.5rem}
+.proemios-author-real button.author-quote-card{text-align:left;font:inherit;cursor:pointer;background:#fff}
+.proemios-author-real .author-quote-card h3{margin:.3rem 0}
+@media (max-width:640px){.proemios-author-real .author-confirm-table > div{grid-template-columns:1fr}}
+.proemios-author-real .author-next .author-action-line{width:100%;text-align:left;text-decoration:none;color:inherit;font:inherit;background:transparent;border:0;cursor:pointer}
+.proemios-author-real .author-next .author-action-line.primary strong{color:inherit}
+.proemios-author-real .author-next .author-action-line.info{opacity:.85}
+.proemios-author-real .author-action-line.unread strong::after{content:" •";color:#f16650}
+.proemios-author-real progress{width:100%;height:8px;accent-color:#f16650}

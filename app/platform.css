@@ -637,3 +637,16 @@
     transform: none;
   }
 }
+
+/* Scelta del modo di accesso (password o link via email) */
+.platform-segmented{display:flex;gap:.4rem;margin-bottom:.4rem}
+.platform-segmented button{flex:1;padding:.55rem .8rem;border:1px solid rgba(0,0,0,.18);border-radius:999px;background:transparent;font:inherit;cursor:pointer}
+.platform-segmented button[aria-pressed="true"]{background:var(--platform-accent,#1b1b3a);color:#fff;border-color:transparent}
+.platform-segmented button:focus-visible{outline:2px solid currentColor;outline-offset:2px}
+
+/* Attribuzione commerciale nella proposta */
+.platform-attribution{display:grid;gap:.5rem;margin:1rem 0 0}
+.platform-attribution div{display:grid;grid-template-columns:minmax(160px,1fr) 2fr;gap:.6rem;padding:.45rem 0;border-top:1px solid rgba(0,0,0,.08)}
+.platform-attribution dt{font-weight:600}
+.platform-attribution dd{margin:0}
+.platform-state.state-attention{background:#fde7e3;color:#8a2d1c}

@@ -669,6 +669,52 @@
   color: #626477;
   line-height: 1.7;
 }
+.assistant-packages .assistant-lines {
+  grid-column: 1/-1;
+  font-size: 13px;
+  color: #3a3d52;
+}
+.assistant-packages .assistant-lines summary {
+  cursor: pointer;
+  color: #8c3024;
+  font-weight: 600;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.assistant-packages .assistant-lines ul {
+  list-style: none;
+  padding: 0;
+  margin: 10px 0 0;
+  display: grid;
+  gap: 6px;
+}
+.assistant-packages .assistant-lines li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px dotted #ece8e4;
+  padding-bottom: 4px;
+}
+.assistant-packages .assistant-lines p {
+  margin-top: 10px;
+  font-size: 12px;
+  color: #626477;
+}
+.assistant-mode {
+  grid-column: 1/-1;
+  display: flex;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.assistant-mode button {
+  flex: 1;
+  justify-content: center;
+}
+.assistant-mode button[aria-pressed="true"] {
+  border-color: #f16650;
+  background: #fff0eb;
+}
 .proemios-public .assistant-result .button {
   margin-top: 20px;
   width: 100%;
@@ -2380,3 +2426,14 @@
     top: 270px;
   }
 }
+
+/* Preventivatore in tre momenti */
+.proemios-public .quote-moments{list-style:none;margin:0;padding:0;display:flex;gap:.6rem;flex-wrap:wrap}
+.proemios-public .quote-moments li{display:inline-flex;align-items:center;gap:.5rem;font-size:.85rem;letter-spacing:.02em;color:var(--stampa,#5b5b6b);padding:.35rem .7rem .35rem .4rem;border:1px solid rgba(0,0,0,.12);border-radius:999px}
+.proemios-public .quote-moments li span{display:grid;place-items:center;width:1.5rem;height:1.5rem;border-radius:50%;border:1px solid currentColor;font-size:.75rem}
+.proemios-public .quote-moments li.current{color:var(--inchiostro,#1b1b3a);border-color:var(--ottone,#b8893d);background:rgba(184,137,61,.1)}
+.proemios-public .quote-moments li.done span{background:var(--ottone,#b8893d);border-color:transparent;color:#fff}
+.proemios-public .quote-chips{display:flex;flex-wrap:wrap;gap:.5rem}
+.proemios-public .quote-chips button{font:inherit;font-size:.85rem;padding:.3rem .7rem;border:1px solid rgba(0,0,0,.15);border-radius:999px;background:#fff;cursor:pointer}
+.proemios-public .quote-chips button:hover,.proemios-public .quote-chips button:focus-visible{border-color:var(--ottone,#b8893d)}
+.proemios-public .quote-count summary{cursor:pointer;font-weight:500}

@@ -16,7 +16,7 @@ Nessuna password, token o link d’invito viene consegnato. Nessun account live 
 | Editor A/B | Progetto assegnato, messaggi, file/consegna, revisione | Progetto dell’altro editor, inviti senza delega | Assegnato |
 | Venditore A/B | Lead proprio, nota e proposta/PDF | Lead/assegnazione altrui, modifica incassi, manoscritti | Assegnato |
 | Affiliato A/B | Link/conversioni proprie e preferenze | Conversioni altrui, export CRM, contatti completi | Proprio |
-| Finance | Ledger/incassi test e export finanziario | Download manoscritto e pagamento commissione senza permesso dedicato | Finanza organizzazione |
+| Finance | Ledger/incassi test, fatture emesse, commissioni (lettura) ed export finanziario | Download manoscritto; liquidazione commissioni e preparazione/autorizzazione rimborsi senza le deleghe esplicite `commission.pay`, `refund.prepare`, `refund.authorize` | Finanza organizzazione |
 | Autore A/B | Progetti propri, claim, approvazione versione e download | ID di altro autore, note interne, consegna editor, grant staff | Proprio |
 
 Sessioni DB: autore massimo 7 giorni, staff massimo 12 ore, operazioni sensibili richiedono login/TOTP recente entro 15 minuti. Nessuna cookie cache dell’identità; revoca membership elimina sessioni e grants riletti a ogni richiesta. L’abilitazione TOTP revoca le sessioni precedenti. Invito accettato impone nuovo login e MFA.
