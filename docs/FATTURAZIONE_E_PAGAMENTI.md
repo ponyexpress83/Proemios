@@ -38,6 +38,14 @@ Senza dati di fatturazione il checkout risponde `409 BILLING_REQUIRED`. L'autore
 | `FIC_PAYMENT_ACCOUNT_ID` | Conto d'incasso (es. "Stripe") su cui registrare il pagamento. |
 | `STRIPE_PAYMENT_METHODS` | Vuoto: decide la Dashboard Stripe. Oppure elenco esplicito (`card,klarna,customer_balance`). |
 
+## Rate, rimborsi e contestazioni
+
+- **Rate del saldo concesse dall'azienda**: ordini `kind = balance` con `sequence` 1..N e `plan = company_installment`; importi calcolati dal server (`installmentSchedule`), l'ultima rata assorbe l'arrotondamento. Ogni rata incassata genera la propria fattura di saldo. Distinte dalle rate Klarna/Scalapay (pagamento unico per noi; `payment_method` registrato quando Stripe lo indica).
+- **Rimborsi**: Finance prepara (`POST refunds`, `refund.prepare`, nessun movimento); un **secondo** utente con `refund.authorize` e verifica in due passaggi recente autorizza (`POST refunds/:id/authorize`): la piattaforma chiama Stripe (`refunds.create`, chiave di idempotenza `proemios-refund-<id>`), e solo l'evento `refund.updated` verificato scrive registro, stato dell'ordine (`partially_refunded`/`refunded`) e storni delle commissioni; la richiesta passa a `executed`. Errore del provider → `failed`, riautorizzabile. Nessuna nota di credito automatica su Fatture in Cloud: da emettere a mano (limite dichiarato).
+- **Contestazioni**: `charge.dispute.created` → ordine `disputed` e commissioni trattenute; `charge.dispute.closed` con esito `won` → torna `paid`, altrimenti `review_required`.
+- **Recesso del consumatore**: blocca nuovi checkout (`WITHDRAWN`); il rimborso segue il percorso sopra.
+- **Progetto**: creato dal webhook al primo acconto verificato (una sola volta per proposta); la lavorazione (`editing`) parte dopo l'incasso previsto per il servizio (`purchase-rule.startAfter`, predefinito acconto); la consegna finale (`delivered`) richiede il saldo completo se `balanceBeforeDelivery` è attivo.
+
 ## Pagina unica di conferma
 
 L'autore accetta e paga da `/area-autore/conferma/[id]` (vedi `docs/PERCORSO_DI_ACQUISTO.md`): dati di fatturazione, accettazione e checkout in una chiamata (`POST quotes/:id/confirm`). Solo una proposta in stato `offer` è acquistabile.

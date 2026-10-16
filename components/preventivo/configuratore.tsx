@@ -1,5 +1,6 @@
 "use client";
 import { readSessionAttribution, sessionVisitorKey } from "@/lib/attribution-client";
+import { trackEvent, type ConversionEvent } from "@/lib/analytics";
 
 import { contattoPreventivoSchema } from "@/lib/validation";
 import type { Route } from "next";
@@ -52,6 +53,7 @@ function track(name: string, quoteId?: string) {
   try {
     if (typeof navigator !== "undefined" && navigator.doNotTrack === "1") return;
     const visitor = sessionVisitorKey();
+    trackEvent(name as ConversionEvent);
     void fetch("/api/eventi", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, ...(quoteId ? { quoteId } : {}), ...(visitor ? { visitor } : {}) }), keepalive: true }).catch(() => {});
   } catch {
     /* la misurazione non deve mai bloccare il percorso */

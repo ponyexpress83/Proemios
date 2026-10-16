@@ -2,6 +2,7 @@ import { randomBytes, createHash } from "node:crypto";
 import { eq, and, sql } from "drizzle-orm";
 import { z } from "zod";
 import { sanitizeAttribution, scoreLead } from "@/lib/attribution";
+import { syncBrevoContact } from "./brevo";
 import { getDb } from "@/db";
 import { leads, quotes, agencyLeads } from "@/db/schema";
 import {
@@ -18,7 +19,7 @@ import { user } from "@/db/auth-schema";
 import { preventivoSchema, contattoSchema, agenziaSchema, waitlistSchema } from "@/lib/validation";
 import { computeQuote } from "@/lib/pricing";
 import { impaginaEmail, esc, destinatarioInterno } from "@/lib/email";
-import { json, readBody, checkMutationOrigin, hashToken, unavailable, PlatformError } from "./http";
+import { json, readBody, checkMutationOrigin, hashToken, unavailable, PlatformError, afterResponse } from "./http";
 import { limitRequest, requestIdentity } from "./rate-limit";
 import {
   mailConfigured,
@@ -191,6 +192,7 @@ export async function publicQuote(request: Request) {
       });
     return saved;
   });
+  if (body.contatto.consensoMarketing) afterResponse(() => getDb().select({ id: leads.id }).from(leads).where(eq(leads.email, body.contatto.email.toLowerCase())).then((rows) => Promise.all(rows.map((r) => syncBrevoContact(r.id)))).catch(() => undefined));
   return json(response, 201);
 }
 export async function publicContact(request: Request, agency = false) {

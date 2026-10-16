@@ -6,6 +6,7 @@ import Link from "@/components/editorial/link";
 import { getDb } from "@/db";
 import { paymentOrders } from "@/db/platform-schema";
 import { pageActor } from "@/lib/platform/page-access";
+import { PurchaseEvent } from "@/components/marketing/analytics";
 export const dynamic = "force-dynamic";
 export const metadata = metadatiPagina({
   titolo: "Esito del pagamento",
@@ -30,7 +31,7 @@ export default async function Page({
   if (demoAttiva() && sp.demo === "1") return <Esito outcome="simulated" />;
   const actor = await pageActor();
   if (!actor) return <Esito outcome="unknown" />;
-  let outcome: Outcome = "unknown", quoteId: string | null = null, kind = "deposit", amountCents: number | null = null;
+  let outcome: Outcome = "unknown", quoteId: string | null = null, kind = "deposit", amountCents: number | null = null, paidOrderId: string | null = null;
   if (!demoAttiva() && stripeConfigurato() && sp.session_id && /^cs_[a-zA-Z0-9_]{10,240}$/.test(sp.session_id)) {
     try {
       const session = await stripe().checkout.sessions.retrieve(sp.session_id);
@@ -38,7 +39,7 @@ export default async function Page({
       if (orderId && /^[0-9a-f-]{36}$/.test(orderId)) {
         const [order] = await getDb().select().from(paymentOrders).where(eq(paymentOrders.id, orderId));
         if (order && order.authorId === actor.id && order.stripeSessionId === session.id) {
-          quoteId = order.quoteId; kind = order.kind; amountCents = order.amountCents;
+          quoteId = order.quoteId; kind = order.kind; amountCents = order.amountCents; paidOrderId = order.id;
           outcome = order.status === "paid" ? "paid" : session.payment_status === "paid" ? "pending" : "unknown";
         }
       }
@@ -46,7 +47,7 @@ export default async function Page({
       outcome = "unknown";
     }
   }
-  return <Esito outcome={outcome} quoteId={quoteId} kind={kind} amountCents={amountCents} />;
+  return <>{outcome === "paid" && paidOrderId && amountCents !== null ? <PurchaseEvent orderId={paidOrderId} valueCents={amountCents} kind={kind} /> : null}<Esito outcome={outcome} quoteId={quoteId} kind={kind} amountCents={amountCents} /></>;
 }
 function Esito({ outcome, quoteId, kind, amountCents }: { outcome: Outcome; quoteId?: string | null; kind?: string; amountCents?: number | null }) {
   const area = quoteId ? `/area-autore?preventivo=${encodeURIComponent(quoteId)}&vista=pagamenti` : "/area-autore?vista=pagamenti";

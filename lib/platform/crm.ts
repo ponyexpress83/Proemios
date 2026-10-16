@@ -17,7 +17,8 @@ import {
   tasks,
 } from "@/db/platform-schema";
 import { leadAccess, leadPredicate, demandAvailable, demand, audit, type Actor } from "./access";
-import { readBody, json, notFound, forbidden, PlatformError, hashToken, csvCell } from "./http";
+import { readBody, json, notFound, forbidden, PlatformError, hashToken, csvCell, afterResponse } from "./http";
+import { syncBrevoContact } from "./brevo";
 import { limitRequest } from "./rate-limit";
 import { computeQuote, type QuotePackage } from "@/lib/pricing";
 import { DEPOSIT_RATE } from "@/config/pricing";
@@ -326,6 +327,7 @@ export async function leadDetail(request: Request, actor: Actor, id: string) {
     if (body.marketingConsent && !body.consentEvidence) throw new PlatformError(422, "CONSENT_EVIDENCE_REQUIRED", "Per registrare un consenso serve la prova (es. data e testo della richiesta scritta).");
     await getDb().update(leads).set(body.marketingConsent ? { consensoMarketing: true, marketingConsentAt: new Date(), marketingRevokedAt: null } : { consensoMarketing: false, marketingRevokedAt: new Date() }).where(eq(leads.id, id));
     await getDb().insert(leadActivities).values({ leadId: id, actorId: actor.id, kind: "consent", purpose: "marketing", body: body.marketingConsent ? `Consenso registrato: ${body.consentEvidence}` : "Consenso alle comunicazioni facoltative revocato.", outcome: body.marketingConsent ? "granted" : "revoked" });
+    afterResponse(() => syncBrevoContact(id).catch(() => undefined));
   }
   const closing = next !== undefined && ["lost", "unreachable"].includes(next);
   await getDb()
@@ -674,7 +676,10 @@ export async function acceptQuote(actor: Actor, id: string, body: z.infer<typeof
     const sheet = buildOrderSheet({ quoteId: id, version: record.version, pricingVersion: record.pricingVersion, policy: policy.data, pkg: selected, quoteInput: access.quote.input as Parameters<typeof buildOrderSheet>[0]["quoteInput"], plan: record.paymentPlan ?? null, customer, email: actor.email });
     const created = await createContract(tx, { quoteId: id, version: record.version, tier: body.tier, actor, sheet, acceptances: { terms: true, orderSheet: true, earlyStart: body.earlyStart, marketing: body.marketingConsent }, consumer, evidence });
     // Il consenso alle comunicazioni facoltative è separato dal contratto: si registra solo se dato.
-    if (body.marketingConsent) await tx.update(leads).set({ consensoMarketing: true }).where(eq(leads.id, access.quote.leadId));
+    if (body.marketingConsent) {
+      await tx.update(leads).set({ consensoMarketing: true, marketingConsentAt: new Date(), marketingRevokedAt: null, updatedAt: new Date() }).where(eq(leads.id, access.quote.leadId));
+      afterResponse(() => syncBrevoContact(access.quote.leadId).catch(() => undefined));
+    }
     // Chi segue la vendita e il team: l'accettazione precede il pagamento.
     const importo = `€ ${selected.total.toLocaleString("it-IT")}`;
     const seller = acceptedOwnership?.assignedTo ?? null;

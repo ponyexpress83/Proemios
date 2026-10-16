@@ -1145,3 +1145,36 @@ describe("Marketing role, granular delegations, campaigns and attribution", () =
     void campaignId;
   });
 });
+
+describe("prepared integrations: Brevo webhook and consent synchronisation", () => {
+  it("verifies the shared secret, applies revocations and bounces once, ignores delivery events and never calls Brevo in tests", async () => {
+    const { POST: brevo } = await import("@/app/api/webhooks/brevo/route");
+    const post = (body: unknown, secret?: string) => brevo(new Request(`${origin}/api/webhooks/brevo${secret ? `?t=${secret}` : ""}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) }));
+    delete process.env.BREVO_API_KEY; delete process.env.BREVO_WEBHOOK_SECRET;
+    expect((await post({ event: "unsubscribed", email: "x@example.test" })).status).toBe(503);
+    process.env.BREVO_API_KEY = "brevo-synthetic"; process.env.BREVO_WEBHOOK_SECRET = `bw_${randomBytes(12).toString("hex")}`;
+    expect((await post({ event: "unsubscribed", email: "x@example.test" })).status).toBe(401);
+    expect((await post({ event: "unsubscribed", email: "x@example.test" }, "wrong")).status).toBe(401);
+    const [lead] = await db.insert(schema.leads).values({ nome: "Brevo Contact", email: "brevo-contact@example.test", fonte: "contatto", consensoPrivacy: true, consensoMarketing: true, marketingConsentAt: new Date(), contactPreferences: { email: true, phone: true, whatsapp: false, sms: false } }).returning();
+    const event = { event: "unsubscribed", email: "Brevo-Contact@example.test", id: 1234, date: "2026-10-16 10:00:00", ts: 1792000000 };
+    const first = await data(await post([event, { event: "delivered", email: "brevo-contact@example.test", id: 9, ts: 1 }], process.env.BREVO_WEBHOOK_SECRET));
+    expect(first).toMatchObject({ received: true, applied: 1, ignored: 1 });
+    const again = await data(await post(event, process.env.BREVO_WEBHOOK_SECRET));
+    expect(again.duplicate).toBe(true);
+    let [row] = await db.select().from(schema.leads).where(eq(schema.leads.id, lead!.id));
+    expect(row!.consensoMarketing).toBe(false); expect(row!.marketingRevokedAt).toBeTruthy(); expect(row!.contactPreferences?.email).toBe(true);
+    const activities = await db.select().from(platform.leadActivities).where(eq(platform.leadActivities.leadId, lead!.id));
+    expect(activities.filter((a) => a.kind === "consent" && a.outcome === "revoked")).toHaveLength(1);
+    await data(await post({ event: "hard_bounce", email: "brevo-contact@example.test", id: 77, ts: 2, reason: "mailbox unavailable" }, process.env.BREVO_WEBHOOK_SECRET));
+    [row] = await db.select().from(schema.leads).where(eq(schema.leads.id, lead!.id));
+    expect(row!.contactPreferences?.email).toBe(false); expect(row!.contactPreferences?.phone).toBe(true);
+    expect((await post("not-json", process.env.BREVO_WEBHOOK_SECRET)).status).toBe(400);
+    const { syncBrevoContact } = await import("@/lib/platform/brevo");
+    expect(await syncBrevoContact(lead!.id)).toMatchObject({ synced: false });
+    const { integrationStatus } = await import("@/lib/platform/integrations");
+    const status = await integrationStatus();
+    expect(status.brevo.configured).toBe(true); expect(status.googleAds.mode).toBe("prepared"); expect(status.whatsapp.configured).toBe(false);
+    expect(JSON.stringify(status)).not.toContain("brevo-synthetic");
+    delete process.env.BREVO_API_KEY; delete process.env.BREVO_WEBHOOK_SECRET;
+  });
+});

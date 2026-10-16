@@ -130,6 +130,8 @@ export async function operationsCollection(request: Request, actor: Actor) {
       cron: Boolean(process.env.CRON_SECRET),
       analysis: analysisConfigured(),
       invoicing: ficConfigured(),
+      analytics: Boolean(process.env.NEXT_PUBLIC_GA4_MEASUREMENT_ID),
+      brevo: Boolean(process.env.BREVO_API_KEY && process.env.BREVO_WEBHOOK_SECRET),
     },
     mail,
     events,

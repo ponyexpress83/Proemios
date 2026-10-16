@@ -9,6 +9,7 @@ import { appOrigin } from "./config";
 import { protectMailHtml } from "./mail";
 import { getSetting } from "./crm";
 import { pipelineState, type PipelineState } from "./pipeline";
+import { syncBrevoContact } from "./brevo";
 
 /**
  * Recuperi configurabili dei checkout abbandonati o falliti.
@@ -161,7 +162,10 @@ export async function runRecovery(now = new Date()): Promise<RecoveryResult> {
 export async function revokeMarketingConsent(leadId: string, token: string): Promise<boolean> {
   if (!z.string().uuid().safeParse(leadId).success || token !== unsubscribeToken(leadId)) return false;
   const [updated] = await getDb().update(leads).set({ consensoMarketing: false, marketingRevokedAt: new Date(), updatedAt: new Date() }).where(eq(leads.id, leadId)).returning({ id: leads.id });
-  if (updated) await getDb().insert(leadActivities).values({ leadId, kind: "consent", channel: "email", direction: "inbound", purpose: "marketing", body: "Consenso alle comunicazioni facoltative revocato dal link.", outcome: "revoked" });
+  if (updated) {
+    await getDb().insert(leadActivities).values({ leadId, kind: "consent", channel: "email", direction: "inbound", purpose: "marketing", body: "Consenso alle comunicazioni facoltative revocato dal link.", outcome: "revoked" });
+    await syncBrevoContact(leadId).catch(() => undefined);
+  }
   return Boolean(updated);
 }
 export type { PipelineState };
