@@ -11,13 +11,16 @@ type Package = { tier: string; name: string; headline: string; recommended: bool
 type Detail = {
   quote: { id: string; input: { projectType: string; textState: string; wordCount: number; singleService?: string; requestedServices?: string[]; urgency?: string }; createdAt: string };
   packages: Package[];
-  record: { version: number; acceptedAt: string | null; selectedTier: string | null; termsVersion: string | null; expiresAt: string | null; commercialState: string; reviewRequestedAt: string | null; offeredAt: string | null; preferredTier: string | null };
+  record: { version: number; acceptedAt: string | null; selectedTier: string | null; termsVersion: string | null; expiresAt: string | null; commercialState: string; reviewRequestedAt: string | null; offeredAt: string | null; preferredTier: string | null; paymentPlan: { installments: number } | null };
+  contract: { id: string; version: number; termsVersion: string; acceptedAt: string; acceptances: { earlyStart: boolean; marketing: boolean }; consumer: boolean; withdrawalDeadline: string | null; withdrawalRequestedAt: string | null; stableCopy: boolean; pdfUrl: string } | null;
+  terms: { version: string; updated: string; status: string };
   paymentPolicy: { version: string; vatMode: string; vatRateBps: number; termsVersion: string } | null;
   journey: JourneyStage;
   purchasePath: PurchasePath;
   referente: { name: string } | null;
 };
-type Payments = { project: { id: string; stage: string } | null; checkoutAvailable: boolean; methods: string[]; deposit: { grossCents: number | null; paid: boolean }; balance: { grossCents: number | null; paid: boolean }; orders: { id: string; kind: string; status: string }[]; invoices: { id: string; kind: string; number: string | null; status: string; grossCents: number }[] };
+type Schedule = { kind: "deposit" | "balance"; sequence: number; amountCents: number; label: string; status: string; orderId: string | null };
+type Payments = { project: { id: string; stage: string; startedAt: string | null; startCondition: string } | null; contract: { id: string; withdrawn: boolean; pdfUrl: string } | null; plan: { installments: number; kind: string }; schedule: Schedule[]; checkoutAvailable: boolean; methods: string[]; deposit: { grossCents: number | null; paid: boolean }; balance: { grossCents: number | null; paid: boolean }; orders: { id: string; kind: string; status: string }[]; invoices: { id: string; kind: string; number: string | null; status: string; grossCents: number }[] };
 const cents = (v: number) => new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(v / 100);
 const euro = (v: number) => new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(v);
 const date = (s: string) => new Date(s).toLocaleDateString("it-IT");
@@ -35,7 +38,7 @@ const PATH_COPY: Record<PurchasePath, string> = {
  */
 export function PurchaseConfirm({ quoteId, user, initialTier, payment }: { quoteId: string; user: { id: string; name: string; email: string }; initialTier?: string; payment?: string }) {
   const [detail, setDetail] = useState<Detail | null>(null), [payments, setPayments] = useState<Payments | null>(null), [billing, setBilling] = useState<Billing | null | undefined>(undefined);
-  const [tier, setTier] = useState<string | null>(null), [terms, setTerms] = useState(false), [editBilling, setEditBilling] = useState(false), [form, setForm] = useState<Billing>(emptyBilling(user.name));
+  const [tier, setTier] = useState<string | null>(null), [terms, setTerms] = useState(false), [sheet, setSheet] = useState(false), [earlyStart, setEarlyStart] = useState(false), [marketing, setMarketing] = useState(false), [editBilling, setEditBilling] = useState(false), [form, setForm] = useState<Billing>(emptyBilling(user.name));
   const [error, setError] = useState(""), [notice, setNotice] = useState(""), [busy, setBusy] = useState(false), [missing, setMissing] = useState(false), [reload, setReload] = useState(0), [note, setNote] = useState("");
   useEffect(() => {
     if (payment === "annullato") setNotice("Pagamento annullato: nessun importo è stato addebitato. La proposta e le tue scelte sono ancora qui.");
@@ -75,7 +78,7 @@ export function PurchaseConfirm({ quoteId, user, initialTier, payment }: { quote
     if (!detail || !pkg || !detail.paymentPolicy) return;
     await run(async () => {
       const result = await platformApi<{ accepted: boolean; url: string | null; checkoutAvailable: boolean; message?: string }>(`quotes/${quoteId}/confirm`, "POST", {
-        tier: pkg.tier, version: detail.record.version, policyVersion: detail.paymentPolicy!.version, termsAccepted: true,
+        tier: pkg.tier, version: detail.record.version, policyVersion: detail.paymentPolicy!.version, termsAccepted: true, orderSheetAccepted: true, earlyStart, marketingConsent: marketing,
         ...(billing && !editBilling ? {} : { billing: billingPayload(form) }),
       });
       if (result.url) { fetch("/api/eventi", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: "checkout_opened", quoteId }) }).catch(() => {}); window.location.assign(result.url); return; }
@@ -148,16 +151,22 @@ export function PurchaseConfirm({ quoteId, user, initialTier, payment }: { quote
               ) : (
                 <ul className="author-amounts"><li>Totale, {policy.vatMode === "exempt" ? "esente IVA" : "IVA inclusa"} <strong>{cents(pkg.money.grossCents)}</strong></li>{policy.vatMode !== "exempt" && <li><small>di cui {vat}: {cents(pkg.money.taxCents)}</small></li>}</ul>
               )}
-              <ul className="author-amounts"><li>Da pagare ora (acconto) <strong>{cents(pkg.depositMoney.grossCents)}</strong></li><li>Residuo alla consegna <strong>{cents(pkg.money.grossCents - pkg.depositMoney.grossCents)}</strong></li></ul>
+              <ul className="author-amounts"><li>Da pagare ora (acconto) <strong>{cents(pkg.depositMoney.grossCents)}</strong></li>{payments.schedule.filter((i) => i.kind === "balance").length > 1 ? payments.schedule.filter((i) => i.kind === "balance").map((i) => <li key={i.sequence}>{i.label} <strong>{cents(i.amountCents)}</strong></li>) : <li>Residuo alla consegna <strong>{cents(pkg.money.grossCents - pkg.depositMoney.grossCents)}</strong></li>}</ul>
+              {payments.schedule.filter((i) => i.kind === "balance").length > 1 && <small>Rateizzazione del saldo concessa da Proemios, senza interessi: è distinta dalle eventuali rate offerte dal metodo di pagamento (Klarna, Scalapay) sulla singola operazione.</small>}
             </dd></div>
+            <div><dt>Documenti</dt><dd>Scheda d’ordine con i dati qui sopra e <Link href="/termini" target="_blank" rel="noopener">condizioni generali versione {detail.terms.version}</Link> (aggiornate il {detail.terms.updated}). <a href={`/api/platform/quotes/${quoteId}/pdf`}>Scarica la proposta in PDF</a>. Dopo la conferma ricevi il contratto via email e lo trovi sempre qui.</dd></div>
+            <div><dt>Recesso</dt><dd>Se acquisti come persona fisica puoi recedere entro 14 giorni dalla conferma, dalla tua area o per email. Se chiedi di iniziare subito, in caso di recesso paghi solo il lavoro già svolto.</dd></div>
           </dl>
           <section className="author-billing">
             <h3>Dati di fatturazione</h3>
             {billing && !editBilling ? <><p>{billingSummary(billing)}</p><button type="button" className="author-text-link" onClick={() => setEditBilling(true)}>Modifica →</button></> : <div className="author-upload"><BillingFields form={form} onChange={setForm} />{billing && <button type="button" className="author-text-link" onClick={() => setEditBilling(false)}>Annulla la modifica</button>}</div>}
           </section>
-          <label className="author-terms"><input type="checkbox" checked={terms} onChange={(e) => setTerms(e.target.checked)} required /> Ho letto e accetto le <Link href="/termini" target="_blank" rel="noopener">condizioni contrattuali e di pagamento</Link> (versione {policy.termsVersion}) per questa proposta.</label>
+          <label className="author-terms"><input type="checkbox" checked={terms} onChange={(e) => setTerms(e.target.checked)} required /> Ho letto e accetto le <Link href="/termini" target="_blank" rel="noopener">condizioni generali di contratto e di pagamento</Link> (versione {detail.terms.version}).</label>
+          <label className="author-terms"><input type="checkbox" checked={sheet} onChange={(e) => setSheet(e.target.checked)} required /> Ho verificato la scheda d’ordine: servizio, quantità, importi, tempi e condizioni di avvio sono corretti.</label>
+          <label className="author-terms"><input type="checkbox" checked={earlyStart} onChange={(e) => setEarlyStart(e.target.checked)} /> Facoltativo: chiedo che la lavorazione inizi subito, anche durante i 14 giorni di recesso. So che in caso di recesso pagherò il lavoro già svolto e che, a servizio completato, il recesso non sarà più esercitabile.</label>
+          <label className="author-terms"><input type="checkbox" checked={marketing} onChange={(e) => setMarketing(e.target.checked)} /> Facoltativo: voglio ricevere guide e comunicazioni informative di Proemios. Posso revocare quando voglio; non incide sul contratto.</label>
           <div className="author-approval">
-            <button className="author-cta" disabled={busy || !terms}>{payments.checkoutAvailable ? `Accetta e paga ${cents(pkg.depositMoney.grossCents)} ora` : "Accetta la proposta"} <ArrowRight size={16} /></button>
+            <button className="author-cta" disabled={busy || !terms || !sheet}>{payments.checkoutAvailable ? `Accetta e paga ${cents(pkg.depositMoney.grossCents)} ora` : "Accetta la proposta"} <ArrowRight size={16} /></button>
             <small>{payments.checkoutAvailable ? "Pagamento sulla pagina sicura di Stripe con i metodi disponibili. La conferma arriva da Stripe, non dal ritorno a questa pagina." : "Il pagamento online non è ancora attivo: dopo l’accettazione il team ti indica come procedere."}</small>
           </div>
         </form>
@@ -168,11 +177,31 @@ export function PurchaseConfirm({ quoteId, user, initialTier, payment }: { quote
           <span className="eyebrow">PAGAMENTI</span>
           <h2>{stage === "paid" ? "Tutto pagato." : stage === "deposit_paid" ? "Acconto confermato." : stage === "processing" ? "Stiamo aspettando la conferma." : "Manca solo l’acconto."}</h2>
           <p>Proposta accettata{detail.record.acceptedAt ? ` il ${date(detail.record.acceptedAt)}` : ""}: {pkg.name}, {cents(pkg.money.grossCents)} {policy?.vatMode === "exempt" ? "esente IVA" : "IVA inclusa"}. Le condizioni sono bloccate.</p>
-          <div className="author-action-line author-payment-row"><CreditCard size={20} /><span><strong>Acconto</strong><small>{cents(pkg.depositMoney.grossCents)}{payments.deposit.paid ? " · confermato" : pending?.kind === "deposit" ? " · in elaborazione" : ""}</small></span>{payments.deposit.paid ? <span className="status-pill peach"><Check size={14} /> Pagato</span> : <button className="author-cta" disabled={busy || !payments.checkoutAvailable} onClick={() => pay("deposit")}>{pending?.kind === "deposit" ? "Riprendi il pagamento" : "Paga l’acconto"} <ArrowRight size={16} /></button>}</div>
-          <div className="author-action-line author-payment-row"><CreditCard size={20} /><span><strong>Saldo</strong><small>{cents(pkg.money.grossCents - pkg.depositMoney.grossCents)} · dovuto alla consegna{payments.balance.paid ? " · confermato" : pending?.kind === "balance" ? " · in elaborazione" : ""}</small></span>{payments.balance.paid ? <span className="status-pill peach"><Check size={14} /> Pagato</span> : payments.deposit.paid ? <button className="author-cta" disabled={busy || !payments.checkoutAvailable} onClick={() => pay("balance")}>{pending?.kind === "balance" ? "Riprendi il pagamento" : "Paga il saldo"} <ArrowRight size={16} /></button> : <small>Dopo l’acconto</small>}</div>
+          {payments.contract?.withdrawn && <p className="platform-notice">Hai esercitato il recesso: nessun altro pagamento è dovuto. Il team ti scrive per il rimborso.</p>}
+          {payments.schedule.map((item, index) => {
+            const nextDue = payments.schedule.findIndex((i) => i.status !== "paid") === index;
+            return (
+              <div className="author-action-line author-payment-row" key={`${item.kind}-${item.sequence}`}><CreditCard size={20} /><span><strong>{item.label}</strong><small>{cents(item.amountCents)}{item.status === "paid" ? " · confermato" : item.status === "pending" ? " · in elaborazione" : item.kind === "balance" ? " · dopo l’acconto" : ""}</small></span>{item.status === "paid" ? <span className="status-pill peach"><Check size={14} /> Pagato</span> : nextDue && !payments.contract?.withdrawn ? <button className="author-cta" disabled={busy || !payments.checkoutAvailable} onClick={() => pay(item.kind)}>{item.status === "pending" ? "Riprendi il pagamento" : `Paga ${item.kind === "deposit" ? "l’acconto" : "la rata"}`} <ArrowRight size={16} /></button> : <small>{item.kind === "balance" ? "Più avanti" : ""}</small>}</div>
+            );
+          })}
           {pending && <p className="platform-notice">Un pagamento è in attesa di conferma. Con bonifico o addebito SEPA servono alcuni giorni lavorativi: non ripetere l’operazione, ti avvisiamo noi.</p>}
           {payments.invoices.length > 0 && <div className="author-invoices">{payments.invoices.map((f) => <div className="author-action-line" key={f.id}><FileText size={18} /><span><strong>{f.number ? `Fattura n. ${f.number}` : "Fattura"} · {f.kind === "deposit" ? "acconto" : "saldo"}</strong><small>{cents(f.grossCents)}</small></span>{f.number && <a href={`/api/platform/invoices/${f.id}/pdf`}>Scarica PDF</a>}</div>)}</div>}
           {payments.project && <Link className="author-cta" href={`/area-autore?progetto=${payments.project.id}` as Route}>Vai al progetto <ArrowRight size={16} /></Link>}
+          {payments.project && !payments.project.startedAt && <small>Puoi già caricare i materiali. Per questo servizio la lavorazione parte dopo il {payments.project.startCondition === "balance" ? "saldo" : "l’acconto"} confermato.</small>}
+        </article>
+      )}
+      {detail.contract && (
+        <article className="workspace-card">
+          <span className="eyebrow">IL TUO CONTRATTO</span>
+          <h2>Scheda d’ordine e condizioni generali versione {detail.contract.termsVersion}.</h2>
+          <p>Accettato il {date(detail.contract.acceptedAt)}{detail.contract.acceptances.earlyStart ? ", con richiesta di avvio immediato" : ""}. {detail.contract.stableCopy ? "La copia archiviata è identica a quella inviata via email." : "La copia viene rigenerata dai dati registrati al momento dell’accettazione."}</p>
+          <div className="author-approval">
+            <a className="author-cta" href={detail.contract.pdfUrl}><FileText size={16} /> Scarica il contratto (PDF)</a>
+            {detail.contract.consumer && !detail.contract.withdrawalRequestedAt && detail.contract.withdrawalDeadline && new Date(detail.contract.withdrawalDeadline).getTime() > Date.now() && (
+              <button type="button" className="author-text-link" disabled={busy} onClick={() => { if (window.confirm("Confermi di voler recedere dal contratto? Il team ti scriverà per il rimborso dovuto.")) run(async () => { await platformApi(`contracts/${detail.contract!.id}/withdraw`, "POST", {}); setNotice("Recesso registrato: riceverai una conferma via email."); setReload((x) => x + 1); }); }}>Recedi dal contratto (entro il {date(detail.contract.withdrawalDeadline)}) →</button>
+            )}
+            {detail.contract.withdrawalRequestedAt && <small>Recesso richiesto il {date(detail.contract.withdrawalRequestedAt)}.</small>}
+          </div>
         </article>
       )}
     </Shell>

@@ -3,6 +3,7 @@ import { getDb } from "@/db";
 import { quoteRecords } from "@/db/platform-schema";
 import { eq } from "drizzle-orm";
 import { acceptQuote, acceptBodySchema, quoteAccess } from "./crm";
+import { acceptanceEvidence } from "./contracts";
 import { createCheckout, checkoutAvailable } from "./payments";
 import { billingProfileSchema, saveBillingProfile, getBillingProfile } from "./billing";
 import { readBody, json, notFound, PlatformError } from "./http";
@@ -26,7 +27,7 @@ export async function quoteConfirm(request: Request, actor: Actor, id: string) {
   const { kind, billing: _billing, ...acceptance } = body;
   void _billing;
   const access = await quoteAccess(actor, id, "quote.accept");
-  if (!access.record.acceptedAt) await acceptQuote(actor, id, acceptance);
+  if (!access.record.acceptedAt) await acceptQuote(actor, id, acceptance, acceptanceEvidence(request));
   else if (access.record.selectedTier !== acceptance.tier)
     throw new PlatformError(409, "ALREADY_ACCEPTED", "La proposta è già stata accettata con un altro pacchetto.");
   if (!checkoutAvailable())

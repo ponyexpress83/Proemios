@@ -5,6 +5,7 @@ import { inviaEmail, type Messaggio } from "@/lib/email";
 import { CompactEncrypt, compactDecrypt } from "jose";
 import { createHash } from "node:crypto";
 import { unavailable, afterResponse } from "./http";
+import { readPrivate } from "./storage";
 
 function encryptionKey() {
   if ((process.env.BETTER_AUTH_SECRET?.length ?? 0) < 32) throw unavailable();
@@ -60,12 +61,22 @@ export async function flushMail(limit = 20) {
     });
     if (!item) break;
     try {
+      // Gli allegati (es. contratto) si leggono dallo storage privato al momento
+      // dell'invio: nell'outbox restano solo i riferimenti.
+      const attachments = [] as Array<{ filename: string; content: Buffer; mime: string }>;
+      for (const a of item.attachments ?? []) {
+        const chunks: Uint8Array[] = [];
+        const reader = (await readPrivate(a.storageKey)).getReader();
+        for (;;) { const { done, value } = await reader.read(); if (done) break; chunks.push(value); }
+        attachments.push({ filename: a.filename, content: Buffer.concat(chunks), mime: a.mime });
+      }
       await inviaEmail({
         to: item.recipient,
         subject: item.subject,
         html: await revealMailHtml(item.html),
         replyTo: item.replyTo ?? undefined,
         idempotencyKey: `proemios-mail-${item.id}`,
+        attachments: attachments.length ? attachments : undefined,
       });
       await getDb()
         .update(emailOutbox)

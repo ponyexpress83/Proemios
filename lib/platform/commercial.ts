@@ -25,6 +25,15 @@ export const purchaseRuleSchema = z.object({
   autoOfferSingleServices: z.array(serviceKeySchema).default([]),
   autoOfferFullPath: z.boolean().default(false),
   validityDays: z.number().int().min(1).max(365).default(30),
+  /**
+   * Rate concesse dall'azienda sul saldo, che un venditore può accordare da
+   * solo (1 = nessuna rateizzazione). Oltre serve chi gestisce le regole.
+   */
+  maxInstallments: z.number().int().min(1).max(12).default(1),
+  /** Per servizio: la lavorazione parte dopo l'acconto (predefinito) o dopo il saldo. */
+  startAfter: z.record(serviceKeySchema, z.enum(["deposit", "balance"])).default({}),
+  /** La consegna finale richiede il saldo confermato (salvo progetti senza proposta). */
+  balanceBeforeDelivery: z.boolean().default(true),
   approvedAt: z.string().datetime(),
   approvedBy: z.string().min(1),
 });
@@ -34,6 +43,9 @@ export const defaultPurchaseRule: PurchaseRule = {
   autoOfferSingleServices: ["cover", "epub", "kdp", "isbn", "amazonListing"],
   autoOfferFullPath: false,
   validityDays: 30,
+  maxInstallments: 1,
+  startAfter: {},
+  balanceBeforeDelivery: true,
   approvedAt: "2026-10-15T00:00:00.000Z",
   approvedBy: "predefinita",
 };
@@ -48,6 +60,11 @@ export function purchasePath(input: Pick<PricingInput, "projectType" | "textStat
 /** Ghostwriting, memoir e bozze: non esiste un prezzo definitivo senza leggere i materiali. */
 export function requiresTeamReview(input: Pick<PricingInput, "projectType" | "textState" | "singleService">): boolean {
   return purchasePath(input) === "complex";
+}
+/** Quale incasso fa partire la lavorazione per questa proposta. */
+export function startCondition(input: { singleService?: string }, rule: PurchaseRule): "deposit" | "balance" {
+  const service = input.singleService as keyof PurchaseRule["startAfter"] | undefined;
+  return (service && rule.startAfter[service]) || "deposit";
 }
 export function initialCommercialState(input: PricingInput, rule: PurchaseRule): "estimate" | "offer" {
   if (requiresTeamReview(input)) return "estimate";

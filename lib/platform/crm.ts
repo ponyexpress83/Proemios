@@ -11,7 +11,6 @@ import {
   quoteRecords,
   quoteClaims,
   platformSettings,
-  projects,
   quoteVersions,
   notifications,
   emailOutbox,
@@ -35,10 +34,12 @@ import { impaginaEmail, esc, destinatarioInterno } from "@/lib/email";
 import { enqueueMail, protectMailHtml } from "./mail";
 import { purchaseRuleSchema, defaultPurchaseRule, journeyStage, purchasePath, type PurchaseRule } from "./commercial";
 import { recordFunnel } from "./funnel";
-import { paymentOrders, affiliateConversions } from "@/db/platform-schema";
+import { paymentOrders, affiliateConversions, contracts } from "@/db/platform-schema";
+import { acceptanceEvidence, buildOrderSheet, createContract, customerForSheet, termsSnapshot } from "./contracts";
 
-export async function getSetting(key: string) {
-  const [row] = await getDb()
+type Db = Pick<ReturnType<typeof getDb>, "select">;
+export async function getSetting(key: string, db: Db = getDb()) {
+  const [row] = await db
     .select()
     .from(platformSettings)
     .where(eq(platformSettings.key, key))
@@ -51,8 +52,8 @@ export async function resolvePaymentPolicy(): Promise<PaymentPolicy> {
   return saved.success ? saved.data : defaultPaymentPolicy;
 }
 /** La regola di acquistabilità approvata dall'owner, oppure quella predefinita (prudente). */
-export async function resolvePurchaseRule(): Promise<PurchaseRule> {
-  const saved = purchaseRuleSchema.safeParse(await getSetting("purchase-rule"));
+export async function resolvePurchaseRule(db: Db = getDb()): Promise<PurchaseRule> {
+  const saved = purchaseRuleSchema.safeParse(await getSetting("purchase-rule", db));
   return saved.success ? saved.data : defaultPurchaseRule;
 }
 /**
@@ -304,7 +305,7 @@ export async function quoteCollection(request: Request, actor: Actor) {
         reviewRequestedAt: record.reviewRequestedAt,
         journey: journeyStage(record, own),
         depositPaid: own.some((o) => o.kind === "deposit" && o.status === "paid"),
-        balancePaid: own.some((o) => o.kind === "balance" && o.status === "paid"),
+        balancePaid: r.quote.stato === "won",
         paymentPending: own.some((o) => o.status === "pending"),
         name: r.name,
       };
@@ -363,8 +364,11 @@ export async function quoteDetail(request: Request, actor: Actor, id: string) {
   const current = await ensureQuotePolicy(access.record);
   const policy = { success: true as const, data: current };
   const orders = await getDb().select({ kind: paymentOrders.kind, status: paymentOrders.status }).from(paymentOrders).where(eq(paymentOrders.quoteId, id));
+  const [contract] = await getDb().select().from(contracts).where(eq(contracts.quoteId, id)).orderBy(desc(contracts.version)).limit(1);
   return json({
     quote: access.quote,
+    contract: contract ? { id: contract.id, version: contract.version, termsVersion: contract.termsVersion, acceptedAt: contract.acceptedAt, acceptances: contract.acceptances, consumer: contract.consumer, withdrawalDeadline: contract.withdrawalDeadline, withdrawalRequestedAt: contract.withdrawalRequestedAt, stableCopy: Boolean(contract.storageKey), pdfUrl: `/api/platform/contracts/${contract.id}/pdf` } : null,
+    terms: { version: termsSnapshot().version, updated: termsSnapshot().updated, status: termsSnapshot().status },
     history: await getDb().select({ version: quoteVersions.version, createdAt: quoteVersions.createdAt }).from(quoteVersions).where(eq(quoteVersions.quoteId, id)).orderBy(desc(quoteVersions.version)).limit(100),
     record: {
       version: access.record.version,
@@ -379,6 +383,7 @@ export async function quoteDetail(request: Request, actor: Actor, id: string) {
       offeredAt: access.record.offeredAt,
       preferredTier: access.record.preferredTier,
       remindersPausedAt: access.record.remindersPausedAt,
+      paymentPlan: access.record.paymentPlan ?? null,
     },
     journey: journeyStage(access.record, orders),
     purchasePath: purchasePath(access.quote.input as PricingInputLike),
@@ -399,26 +404,35 @@ export async function quoteDetail(request: Request, actor: Actor, id: string) {
       : null,
   });
 }
+/**
+ * Accettazioni separate, nessuna preselezionata: condizioni generali, scheda
+ * d'ordine, avvio anticipato nel periodo di recesso (facoltativo), consenso
+ * alle comunicazioni informative (facoltativo e indipendente dal contratto).
+ */
 export const acceptBodySchema = z
   .object({
     tier: z.enum(["essenziale", "consigliato", "signature"]),
     version: z.number().int().positive(),
     policyVersion: z.string().min(1),
     termsAccepted: z.literal(true),
+    orderSheetAccepted: z.literal(true),
+    earlyStart: z.boolean().default(false),
+    marketingConsent: z.boolean().default(false),
   })
   .strict();
+export type AcceptanceEvidence = { ip: string | null; userAgent: string | null };
 export async function quoteAccept(request: Request, actor: Actor, id: string) {
   if (request.method !== "POST") throw notFound();
   const body = await readBody(request, acceptBodySchema);
-  await acceptQuote(actor, id, body);
-  return json({ ok: true });
+  const contract = await acceptQuote(actor, id, body, acceptanceEvidence(request));
+  return json({ ok: true, contractId: contract?.id ?? null });
 }
 /**
  * Accettazione di una proposta acquistabile. Idempotente: ripetere con lo
  * stesso pacchetto non cambia nulla. Solo una proposta in stato "offer" si
  * può accettare: una stima o una richiesta in valutazione no.
  */
-export async function acceptQuote(actor: Actor, id: string, body: z.infer<typeof acceptBodySchema>) {
+export async function acceptQuote(actor: Actor, id: string, body: z.infer<typeof acceptBodySchema>, evidence: AcceptanceEvidence = { ip: null, userAgent: null }) {
   const access = await quoteAccess(actor, id, "quote.accept");
   const [ownership] = await getDb()
     .select()
@@ -444,7 +458,7 @@ export async function acceptQuote(actor: Actor, id: string, body: z.infer<typeof
     (p) => p.tier === body.tier,
   );
   if (!selected) throw new PlatformError(422, "INVALID_PACKAGE", "Seleziona un pacchetto valido.");
-  await getDb().transaction(async (tx) => {
+  const contract = await getDb().transaction(async (tx) => {
     const [record] = await tx
       .select()
       .from(quoteRecords)
@@ -463,7 +477,10 @@ export async function acceptQuote(actor: Actor, id: string, body: z.infer<typeof
         "ALREADY_ACCEPTED",
         "La proposta è già stata accettata con un altro pacchetto.",
       );
-    if (record.acceptedAt) return;
+    if (record.acceptedAt) {
+      const [existing] = await tx.select().from(contracts).where(eq(contracts.quoteId, id)).orderBy(desc(contracts.version)).limit(1);
+      return existing ?? null;
+    }
     const [acceptedOwnership] = await tx.select().from(leadOwnership).where(eq(leadOwnership.leadId, access.quote.leadId));
     await tx
       .update(quoteRecords)
@@ -486,21 +503,15 @@ export async function acceptQuote(actor: Actor, id: string, body: z.infer<typeof
         updatedAt: new Date(),
       })
       .where(eq(quotes.id, id));
-    const existing = await tx
-      .select({ id: projects.id })
-      .from(projects)
-      .where(eq(projects.quoteId, id))
-      .limit(1);
-    if (!existing.length)
-      await tx
-        .insert(projects)
-        .values({
-          authorId: actor.id,
-          title: `Il libro di ${actor.name}`,
-          type: (access.quote.input as { projectType: string }).projectType,
-          quoteId: id,
-          stage: "materials",
-        });
+    // Il contratto nasce qui, prima del pagamento: scheda d'ordine + condizioni
+    // generali nella versione accettata, con prova proporzionata. Il progetto
+    // invece nasce solo con l'acconto verificato (vedi payments.recordPayment).
+    const customer = await customerForSheet(tx, actor.id);
+    const consumer = customer ? customer.kind !== "business" : true;
+    const sheet = buildOrderSheet({ quoteId: id, version: record.version, pricingVersion: record.pricingVersion, policy: policy.data, pkg: selected, quoteInput: access.quote.input as Parameters<typeof buildOrderSheet>[0]["quoteInput"], plan: record.paymentPlan ?? null, customer, email: actor.email });
+    const created = await createContract(tx, { quoteId: id, version: record.version, tier: body.tier, actor, sheet, acceptances: { terms: true, orderSheet: true, earlyStart: body.earlyStart, marketing: body.marketingConsent }, consumer, evidence });
+    // Il consenso alle comunicazioni facoltative è separato dal contratto: si registra solo se dato.
+    if (body.marketingConsent) await tx.update(leads).set({ consensoMarketing: true }).where(eq(leads.id, access.quote.leadId));
     // Chi segue la vendita e il team: l'accettazione precede il pagamento.
     const importo = `€ ${selected.total.toLocaleString("it-IT")}`;
     const seller = acceptedOwnership?.assignedTo ?? null;
@@ -526,8 +537,10 @@ export async function acceptQuote(actor: Actor, id: string, body: z.infer<typeof
       subject: `Proposta accettata · ${importo} · Proemios`,
       html: await protectMailHtml(impaginaEmail("Proposta accettata", `<p>${esc(actor.name)} (${esc(actor.email)}) ha accettato ${esc(selected.name)} per ${esc(importo)}, IVA esclusa. In attesa dell'acconto.</p><p><a href="${esc(appOrigin())}/spazio?preventivo=${esc(id)}">Apri nello spazio del team</a></p>`)),
     }).onConflictDoNothing();
+    return created;
   });
-  await audit(actor, "quote.accepted", "quote", id, { version: body.version, tier: body.tier });
+  await audit(actor, "quote.accepted", "quote", id, { version: body.version, tier: body.tier, contractId: contract?.id ?? null, earlyStart: body.earlyStart, ip: evidence.ip });
+  return contract;
 }
 /** L'autore chiede la proposta definitiva: la stima passa in valutazione al team. */
 export async function quoteReview(request: Request, actor: Actor, id: string) {

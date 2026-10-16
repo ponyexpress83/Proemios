@@ -78,7 +78,8 @@ type Person = {
   twoFactorEnabled: boolean;
   memberships: Membership[];
 };
-type Order = { id: string; quoteId: string; kind: string; amountCents: number; status: string };
+type Order = { id: string; quoteId: string; kind: string; sequence?: number; plan?: string; amountCents: number; status: string; stripePaymentIntentId?: string | null };
+type RefundRequest = { id: string; orderId: string; amountCents: number; reason: string; preparedBy: string; authorizedBy: string | null; status: string; stripeRefundId: string | null; lastError: string | null; createdAt: string };
 type Ledger = {
   id: string;
   kind: string;
@@ -98,6 +99,7 @@ type Collection = {
   users?: Person[];
   commissions?: Payout[];
   orders?: Order[];
+  refunds?: RefundRequest[];
   ledger?: Ledger[];
   invoices?: Array<{ id: string; kind: string; grossCents: number; number: string | null; issuedOn: string | null; status: string; attempts?: number; error?: string | null; createdAt: string }>;
   invoicing?: { configured: boolean; sendsToSdi: boolean };
@@ -127,7 +129,8 @@ type ProjectDetail = {
 type QuoteDetail = {
   quote: Quote & { input: PricingInput };
   history: Array<{ version: number; createdAt: string }>;
-  record: { version: number; selectedTier: string | null; acceptedAt: string | null; commercialState: string; expiresAt: string | null; remindersPausedAt: string | null; reviewNote: string | null; reviewRequestedAt: string | null; preferredTier: string | null };
+  record: { version: number; selectedTier: string | null; acceptedAt: string | null; commercialState: string; expiresAt: string | null; remindersPausedAt: string | null; reviewNote: string | null; reviewRequestedAt: string | null; preferredTier: string | null; paymentPlan: { installments: number; grantedBy: string; approvedBy?: string | null; note?: string | null } | null };
+  contract: { id: string; version: number; termsVersion: string; acceptedAt: string; acceptances: { terms: true; orderSheet: true; earlyStart: boolean; marketing: boolean }; consumer: boolean; withdrawalDeadline: string | null; withdrawalRequestedAt: string | null; stableCopy: boolean; pdfUrl: string } | null;
   journey: string;
   attribution?: { responsible: { id: string; name: string } | null; source: { channel: string; attribution: Record<string, string> | null }; affiliate: { ruleVersion: string } | null; salesAssisted: boolean; offeredBy: { name: string } | null; commissionRule: { version: string; sellerBps: number; affiliateBps: number; assistedSalesOnly: boolean } | null };
   packages: Array<{
@@ -665,7 +668,7 @@ export function PlatformWorkspace({ user }: { user: Profile }) {
                   {data.orders?.map((o) => (
                     <div className="platform-row" key={o.id}>
                       <span>
-                        {o.id.slice(0, 8)} · {o.kind === "deposit" ? "Acconto" : "Saldo"}
+                        {o.id.slice(0, 8)} · {o.kind === "deposit" ? "Acconto" : o.plan === "company_installment" ? `Rata ${o.sequence ?? 1} del saldo` : "Saldo"}
                       </span>
                       <State value={o.status} />
                       <strong>{money(o.amountCents)}</strong>
@@ -673,6 +676,7 @@ export function PlatformWorkspace({ user }: { user: Profile }) {
                   ))}
                   {!data.orders?.length ? <Empty>Nessun ordine registrato.</Empty> : null}
                 </div>
+                <RefundPanel refunds={data.refunds ?? []} orders={data.orders ?? []} user={user} run={run} />
                 <PayoutList
                   items={data.commissions ?? []}
                   onPay={
@@ -880,6 +884,39 @@ export function PlatformWorkspace({ user }: { user: Profile }) {
           <Link href="/privacy">Informativa privacy</Link>
         </footer>
       </main>
+    </div>
+  );
+}
+/**
+ * Rettifiche: chi ha «refund.prepare» le prepara (nessun movimento), chi ha
+ * «refund.authorize» le autorizza (quattro occhi: non la stessa persona). Il
+ * denaro si muove solo via Stripe e la contabilità si aggiorna all'evento verificato.
+ */
+function RefundPanel({ refunds, orders, user, run }: { refunds: RefundRequest[]; orders: Order[]; user: Profile; run: (work: () => Promise<unknown>, success?: string) => Promise<void> }) {
+  const refundable = orders.filter((o) => ["paid", "partially_refunded"].includes(o.status));
+  const labels: Record<string, string> = { prepared: "preparata", authorized: "autorizzata, in corso", executed: "eseguita", failed: "errore" };
+  return (
+    <div className="platform-card">
+      <h2>Rimborsi e rettifiche</h2>
+      {can(user.grants, "refund.prepare") && refundable.length ? (
+        <form className="platform-inline" onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); const form = e.currentTarget; run(() => platformApi("refunds", "POST", { orderId: String(f.get("order")), amountCents: Math.round(Number(f.get("amount")) * 100), reason: String(f.get("reason")) }).then(() => form.reset()), "Rettifica preparata: serve l'autorizzazione di un secondo utente."); }}>
+          <label>Ordine<select name="order" required>{refundable.map((o) => <option key={o.id} value={o.id}>{o.id.slice(0, 8)} · {money(o.amountCents)}</option>)}</select></label>
+          <label>Importo (€)<input name="amount" type="number" min={0.01} step={0.01} required /></label>
+          <label>Motivo<input name="reason" minLength={10} maxLength={2000} required /></label>
+          <button className="platform-button">Prepara la rettifica</button>
+        </form>
+      ) : null}
+      {refunds.map((r) => (
+        <div className="platform-row" key={r.id}>
+          <span>{r.orderId.slice(0, 8)} · {r.reason}{r.lastError ? ` · ${r.lastError}` : ""}</span>
+          <State value={labels[r.status] ?? r.status} />
+          <strong>{money(r.amountCents)}</strong>
+          {["prepared", "failed"].includes(r.status) && can(user.grants, "refund.authorize") && r.preparedBy !== user.id ? (
+            <button className="platform-text-button" onClick={() => { if (window.confirm(`Autorizzi il rimborso di ${money(r.amountCents)}? Stripe lo esegue subito.`)) run(() => platformApi(`refunds/${r.id}/authorize`, "POST"), "Rimborso richiesto a Stripe: la contabilità si aggiorna alla conferma."); }}>Autorizza</button>
+          ) : null}
+        </div>
+      ))}
+      {!refunds.length ? <Empty>Nessuna rettifica preparata.</Empty> : null}
     </div>
   );
 }
@@ -1482,6 +1519,22 @@ function QuoteView({ id, user }: { id: string; user: Profile }) {
             {detail.record.remindersPausedAt ? "Riattiva i promemoria automatici" : "Sospendi i promemoria automatici"}
           </button>
         ) : null}
+        {hasPermission(user.grants, "quote.write") && !detail.record.acceptedAt ? (
+          <form className="platform-inline" onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); run(() => platformApi(`quotes/${id}/plan`, "POST", { installments: Number(f.get("installments") || 1), ...(f.get("note") ? { note: String(f.get("note")) } : {}) })); }}>
+            <label>Rate del saldo concesse da Proemios<input name="installments" type="number" min={1} max={12} defaultValue={detail.record.paymentPlan?.installments ?? 1} /></label>
+            <label>Nota interna (facoltativa)<input name="note" maxLength={500} /></label>
+            <button className="platform-button" disabled={busy}>Imposta il piano</button>
+            <small>1 = acconto e saldo unico. Oltre la soglia della regola «Cosa è acquistabile subito» serve chi gestisce le regole economiche. Le rate Klarna/Scalapay le offre Stripe sulla singola operazione e non c’entrano con questo piano.</small>
+          </form>
+        ) : null}
+        {detail.record.paymentPlan ? <p>Piano: saldo in {detail.record.paymentPlan.installments} rate{detail.record.paymentPlan.approvedBy ? " (eccezione approvata)" : ""}{detail.record.paymentPlan.note ? ` · ${detail.record.paymentPlan.note}` : ""}.</p> : null}
+        {detail.contract ? (
+          <div className="platform-notice">
+            <strong>Contratto v{detail.contract.version}</strong> · condizioni {detail.contract.termsVersion} · accettato il {date(detail.contract.acceptedAt)}{detail.contract.acceptances.earlyStart ? " · avvio immediato richiesto" : ""}{detail.contract.acceptances.marketing ? " · consenso informativo dato" : ""} · {detail.contract.consumer ? "consumatore" : "impresa/professionista"}.{" "}
+            <a href={detail.contract.pdfUrl}>Scarica il PDF</a>
+            {detail.contract.withdrawalRequestedAt ? <> · <strong>Recesso richiesto il {date(detail.contract.withdrawalRequestedAt)}</strong>{can(user.grants, "finance.record") ? <> · <button className="platform-text-button" disabled={busy} onClick={() => run(() => platformApi(`contracts/${detail.contract!.id}/withdrawal`, "POST", { outcome: "accepted" }))}>Chiudi la pratica (accolto)</button></> : null}</> : null}
+          </div>
+        ) : null}
         {detail.attribution ? (
           <dl className="platform-attribution">
             <div><dt>Responsabile del contatto</dt><dd>{detail.attribution.responsible?.name ?? "In coda, non assegnato"}</dd></div>
@@ -1978,7 +2031,7 @@ function SettingsView({
               {{
                 "payment-policy": "Valori richiesti: version, vatMode (included, excluded o exempt), vatRateBps (100 = 1%), termsVersion. Senza una policy salvata vale quella predefinita mostrata qui sotto.",
                 "commission-rule": 'Valori richiesti: version, sellerBps, affiliateBps (100 = 1%), base "collected-excluding-tax", attributionDays (1–365), attribution "code-on-quote". Facoltativo: assistedSalesOnly (true = provvigione al venditore solo con un intervento tracciato: revisione, invio o offerta; la sola assegnazione del contatto non basta).',
-                "purchase-rule": "Quali richieste pubbliche nascono già acquistabili: autoOfferSingleServices (elenco di servizi singoli a prezzo fisso), autoOfferFullPath (percorsi completi), validityDays. Tutto il resto resta una stima finché il team non la rende acquistabile. Predefinito prudente: solo copertina, EPUB, KDP, ISBN e scheda Amazon.",
+                "purchase-rule": "Quali richieste pubbliche nascono già acquistabili: autoOfferSingleServices (elenco di servizi singoli a prezzo fisso), autoOfferFullPath (percorsi completi), validityDays. maxInstallments: rate del saldo che un venditore può concedere da solo (1 = nessuna). startAfter: per servizio, se la lavorazione parte dopo l'acconto (predefinito) o dopo il saldo, es. {\"cover\":\"balance\"}. balanceBeforeDelivery: la consegna finale richiede il saldo. Tutto il resto resta una stima finché il team non la rende acquistabile. Predefinito prudente: solo copertina, EPUB, KDP, ISBN e scheda Amazon.",
                 "reminder-rules": "enabled, unconfirmedDays, expiryDays, unpaidDays, materialsDays, approvalDays. I promemoria si fermano al cambio di stato, non si ripetono e si possono sospendere sulla singola proposta o progetto.",
               }[key]}
             </p>

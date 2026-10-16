@@ -57,6 +57,13 @@
       "when": 1792059775530,
       "tag": "0007_commercial_states",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792180103769,
+      "tag": "0008_contracts_and_plans",
+      "breakpoints": true
     }
   ]
 }

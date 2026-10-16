@@ -32,8 +32,8 @@ let requestNumber = 0;
 async function authRequest(path: string, body: unknown, cookie = "") {
   return auth.handler(new Request(`${origin}/api/auth/${path}`, { method: "POST", headers: { origin, cookie, "x-forwarded-for": `192.0.2.${++requestNumber}`, "content-type": "application/json" }, body: JSON.stringify(body) }));
 }
-async function call(actor: string | null, path: string, method = "GET", body?: unknown) {
-  return handler(new Request(`${origin}/api/platform/${path}`, { method, headers: { origin, cookie: actor ? actors[actor]!.cookie : "", "content-type": "application/json" }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) }));
+async function call(actor: string | null, path: string, method = "GET", body?: unknown, headers: Record<string, string> = {}) {
+  return handler(new Request(`${origin}/api/platform/${path}`, { method, headers: { origin, cookie: actor ? actors[actor]!.cookie : "", "content-type": "application/json", ...headers }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) }));
 }
 async function data(response: Response, expected = 200) { expect(response.status, await response.clone().text()).toBe(expected); return response.json(); }
 async function createActor(name: string, role: Role, verified = true) {
@@ -220,15 +220,26 @@ describe("financial events, affiliate privacy and recovery", () => {
   const event = (type: string, object: unknown, id = `evt_test_${randomUUID()}`) => ({ id, type, livemode: false, data: { object } }) as Stripe.Event;
   function checkoutSession(paid = true) { return { id: stripeSession, metadata: { orderId, quoteId }, client_reference_id: orderId, currency: "eur", amount_total: amount, payment_status: paid ? "paid" : "unpaid", payment_intent: intent }; }
   it("requires economic conditions, versions acceptance and protects proposal expiry", async () => {
-    expect((await call("authorA", `quotes/${quoteId}/accept`, "POST", { tier: "consigliato", version: 2, policyVersion: "unknown", termsAccepted: true })).status).toBe(409);
+    expect((await call("authorA", `quotes/${quoteId}/accept`, "POST", { tier: "consigliato", version: 2, policyVersion: "unknown", termsAccepted: true, orderSheetAccepted: true })).status).toBe(409);
     await data(await call("owner", "settings", "PUT", { key: "payment-policy", value: policy }));
     await data(await call("owner", "settings", "PUT", { key: "commission-rule", value: rule }));
     await data(await call("sellerA", `quotes/${quoteId}`, "PATCH", { version: 2, input: priceInput }));
-    const body = { tier: "consigliato", version: 3, policyVersion: policy.version, termsAccepted: true };
+    const body = { tier: "consigliato", version: 3, policyVersion: policy.version, termsAccepted: true, orderSheetAccepted: true };
     expect((await call("authorA", `quotes/${quoteId}/accept`, "POST", { ...body, version: 2 })).status).toBe(409);
-    await data(await call("authorA", `quotes/${quoteId}/accept`, "POST", body));
-    await data(await call("authorA", `quotes/${quoteId}/accept`, "POST", body));
-    expect((await db.select().from(platform.projects).where(eq(platform.projects.quoteId, quoteId)))).toHaveLength(1);
+    const accepted = await data(await call("authorA", `quotes/${quoteId}/accept`, "POST", body));
+    const again = await data(await call("authorA", `quotes/${quoteId}/accept`, "POST", body));
+    expect(again.contractId).toBe(accepted.contractId);
+    // Acceptance concludes the contract; the project exists only after a verified payment.
+    expect((await db.select().from(platform.projects).where(eq(platform.projects.quoteId, quoteId)))).toHaveLength(0);
+    const contractRows = await db.select().from(platform.contracts).where(eq(platform.contracts.quoteId, quoteId));
+    expect(contractRows).toHaveLength(1);
+    expect(contractRows[0]!.acceptances).toEqual({ terms: true, orderSheet: true, earlyStart: false, marketing: false });
+    expect(contractRows[0]!.orderSheet.amounts.grossCents).toBeGreaterThan(0);
+    expect((await db.select().from(platform.emailOutbox)).some(r => r.eventKey === `contract:${accepted.contractId}:author` && (r.attachments?.length ?? 0) === 1)).toBe(true);
+    const pdf = await call("authorA", `contracts/${accepted.contractId}/pdf`);
+    expect(pdf.status).toBe(200); expect(pdf.headers.get("content-type")).toBe("application/pdf");
+    expect((await call("editorA", `contracts/${accepted.contractId}/pdf`)).status).toBe(404);
+    expect((await call("affiliateA", `contracts/${accepted.contractId}`)).status).toBe(404);
     expect((await call("sellerA", `quotes/${quoteId}`, "PATCH", { version: 3, input: priceInput })).status).toBe(409);
   });
   it("keeps affiliate data separate and never discloses customer contact details", async () => {
@@ -253,6 +264,11 @@ describe("financial events, affiliate privacy and recovery", () => {
     await processStripeEvent(success); await processStripeEvent(success);
     await processStripeEvent(event("checkout.session.completed", checkoutSession()));
     expect(await db.select().from(platform.ledgerEntries).where(eq(platform.ledgerEntries.orderId, orderId))).toHaveLength(1);
+    // One verified deposit opens exactly one project, started and linked to the seller who closed the sale.
+    const opened = await db.select().from(platform.projects).where(eq(platform.projects.quoteId, quoteId));
+    expect(opened).toHaveLength(1); expect(opened[0]!.stage).toBe("materials"); expect(opened[0]!.startedAt).not.toBeNull(); expect(opened[0]!.referentId).toBe(actors.sellerA!.id);
+    expect((await db.select().from(platform.tasks).where(eq(platform.tasks.projectId, opened[0]!.id))).some(t => t.assignedTo === actors.authorA!.id && !t.internal)).toBe(true);
+    await expect(db.insert(platform.projects).values({ authorId: actors.authorA!.id, title: "Doppione", quoteId })).rejects.toThrow();
     const payouts = await db.select().from(platform.commissions).where(eq(platform.commissions.orderId, orderId));
     expect(payouts).toHaveLength(2);
     expect(payouts.some(p => p.beneficiaryId === actors.sellerA!.id)).toBe(true);
@@ -494,7 +510,7 @@ describe("first euro without manual configuration", () => {
     const tier = detail.packages.find((p: { recommended?: boolean }) => p.recommended)?.tier ?? detail.packages[0].tier;
     // A word-count service is an estimate under the prudent default rule: nobody can buy it as is.
     expect(created.commercialState).toBe("estimate"); expect(detail.journey).toBe("estimate");
-    const blocked = await call("firstEuro", `quotes/${created.quoteId}/accept`, "POST", { tier, version: detail.record.version, policyVersion: defaultPaymentPolicy.version, termsAccepted: true });
+    const blocked = await call("firstEuro", `quotes/${created.quoteId}/accept`, "POST", { tier, version: detail.record.version, policyVersion: defaultPaymentPolicy.version, termsAccepted: true, orderSheetAccepted: true });
     expect(blocked.status).toBe(409); expect((await blocked.json()).code).toBe("NOT_PURCHASABLE");
     // The chosen package survives before any account exists, then the author asks for the definitive proposal.
     const { publicQuotePreference } = await import("@/lib/platform/public-forms");
@@ -511,17 +527,17 @@ describe("first euro without manual configuration", () => {
     const offerMail = (await db.select().from(platform.emailOutbox)).find(r => r.eventKey === `quote:${created.quoteId}:offer:${detail.record.version}`);
     expect(offerMail?.recipient).toBe(email);
     expect((await db.select().from(platform.quoteRecords).where(eq(platform.quoteRecords.quoteId, created.quoteId)))[0]!.salesAssisted).toBe(true);
-    expect((await call("firstEuro", `quotes/${created.quoteId}/accept`, "POST", { tier, version: detail.record.version, policyVersion: "unknown", termsAccepted: true })).status).toBe(409);
+    expect((await call("firstEuro", `quotes/${created.quoteId}/accept`, "POST", { tier, version: detail.record.version, policyVersion: "unknown", termsAccepted: true, orderSheetAccepted: true })).status).toBe(409);
     // One step: billing data, acceptance and (without Stripe here) a clear answer instead of a dead end.
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET; delete process.env.STRIPE_WEBHOOK_SECRET;
-    const noBilling = await call("firstEuro", `quotes/${created.quoteId}/confirm`, "POST", { tier, version: detail.record.version, policyVersion: defaultPaymentPolicy.version, termsAccepted: true });
+    const noBilling = await call("firstEuro", `quotes/${created.quoteId}/confirm`, "POST", { tier, version: detail.record.version, policyVersion: defaultPaymentPolicy.version, termsAccepted: true, orderSheetAccepted: true });
     expect(noBilling.status).toBe(409); expect((await noBilling.json()).code).toBe("BILLING_REQUIRED");
-    const confirmed = await data(await call("firstEuro", `quotes/${created.quoteId}/confirm`, "POST", { tier, version: detail.record.version, policyVersion: defaultPaymentPolicy.version, termsAccepted: true, billing: { kind: "private", name: "First Euro", taxCode: "RSSMRA80A01H501U", street: "Via Prova 9", postcode: "00100", city: "Roma", province: "RM", country: "IT" } }));
+    const confirmed = await data(await call("firstEuro", `quotes/${created.quoteId}/confirm`, "POST", { tier, version: detail.record.version, policyVersion: defaultPaymentPolicy.version, termsAccepted: true, orderSheetAccepted: true, billing: { kind: "private", name: "First Euro", taxCode: "RSSMRA80A01H501U", street: "Via Prova 9", postcode: "00100", city: "Roma", province: "RM", country: "IT" } }));
     expect(confirmed.accepted).toBe(true); expect(confirmed.checkoutAvailable).toBe(false);
     // Repeating the confirmation is harmless; changing the package after acceptance is not.
-    expect((await call("firstEuro", `quotes/${created.quoteId}/confirm`, "POST", { tier, version: detail.record.version, policyVersion: defaultPaymentPolicy.version, termsAccepted: true })).status).toBe(200);
+    expect((await call("firstEuro", `quotes/${created.quoteId}/confirm`, "POST", { tier, version: detail.record.version, policyVersion: defaultPaymentPolicy.version, termsAccepted: true, orderSheetAccepted: true })).status).toBe(200);
     const other = detail.packages.find((p: { tier: string }) => p.tier !== tier)?.tier;
-    if (other) expect((await call("firstEuro", `quotes/${created.quoteId}/confirm`, "POST", { tier: other, version: detail.record.version, policyVersion: defaultPaymentPolicy.version, termsAccepted: true })).status).toBe(409);
+    if (other) expect((await call("firstEuro", `quotes/${created.quoteId}/confirm`, "POST", { tier: other, version: detail.record.version, policyVersion: defaultPaymentPolicy.version, termsAccepted: true, orderSheetAccepted: true })).status).toBe(409);
     expect((await data(await call("firstEuro", `quotes/${created.quoteId}`))).journey).toBe("accepted");
     if (webhookSecret) process.env.STRIPE_WEBHOOK_SECRET = webhookSecret;
     const [record] = await db.select().from(platform.quoteRecords).where(eq(platform.quoteRecords.quoteId, created.quoteId));
@@ -739,5 +755,154 @@ describe("team overview, reminders and attribution", () => {
     const payments = await data(await call("authorA", `quotes/${quoteId}/payments`));
     expect(payments.project).toMatchObject({ id: mine.id, stage: expect.any(String) });
     expect(payments.journey).toBeTruthy();
+  });
+});
+describe("contract, payment plan, refunds, withdrawal and project start", () => {
+  const event = (type: string, object: unknown, id = `evt_test_${randomUUID()}`) => ({ id, type, livemode: false, data: { object } }) as Stripe.Event;
+  const session = (orderId: string, quoteId: string, amount: number, intent: string, paid = true) => ({ id: `cs_test_${orderId}`, metadata: { orderId, quoteId }, client_reference_id: orderId, currency: "eur", amount_total: amount, payment_status: paid ? "paid" : "unpaid", payment_intent: intent, payment_method_types: ["card"] });
+  let firstQuote: string, firstOrder: string, firstIntent: string, planQuote: string, planLead: string;
+  it("keeps a verified payment even after expiry and failure events, and opens one project only", async () => {
+    const { processStripeEvent } = await import("@/lib/platform/payments");
+    firstQuote = (await data(await call("firstEuro", "quotes"))).quotes[0].id;
+    const payments = await data(await call("firstEuro", `quotes/${firstQuote}/payments`));
+    const [order] = await db.insert(platform.paymentOrders).values({ quoteId: firstQuote, authorId: actors.firstEuro!.id, tier: payments.schedule[0] ? (await data(await call("firstEuro", `quotes/${firstQuote}`))).record.selectedTier : "essenziale", amountCents: payments.deposit.grossCents, stripeSessionId: `cs_test_${randomUUID()}` }).returning();
+    firstOrder = order!.id; firstIntent = `pi_test_${randomUUID()}`;
+    const s = { ...session(firstOrder, firstQuote, payments.deposit.grossCents, firstIntent), id: order!.stripeSessionId! };
+    await processStripeEvent(event("checkout.session.async_payment_failed", { ...s, payment_status: "unpaid" }));
+    expect((await db.select().from(platform.paymentOrders).where(eq(platform.paymentOrders.id, firstOrder)))[0]!.status).toBe("failed");
+    expect((await db.select().from(platform.projects).where(eq(platform.projects.quoteId, firstQuote)))).toHaveLength(0);
+    // The bank transfer arrives later: the verified event wins over the earlier failure.
+    await processStripeEvent(event("checkout.session.async_payment_succeeded", s));
+    await processStripeEvent(event("checkout.session.expired", { ...s, payment_status: "unpaid" }));
+    const [paid] = await db.select().from(platform.paymentOrders).where(eq(platform.paymentOrders.id, firstOrder));
+    expect(paid!.status).toBe("paid"); expect(paid!.paymentMethod).toBe("card");
+    const opened = await db.select().from(platform.projects).where(eq(platform.projects.quoteId, firstQuote));
+    expect(opened).toHaveLength(1); expect(opened[0]!.startedAt).not.toBeNull();
+    const after = await data(await call("firstEuro", `quotes/${firstQuote}/payments`));
+    expect(after.journey).toBe("deposit_paid"); expect(after.project.id).toBe(opened[0]!.id); expect(after.contract.pdfUrl).toContain("/contracts/");
+    expect(after.schedule.map((i: { kind: string; status: string }) => `${i.kind}:${i.status}`)).toEqual(["deposit:paid", "balance:due"]);
+    // Disputes hold the order and its commissions; a dispute won restores the payment.
+    await processStripeEvent(event("charge.dispute.created", { payment_intent: firstIntent, status: "needs_response" }));
+    expect((await db.select().from(platform.paymentOrders).where(eq(platform.paymentOrders.id, firstOrder)))[0]!.status).toBe("disputed");
+    await processStripeEvent(event("charge.dispute.closed", { payment_intent: firstIntent, status: "won" }));
+    expect((await db.select().from(platform.paymentOrders).where(eq(platform.paymentOrders.id, firstOrder)))[0]!.status).toBe("paid");
+    const author = await data(await call("firstEuro", "projects"));
+    expect(author.projects.find((p: { id: string }) => p.id === opened[0]!.id).referent).toBeTruthy();
+  });
+  it("grants company installments within the rule, requires approval beyond it, binds them into the contract and starts work by the service rule", async () => {
+    const { computeQuote } = await import("@/lib/pricing");
+    const input = { ...priceInput, requestedServices: [], singleService: "cover" as const, wordCount: 1000 };
+    const packages = computeQuote(input as Parameters<typeof computeQuote>[0]).packages;
+    const [lead] = await db.insert(schema.leads).values({ nome: "Plan Buyer", email: actors.firstEuro!.email, fonte: "preventivo", consensoPrivacy: true }).returning();
+    planLead = lead!.id;
+    const [quote] = await db.insert(schema.quotes).values({ leadId: planLead, input, pacchettiGenerati: packages, prezzoTotale: packages[0].total, acconto: packages[0].deposit, stato: "draft" }).returning();
+    planQuote = quote!.id;
+    const { defaultPaymentPolicy } = await import("@/lib/platform/config");
+    await db.insert(platform.quoteRecords).values({ quoteId: planQuote, pricingVersion: "test", commercialState: "offer", offeredAt: new Date(), expiresAt: new Date(Date.now() + 10 * 86400_000), taxPolicy: defaultPaymentPolicy });
+    await db.insert(platform.leadOwnership).values({ leadId: planLead, authorId: actors.firstEuro!.id, assignedTo: actors.sellerA!.id });
+    const blocked = await call("sellerA", `quotes/${planQuote}/plan`, "POST", { installments: 2 });
+    expect(blocked.status).toBe(409); expect((await blocked.json()).code).toBe("APPROVAL_REQUIRED");
+    await data(await call("owner", "settings", "PUT", { key: "purchase-rule", value: { version: "plan-test", autoOfferSingleServices: ["cover"], autoOfferFullPath: false, validityDays: 30, maxInstallments: 2, startAfter: { cover: "balance" }, balanceBeforeDelivery: true } }));
+    expect((await data(await call("sellerA", `quotes/${planQuote}/plan`, "POST", { installments: 2 }))).exception).toBe(false);
+    expect((await call("sellerA", `quotes/${planQuote}/plan`, "POST", { installments: 3 })).status).toBe(409);
+    expect((await call("firstEuro", `quotes/${planQuote}/plan`, "POST", { installments: 1 })).status).toBe(404);
+    const granted = await data(await call("owner", `quotes/${planQuote}/plan`, "POST", { installments: 3, note: "Eccezione concordata" }));
+    expect(granted.exception).toBe(true);
+    const before = await data(await call("firstEuro", `quotes/${planQuote}/payments`));
+    const detail = await data(await call("firstEuro", `quotes/${planQuote}`));
+    const gross = detail.packages[0].money.grossCents;
+    expect(before.schedule).toHaveLength(4);
+    expect(before.schedule.reduce((n: number, i: { amountCents: number }) => n + i.amountCents, 0)).toBe(gross);
+    expect(before.plan).toMatchObject({ installments: 3, kind: "company_installment" });
+    // Acceptance with the optional choices, evidence and the plan inside the order sheet.
+    const accepted = await data(await call("firstEuro", `quotes/${planQuote}/accept`, "POST", { tier: detail.packages[0].tier, version: detail.record.version, policyVersion: defaultPaymentPolicy.version, termsAccepted: true, orderSheetAccepted: true, earlyStart: true, marketingConsent: true }, { "x-forwarded-for": "203.0.113.9, 10.0.0.1", "user-agent": "SyntheticBrowser/1.0" }));
+    const [contract] = await db.select().from(platform.contracts).where(eq(platform.contracts.id, accepted.contractId));
+    expect(contract!.acceptances).toEqual({ terms: true, orderSheet: true, earlyStart: true, marketing: true });
+    expect(contract!.acceptedIp).toBe("203.0.113.9"); expect(contract!.acceptedUserAgent).toBe("SyntheticBrowser/1.0");
+    expect(contract!.orderSheet.installments).toHaveLength(4); expect(contract!.termsHash).toMatch(/^[a-f0-9]{64}$/);
+    expect((await db.select().from(schema.leads).where(eq(schema.leads.id, planLead)))[0]!.consensoMarketing).toBe(true);
+    const staffView = await data(await call("sellerA", `contracts/${accepted.contractId}`));
+    expect(staffView.contract.acceptedIp).toBe("203.0.113.9");
+    expect((await data(await call("firstEuro", `contracts/${accepted.contractId}`))).contract).not.toHaveProperty("acceptedIp");
+    expect((await call("owner", `quotes/${planQuote}/plan`, "POST", { installments: 1 })).status).toBe(409);
+    expect((await call("owner", `quotes/${planQuote}`, "PATCH", { version: detail.record.version, input })).status).toBe(409);
+    // Payments follow the schedule; for this service the work starts only with the full balance.
+    const { processStripeEvent } = await import("@/lib/platform/payments");
+    const schedule = before.schedule as Array<{ kind: "deposit" | "balance"; sequence: number; amountCents: number }>;
+    for (const [index, item] of schedule.entries()) {
+      const [order] = await db.insert(platform.paymentOrders).values({ quoteId: planQuote, authorId: actors.firstEuro!.id, tier: detail.packages[0].tier, kind: item.kind, sequence: item.sequence, plan: item.kind === "balance" ? "company_installment" : "standard", amountCents: item.amountCents, stripeSessionId: `cs_test_${randomUUID()}` }).returning();
+      const s = { ...session(order!.id, planQuote, item.amountCents, `pi_test_${randomUUID()}`), id: order!.stripeSessionId! };
+      await processStripeEvent(event("checkout.session.completed", s));
+      const [project] = await db.select().from(platform.projects).where(eq(platform.projects.quoteId, planQuote));
+      const [row] = await db.select().from(schema.quotes).where(eq(schema.quotes.id, planQuote));
+      if (index < schedule.length - 1) { expect(project!.startedAt).toBeNull(); expect(row!.stato).toBe("deposit_paid"); }
+      else { expect(project!.startedAt).not.toBeNull(); expect(row!.stato).toBe("won"); }
+      if (index === 0) {
+        expect(project!.startCondition).toBe("balance");
+        await data(await call("owner", `projects/${project!.id}/members`, "POST", { userId: actors.editorA!.id }));
+        const early = await call("editorA", `projects/${project!.id}`, "PATCH", { stage: "editing" });
+        expect(early.status).toBe(409); expect((await early.json()).code).toBe("PAYMENT_REQUIRED");
+      }
+    }
+    expect((await db.select().from(platform.projects).where(eq(platform.projects.quoteId, planQuote)))).toHaveLength(1);
+    const [project] = await db.select().from(platform.projects).where(eq(platform.projects.quoteId, planQuote));
+    expect((await call("editorA", `projects/${project!.id}`, "PATCH", { stage: "editing" })).status).toBe(200);
+    // Final delivery waits for the balance when the rule says so, then for an approved delivery.
+    await db.update(platform.projects).set({ stage: "approved" }).where(eq(platform.projects.id, project!.id));
+    await db.update(schema.quotes).set({ stato: "deposit_paid" }).where(eq(schema.quotes.id, planQuote));
+    const unpaid = await call("editorA", `projects/${project!.id}`, "PATCH", { stage: "delivered" });
+    expect(unpaid.status).toBe(409); expect((await unpaid.json()).code).toBe("BALANCE_REQUIRED");
+    await db.update(schema.quotes).set({ stato: "won" }).where(eq(schema.quotes.id, planQuote));
+    expect((await (await call("editorA", `projects/${project!.id}`, "PATCH", { stage: "delivered" })).json()).code).toBe("MISSING_DELIVERY");
+    await db.delete(platform.platformSettings).where(eq(platform.platformSettings.key, "purchase-rule"));
+  });
+  it("prepares and authorizes a refund with four eyes, moves money only through Stripe and books it on the verified event", async () => {
+    const { stripe } = await import("@/lib/stripe");
+    const { processStripeEvent } = await import("@/lib/platform/payments");
+    const [paidOrder] = await db.select().from(platform.paymentOrders).where(eq(platform.paymentOrders.id, firstOrder));
+    expect((await call("finance", "refunds", "POST", { orderId: firstOrder, amountCents: 100, reason: "Rettifica concordata con il cliente" })).status).toBe(403);
+    const prepared = await data(await call("owner", "refunds", "POST", { orderId: firstOrder, amountCents: 100, reason: "Rettifica concordata con il cliente" }), 201);
+    expect(prepared.moneyMoved).toBe(false);
+    const same = await call("owner", `refunds/${prepared.request.id}/authorize`, "POST");
+    expect(same.status).toBe(409); expect((await same.json()).code).toBe("FOUR_EYES");
+    expect((await call("finance", `refunds/${prepared.request.id}/authorize`, "POST")).status).toBe(403);
+    await db.update(platform.memberships).set({ grants: [...ROLE_GRANTS.finance, { permission: "refund.authorize", scope: "organization" }] }).where(eq(platform.memberships.userId, actors.finance!.id));
+    const create = vi.spyOn(stripe().refunds, "create").mockResolvedValue({ id: "re_synthetic_1", status: "pending" } as never);
+    const authorized = await data(await call("finance", `refunds/${prepared.request.id}/authorize`, "POST"));
+    expect(authorized).toMatchObject({ stripeRefundId: "re_synthetic_1", moneyMoved: true, settled: false });
+    expect(create).toHaveBeenCalledWith({ payment_intent: paidOrder!.stripePaymentIntentId, amount: 100, metadata: expect.any(Object) }, { idempotencyKey: `proemios-refund-${prepared.request.id}` });
+    expect((await call("finance", `refunds/${prepared.request.id}/authorize`, "POST")).status).toBe(409);
+    expect((await db.select().from(platform.ledgerEntries).where(eq(platform.ledgerEntries.orderId, firstOrder))).filter(e => e.kind === "refund")).toHaveLength(0);
+    await processStripeEvent(event("refund.updated", { id: "re_synthetic_1", status: "succeeded", payment_intent: paidOrder!.stripePaymentIntentId, currency: "eur", amount: 100 }));
+    const [executed] = await db.select().from(platform.refundRequests).where(eq(platform.refundRequests.id, prepared.request.id));
+    expect(executed!.status).toBe("executed"); expect(executed!.authorizedBy).toBe(actors.finance!.id);
+    expect((await db.select().from(platform.paymentOrders).where(eq(platform.paymentOrders.id, firstOrder)))[0]!.status).toBe("partially_refunded");
+    // A provider failure keeps the request retryable and never books anything.
+    const second = await data(await call("owner", "refunds", "POST", { orderId: firstOrder, amountCents: 50, reason: "Seconda rettifica di prova" }), 201);
+    create.mockRejectedValueOnce(new Error("Stripe down"));
+    expect((await call("finance", `refunds/${second.request.id}/authorize`, "POST")).status).toBe(502);
+    expect((await db.select().from(platform.refundRequests).where(eq(platform.refundRequests.id, second.request.id)))[0]!.status).toBe("failed");
+    create.mockRestore();
+    await db.update(platform.memberships).set({ grants: null }).where(eq(platform.memberships.userId, actors.finance!.id));
+  });
+  it("lets a consumer withdraw online within 14 days, stops new payments and lets the team close the case", async () => {
+    const detail = await data(await call("firstEuro", `quotes/${firstQuote}`));
+    const contractId = detail.contract.id as string;
+    expect(detail.contract.consumer).toBe(true); expect(detail.terms.status).toBe("approved");
+    expect((await call("authorA", `contracts/${contractId}/withdraw`, "POST", {})).status).toBe(404);
+    const withdrawn = await data(await call("firstEuro", `contracts/${contractId}/withdraw`, "POST", { note: "Ho cambiato idea." }));
+    expect(withdrawn.contract.withdrawalRequestedAt).toBeTruthy(); expect(withdrawn.duplicate).toBe(false);
+    expect((await data(await call("firstEuro", `contracts/${contractId}/withdraw`, "POST", {}))).duplicate).toBe(true);
+    const mails = await db.select().from(platform.emailOutbox);
+    expect(mails.some(m => m.eventKey === `contract:${contractId}:withdrawal:team`)).toBe(true);
+    expect(mails.some(m => m.eventKey === `contract:${contractId}:withdrawal:author`)).toBe(true);
+    process.env.STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET ?? `whsec_${randomBytes(16).toString("hex")}`;
+    const blocked = await call("firstEuro", "checkout", "POST", { quoteId: firstQuote, kind: "balance" });
+    expect(blocked.status).toBe(409); expect((await blocked.json()).code).toBe("WITHDRAWN");
+    expect((await call("editorA", `contracts/${contractId}/withdrawal`, "POST", { outcome: "accepted" })).status).toBe(404);
+    expect((await call("sellerA", `contracts/${contractId}/withdrawal`, "POST", { outcome: "accepted" })).status).toBe(403);
+    const closed = await data(await call("finance", `contracts/${contractId}/withdrawal`, "POST", { outcome: "accepted", note: "Rimborso autorizzato separatamente." }));
+    expect(closed.contract.withdrawalOutcome).toBe("accepted");
+    expect((await db.select().from(platform.projects).where(eq(platform.projects.quoteId, firstQuote)))[0]!.remindersPausedAt).not.toBeNull();
   });
 });

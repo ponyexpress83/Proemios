@@ -8,6 +8,7 @@ import { invoiceCollection, invoicePdf, invoiceRetry, invoiceStatus } from "@/li
 import { route, json, notFound, checkMutationOrigin } from "@/lib/platform/http";
 import { getActor } from "@/lib/platform/access";
 import { quotePdf } from "@/lib/platform/quote-pdf";
+import { contractDetail, contractCollection, contractPdf, contractWithdraw, contractWithdrawalHandle } from "@/lib/platform/contracts";
 import {
   projectCollection,
   projectDetail,
@@ -51,6 +52,8 @@ import {
   commissionPaid,
   reconcile,
   refundPrepare,
+  refundAuthorize,
+  quotePlan,
 } from "@/lib/platform/payments";
 import {
   notificationCollection,
@@ -130,6 +133,14 @@ const handler = route(async (request) => {
       if (action === "review") return quoteReview(request, actor, id);
       if (action === "offer") return quoteOffer(request, actor, id);
       if (action === "reminders") return quoteReminders(request, actor, id);
+      if (action === "plan") return quotePlan(request, actor, id);
+      break;
+    case "contracts":
+      if (!id) return contractCollection(request, actor);
+      if (!action) return contractDetail(request, actor, id);
+      if (action === "pdf" && request.method === "GET") return contractPdf(actor, id);
+      if (action === "withdraw") return contractWithdraw(request, actor, id);
+      if (action === "withdrawal") return contractWithdrawalHandle(request, actor, id);
       break;
     case "quote-claim":
       if (!id) return quoteClaim(request, actor);
@@ -183,6 +194,7 @@ const handler = route(async (request) => {
       break;
     case "refunds":
       if (!id) return refundPrepare(request, actor);
+      if (action === "authorize") return refundAuthorize(request, actor, id);
       break;
     case "operations":
       if (!id) return operationsCollection(request, actor);
