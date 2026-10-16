@@ -1,4 +1,5 @@
 "use client";
+import { readSessionAttribution, sessionVisitorKey } from "@/lib/attribution-client";
 
 import { contattoPreventivoSchema } from "@/lib/validation";
 import type { Route } from "next";
@@ -50,7 +51,8 @@ const MOMENTS = ["Il tuo progetto", "La tua proposta", "Conferma"] as const;
 function track(name: string, quoteId?: string) {
   try {
     if (typeof navigator !== "undefined" && navigator.doNotTrack === "1") return;
-    void fetch("/api/eventi", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, ...(quoteId ? { quoteId } : {}) }), keepalive: true }).catch(() => {});
+    const visitor = sessionVisitorKey();
+    void fetch("/api/eventi", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, ...(quoteId ? { quoteId } : {}), ...(visitor ? { visitor } : {}) }), keepalive: true }).catch(() => {});
   } catch {
     /* la misurazione non deve mai bloccare il percorso */
   }
@@ -209,6 +211,7 @@ export function Configuratore({ precompilato, demoMode = false, retention = 30 }
           ...(ref && /^[a-z0-9]{16}$/.test(ref) ? { ref } : {}),
           input: pricingInput,
           contatto: { nome: s.nome, email: s.email, telefono: s.telefono, note: s.note, consensoPrivacy: s.consensoPrivacy, consensoMarketing: s.consensoMarketing, ricontatto: s.ricontatto && Boolean(s.telefono.trim()) },
+          ...(readSessionAttribution() ? { attribution: readSessionAttribution() } : {}),
         }),
       });
       const dati = (await res.json()) as { quoteId?: string; demo?: boolean; preventivo?: QuoteResult; errore?: string; commercialState?: "estimate" | "offer"; expiresAt?: string | null };

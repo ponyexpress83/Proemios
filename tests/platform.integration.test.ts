@@ -1060,3 +1060,88 @@ describe("CRM pipeline, authorized import, recoveries and consents", () => {
     void recoveryQuote; void recoveryLead;
   });
 });
+
+describe("Marketing role, granular delegations, campaigns and attribution", () => {
+  let campaignId: string;
+  it("gives Marketing only its own modules and keeps manuscripts, contacts, finance, users and keys out of reach", async () => {
+    await createActor("marketing", "marketing");
+    const dashboard = await data(await call("marketing", "marketing"));
+    expect(dashboard.metrics.length).toBeGreaterThan(10);
+    const byKey = (k: string) => dashboard.metrics.find((m: { key: string }) => m.key === k);
+    expect(byKey("visits").status).toBe("to_connect");
+    expect(byKey("contract_value").status).toBe("unauthorized");
+    expect(byKey("purchases")).toMatchObject({ status: "ok", definition: expect.any(String), source: expect.any(String) });
+    expect(dashboard.metrics.every((m: { demo: boolean }) => m.demo === false)).toBe(true);
+    for (const path of ["leads", "finance", "team", "settings", "operations", "integrations", "commissions"]) expect([403, 404], path).toContain((await call("marketing", path)).status);
+    // Like every account, the marketing person also has a self-service author profile: it shows only its own (empty) books and quotes.
+    expect((await data(await call("marketing", "projects"))).projects).toHaveLength(0);
+    expect((await data(await call("marketing", "quotes"))).quotes).toHaveLength(0);
+    expect([403, 404]).toContain((await call("marketing", `projects/${projectA}`)).status);
+    expect([403, 404]).toContain((await call("marketing", `quotes/${quoteId}`)).status);
+    expect([403, 404]).toContain((await call("marketing", `leads/${leadId}`)).status);
+    expect((await call("marketing", "marketing/contacts")).status).toBe(200);
+    expect((await call("marketing", "automations/activate", "POST")).status).toBe(403);
+    expect((await call("marketing", `leads/${leadId}`, "PATCH", { assignedTo: actors.sellerA!.id })).status).toBe(404);
+    expect((await call("sellerA", "marketing")).status).toBe(403);
+    expect((await call("sellerA", "campaigns")).status).toBe(403);
+    expect([403, 404]).toContain((await call("authorA", "marketing")).status);
+  });
+  it("registers campaigns with tracked links, attributes requests, imports spend without duplicates and computes the KPIs", async () => {
+    const created = await data(await call("marketing", "campaigns", "POST", { name: "Lancio autunno", channel: "google_ads", utmSource: "google", utmMedium: "cpc", utmCampaign: "lancio-autunno", budgetCents: 50000 }), 201);
+    campaignId = created.campaign.id;
+    expect(created.campaign.link).toContain("utm_source=google"); expect(created.campaign.link).toContain(`pc=${campaignId}`); expect(created.campaign.link).toContain("/preventivo");
+    expect((await call("marketing", "campaigns", "POST", { name: "Doppione", channel: "google_ads", utmSource: "google", utmMedium: "cpc", utmCampaign: "lancio-autunno" })).status).toBe(409);
+    expect((await call("marketing", "campaigns", "POST", { name: "Brutta", channel: "meta", utmSource: "Meta Ads", utmMedium: "cpc", utmCampaign: "x" })).status).toBe(422);
+    // A public request carries the session attribution: no cookie, no personal data in the URL.
+    const { publicQuote } = await import("@/lib/platform/public-forms");
+    const saved = await data(await publicQuote(new Request(`${origin}/api/preventivo`, { method: "POST", headers: { origin, "idempotency-key": randomUUID(), "content-type": "application/json" }, body: JSON.stringify({ input: priceInput, contatto: { nome: "Campaign Buyer", email: "campaign-buyer@example.test", consensoPrivacy: true, consensoMarketing: true, telefono: "+39 333 1234567" }, attribution: { utmSource: "google", utmMedium: "cpc", utmCampaign: "lancio-autunno", campaignId, landingPath: "/preventivo?utm_source=google", referrer: "https://www.google.com/" } }) })), 201);
+    const [lead] = await db.select().from(schema.leads).where(eq(schema.leads.email, "campaign-buyer@example.test"));
+    expect(lead!.attribution).toMatchObject({ utmSource: "google", campaignId }); expect(lead!.sourceDetail).toBe("lancio-autunno"); expect(lead!.leadScore).toBeGreaterThan(20); expect(lead!.marketingConsentAt).toBeTruthy();
+    void saved;
+    const spend = await data(await call("marketing", `campaigns/${campaignId}/spend`, "POST", { source: "google-ads", rows: [{ day: "2026-10-01", spend: 12.5, clicks: 40 }, { day: "2026-10-02", spend: 7.5, clicks: 20 }, { day: "2026-10-01", spend: 99, clicks: 1 }] }), 201);
+    expect(spend).toMatchObject({ imported: 2, duplicates: 1, invalid: 0 });
+    const csv = await data(await handler(new Request(`${origin}/api/platform/campaigns/${campaignId}/spend?origine=google-ads`, { method: "POST", headers: { origin, cookie: actors.marketing!.cookie, "content-type": "text/csv" }, body: "Giorno;Costo;Clic\n2026-10-03;5,00;10\n2026-10-02;1,00;1\n" })), 201);
+    expect(csv).toMatchObject({ imported: 1, duplicates: 1 });
+    const detail = await data(await call("marketing", `campaigns/${campaignId}`));
+    expect(detail.campaign.results).toMatchObject({ leads: 1, quotes: 1, purchases: 0, spendCents: 2500, clicks: 70, costPerLeadCents: 2500, collectedCents: null, roas: null });
+    expect(detail.campaign.results.budgetUsedPct).toBe(5);
+    const dashboard = await data(await call("marketing", "marketing?giorni=90"));
+    const byKey = (k: string) => dashboard.metrics.find((m: { key: string }) => m.key === k);
+    expect(byKey("attributed_leads").value).toBeGreaterThanOrEqual(1);
+    expect(byKey("ad_spend")).toMatchObject({ value: 2500, status: "ok" });
+    expect(byKey("cost_per_lead").status).toBe("ok");
+    // Authorized contacts: minimal fields only.
+    const contacts = await data(await call("marketing", "marketing/contacts"));
+    const buyer = contacts.contacts.find((c: { email: string }) => c.email === "campaign-buyer@example.test");
+    expect(buyer).toMatchObject({ nome: "Campaign Buyer", fonte: "preventivo", campaign: "lancio-autunno" });
+    expect(buyer).not.toHaveProperty("telefono"); expect(buyer).not.toHaveProperty("note");
+    expect((await call("marketing", `marketing/contacts/${buyer.id}`, "PATCH", { assignedTo: actors.sellerA!.id })).status).toBe(403);
+  });
+  it("lets the owner delegate marketing permissions one by one to an Admin and keeps activation separate from drafting", async () => {
+    const draft = await data(await call("marketing", "automations", "PUT", { value: { version: "bozza-1", enabled: true, triggers: ["payment_failed"], steps: [{ key: "gentle", afterHours: 4, channel: "email", purpose: "assistance", subject: "Serve aiuto? · Proemios", body: "se il pagamento non è andato a buon fine, possiamo aiutarti noi." }], maxPerWeek: 2, stopOnSellerActivity: true } }));
+    expect(draft.draft.approvedBy).toContain("bozza:");
+    expect((await db.select().from(platform.platformSettings).where(eq(platform.platformSettings.key, "recovery-rules")))).toHaveLength(0);
+    const [membership] = (await db.select().from(platform.memberships).where(eq(platform.memberships.userId, actors.admin!.id))).filter((m) => m.role === "admin");
+    expect((await call("admin", "marketing")).status).toBe(403);
+    await data(await call("owner", `memberships/${membership!.id}`, "PATCH", { active: true, grants: [...ROLE_GRANTS.admin, { permission: "marketing.read", scope: "organization" }, { permission: "automation.activate", scope: "organization" }, { permission: "revenue.aggregate", scope: "organization" }, { permission: "crm.assign", scope: "organization" }] }));
+    // Grants changed: the admin signs in again (the previous session was revoked).
+    const login = await authRequest("sign-in/email", { email: actors.admin!.email, password });
+    actors.admin!.cookie = cookies(login);
+    const verify = await authRequest("two-factor/verify-totp", { code: URI.parse(secrets.get("admin")!).generate(), trustDevice: false }, actors.admin!.cookie);
+    actors.admin!.cookie = cookies(verify, actors.admin!.cookie);
+    const admin2 = await data(await call("admin", "marketing"));
+    expect(admin2.metrics.find((m: { key: string }) => m.key === "contract_value").status).toBe("ok");
+    expect(admin2.metrics.find((m: { key: string }) => m.key === "collected").value).toBeGreaterThan(0);
+    expect((await call("admin", "campaigns", "POST", { name: "Non autorizzata", channel: "meta", utmSource: "meta", utmMedium: "cpc", utmCampaign: "no" })).status).toBe(403);
+    const activated = await data(await call("admin", "automations/activate", "POST"));
+    expect(activated.active.version).toBe("bozza-1");
+    expect((await data(await call("admin", "automations"))).active.approvedBy).toBe(actors.admin!.id);
+    const contacts = await data(await call("marketing", "marketing/contacts"));
+    const buyer = contacts.contacts.find((c: { email: string }) => c.email === "campaign-buyer@example.test");
+    await data(await call("admin", `marketing/contacts/${buyer.id}`, "PATCH", { assignedTo: actors.sellerA!.id }));
+    expect((await data(await call("sellerA", "leads"))).leads.some((l: { id: string }) => l.id === buyer.id)).toBe(true);
+    expect((await call("admin", "integrations")).status).toBe(403);
+    await db.delete(platform.platformSettings).where(eq(platform.platformSettings.key, "recovery-rules"));
+    void campaignId;
+  });
+});

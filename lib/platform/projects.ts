@@ -99,6 +99,7 @@ async function notifyProject(
 }
 export async function projectCollection(request: Request, actor: Actor) {
   if (request.method === "GET") {
+    demandAvailable(actor, "project.read");
     const rows = await getDb()
       .select()
       .from(projects)

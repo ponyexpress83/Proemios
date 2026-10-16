@@ -75,9 +75,16 @@ export const contattoPreventivoSchema = z.object({
   ricontatto: z.boolean().default(false),
 });
 
+/** Parametri di campagna della sessione: solo stringhe corte, sanificate ancora dal server. */
+export const attributionSchema = z.object({
+  utmSource: z.string().max(500).optional(), utmMedium: z.string().max(500).optional(), utmCampaign: z.string().max(500).optional(),
+  utmContent: z.string().max(500).optional(), utmTerm: z.string().max(500).optional(), gclid: z.string().max(500).optional(), fbclid: z.string().max(500).optional(),
+  landingPath: z.string().max(500).optional(), referrer: z.string().max(500).optional(), firstSeenAt: z.string().max(40).optional(), campaignId: z.string().max(40).optional(),
+}).partial().optional();
 export const preventivoSchema = z.object({
   input: pricingInputSchema,
   contatto: contattoPreventivoSchema,
+  attribution: attributionSchema,
   // Honeypot: se compilato è un bot.
   sito: z.string().max(0).optional(),
 });
@@ -122,6 +129,7 @@ export const contattoSchema = z.object({
     .max(4000),
   consensoPrivacy: consensoSchema,
   consensoMarketing: z.boolean().default(false),
+  attribution: attributionSchema,
   sito: z.string().max(0).optional(),
 });
 

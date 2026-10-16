@@ -12,6 +12,7 @@ import {
   ROLES,
   ROLE_GRANTS,
   PERMISSIONS,
+  MARKETING_PERMISSIONS,
   type Role,
   type Grant,
   type Permission,
@@ -277,6 +278,7 @@ const tabRules: Array<{ id: string; label: string; permission?: Permission }> = 
   { id: "affiliates", label: "Affiliazione", permission: "affiliate.read" },
   { id: "commissions", label: "Commissioni", permission: "commission.read" },
   { id: "finance", label: "Finance", permission: "finance.read" },
+  { id: "marketing", label: "Marketing", permission: "marketing.read" },
   { id: "team", label: "Persone e accessi", permission: "role.manage" },
   { id: "settings", label: "Regole economiche", permission: "settings.manage" },
   { id: "operations", label: "Operazioni", permission: "operations.read" },
@@ -594,6 +596,7 @@ export function PlatformWorkspace({ user }: { user: Profile }) {
             {tab === "overview" ? (
               <TodayView data={data} />
             ) : null}
+            {tab === "marketing" ? <MarketingView user={user} /> : null}
             {tab === "quotes" ? (
               <div className="platform-card">
                 {data.quotes?.map((q) => (
@@ -1775,6 +1778,136 @@ function QuoteView({ id, user }: { id: string; user: Profile }) {
   );
 }
 type Runner = (work: () => Promise<unknown>, message?: string) => Promise<void>;
+const MARKETING_LABELS: Partial<Record<Permission, string>> = { "marketing.read": "Dashboard marketing", "marketing.campaigns": "Campagne e link tracciati", "marketing.contacts": "Contatti autorizzati", "automation.draft": "Bozze delle automazioni", "automation.activate": "Attivazione delle automazioni", "crm.assign": "Assegnazione dei contatti", "revenue.aggregate": "Ricavi aggregati", "export": "Export", "integrations.manage": "Gestione dei collegamenti (solo amministratori)" };
+type Metric = { key: string; label: string; value: number | string | null; unit?: "count" | "cents" | "pct" | "text"; definition: string; source: string; updatedAt: string | null; status: "ok" | "to_connect" | "unavailable" | "unauthorized"; demo: boolean };
+type Campaign = { id: string; name: string; channel: string; status: string; startsAt: string | null; endsAt: string | null; destination: string; utmSource: string; utmMedium: string; utmCampaign: string; utmContent: string | null; utmTerm: string | null; partnerId: string | null; sellerId: string | null; budgetCents: number; notes: string | null; link: string; results: { leads: number; quotes: number; purchases: number; collectedCents: number | null; spendCents: number; spendDays: number; clicks: number; impressions: number; budgetUsedPct: number | null; costPerLeadCents: number | null; costPerPurchaseCents: number | null; roas: number | null } };
+type MarketingContact = { id: string; nome: string; email: string; fonte: string; sourceDetail: string | null; consentAt: string; stage: string; assignedName: string | null; campaign: string | null };
+/**
+ * Area marketing: dashboard con definizione, fonte e aggiornamento per ogni
+ * numero; registro campagne con link tracciati e spesa; contatti autorizzati;
+ * bozze di automazione. Tutto ciò che non è collegato lo dichiara.
+ */
+function MarketingView({ user }: { user: Profile }) {
+  const [metrics, setMetrics] = useState<{ days: number; demo: boolean; metrics: Metric[] } | null>(null), [campaigns, setCampaigns] = useState<Campaign[]>([]), [contacts, setContacts] = useState<MarketingContact[]>([]), [automation, setAutomation] = useState<{ draft: Record<string, unknown> | null; active: Record<string, unknown> | null; defaults: Record<string, unknown>; canActivate: boolean } | null>(null), [integrations, setIntegrations] = useState<Record<string, { label: string; configured: boolean; detail: string; mode: string }> | null>(null);
+  const [error, setError] = useState(""), [notice, setNotice] = useState(""), [busy, setBusy] = useState(false), [refresh, setRefresh] = useState(0), [days, setDays] = useState(30);
+  useEffect(() => {
+    let active = true;
+    platformApi<{ days: number; demo: boolean; metrics: Metric[] }>(`marketing?giorni=${days}`).then((m) => { if (active) setMetrics(m); }).catch((e) => { if (active) setError(e.message); });
+    platformApi<{ campaigns: Campaign[] }>("campaigns").then((c) => { if (active) setCampaigns(c.campaigns); }).catch(() => {});
+    if (hasPermission(user.grants, "marketing.contacts")) platformApi<{ contacts: MarketingContact[] }>("marketing/contacts").then((c) => { if (active) setContacts(c.contacts); }).catch(() => {});
+    if (hasPermission(user.grants, "automation.draft") || hasPermission(user.grants, "automation.activate")) platformApi<typeof automation>("automations").then((a) => { if (active) setAutomation(a); }).catch(() => {});
+    if (hasPermission(user.grants, "integrations.manage")) platformApi<{ integrations: NonNullable<typeof integrations> }>("integrations").then((i) => { if (active) setIntegrations(i.integrations); }).catch(() => {});
+    return () => { active = false; };
+  }, [user.grants, refresh, days]);
+  async function run(work: () => Promise<unknown>, message = "Salvato.") {
+    setError(""); setNotice(""); setBusy(true);
+    try { await work(); setNotice(message); setRefresh((r) => r + 1); } catch (e) { setError(e instanceof Error ? e.message : "Operazione non riuscita."); } finally { setBusy(false); }
+  }
+  const show = (m: Metric) => m.status === "to_connect" ? "Da collegare" : m.status === "unauthorized" ? "Non autorizzato" : m.value === null || m.status === "unavailable" ? "Non disponibile" : m.unit === "cents" ? money(Number(m.value)) : m.unit === "pct" ? `${m.value}%` : String(m.value);
+  const statusLabel: Record<string, string> = { draft: "bozza", active: "attiva", paused: "in pausa", ended: "conclusa" };
+  return (
+    <>
+      {error ? <p className="platform-error" role="alert">{error}</p> : null}
+      {notice ? <p className="platform-notice" role="status">{notice}</p> : null}
+      <section className="platform-card">
+        <h2>Dashboard marketing {metrics?.demo ? <small>· dati dimostrativi</small> : <small>· dati reali</small>}</h2>
+        <label>Periodo<select value={days} onChange={(e) => setDays(Number(e.target.value))}><option value={7}>7 giorni</option><option value={30}>30 giorni</option><option value={90}>90 giorni</option><option value={365}>12 mesi</option></select></label>
+        <div className="platform-metrics">
+          {metrics?.metrics.map((m) => (
+            <section className="platform-card" key={m.key}>
+              <small>{m.label}</small>
+              <h2>{show(m)}</h2>
+              <p><small>{m.definition}<br />Fonte: {m.source}{m.updatedAt ? ` · aggiornato ${new Date(m.updatedAt).toLocaleString("it-IT", { dateStyle: "short", timeStyle: "short" })}` : ""}</small></p>
+            </section>
+          ))}
+        </div>
+        {!metrics ? <p role="status">Caricamento…</p> : null}
+      </section>
+      <section className="platform-card">
+        <h2>Registro campagne</h2>
+        <p>Ogni campagna ha UTM propri e un link tracciato (senza dati personali). Risultati attribuiti per link o per UTM corrispondenti; spesa via import CSV o inserimento manuale, mai da collegamenti pubblicitari automatici.</p>
+        {campaigns.map((c) => (
+          <details key={c.id} className="platform-card">
+            <summary>{c.name} · {c.channel} · {statusLabel[c.status] ?? c.status}{c.startsAt ? ` · dal ${date(c.startsAt)}` : ""}{c.endsAt ? ` al ${date(c.endsAt)}` : ""}</summary>
+            <p>Budget {money(c.budgetCents)} · speso {money(c.results.spendCents)}{c.results.budgetUsedPct !== null ? ` (${c.results.budgetUsedPct}%)` : ""} · contatti {c.results.leads} · proposte {c.results.quotes} · acquisti {c.results.purchases}{c.results.collectedCents !== null ? ` · incassato ${money(c.results.collectedCents)}` : ""}{c.results.costPerLeadCents !== null ? ` · costo/contatto ${money(c.results.costPerLeadCents)}` : ""}{c.results.costPerPurchaseCents !== null ? ` · costo/acquisto ${money(c.results.costPerPurchaseCents)}` : ""}{c.results.roas !== null ? ` · ROAS ${c.results.roas}` : ""}</p>
+            <p><small>UTM: {c.utmSource} / {c.utmMedium} / {c.utmCampaign}{c.utmContent ? ` / ${c.utmContent}` : ""} · destinazione {c.destination}</small></p>
+            <div className="platform-actions">
+              <button className="platform-text-button" onClick={() => navigator.clipboard.writeText(c.link).then(() => setNotice("Link tracciato copiato."))}>Copia il link tracciato</button>
+              <code>{c.link}</code>
+            </div>
+            {hasPermission(user.grants, "marketing.campaigns") ? (
+              <>
+                <form className="platform-inline" onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); run(() => platformApi(`campaigns/${c.id}`, "PATCH", { status: f.get("status") })); }}>
+                  <label>Stato<select name="status" defaultValue={c.status}><option value="draft">bozza</option><option value="active">attiva</option><option value="paused">in pausa</option><option value="ended">conclusa</option></select></label>
+                  <button disabled={busy}>Aggiorna</button>
+                </form>
+                <form className="platform-inline" onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); run(() => platformApi(`campaigns/${c.id}/spend`, "POST", { source: "manual", rows: [{ day: f.get("day"), spend: Number(f.get("spend")), clicks: f.get("clicks") ? Number(f.get("clicks")) : undefined, impressions: f.get("impressions") ? Number(f.get("impressions")) : undefined }] }), "Spesa registrata (i giorni già presenti non vengono sovrascritti)."); }}>
+                  <Field label="Giorno" name="day" type="date" required />
+                  <label>Spesa (€)<input name="spend" type="number" min={0} step={0.01} required /></label>
+                  <label>Clic<input name="clicks" type="number" min={0} /></label>
+                  <label>Impressioni<input name="impressions" type="number" min={0} /></label>
+                  <button disabled={busy}>Aggiungi spesa</button>
+                </form>
+                <form className="platform-inline" onSubmit={async (e) => { e.preventDefault(); const f = new FormData(e.currentTarget); const file = f.get("file"); await run(async () => { const text = file instanceof File ? await file.text() : ""; if (!text) throw new Error("Scegli un file CSV."); const response = await fetch(`/api/platform/campaigns/${c.id}/spend?origine=${encodeURIComponent(String(f.get("origine") || "csv"))}`, { method: "POST", credentials: "same-origin", headers: { "Content-Type": "text/csv" }, body: text }); const result = await response.json(); if (!response.ok) throw new Error(result.errore ?? "Import non riuscito."); }, "Spesa importata: i giorni già presenti sono stati ignorati."); }}>
+                  <label>CSV spesa (colonne: day, spend, clicks, impressions)<input name="file" type="file" accept=".csv,text/csv" /></label>
+                  <Field label="Origine (es. google-ads)" name="origine" />
+                  <button disabled={busy}>Importa CSV</button>
+                </form>
+              </>
+            ) : null}
+          </details>
+        ))}
+        {!campaigns.length ? <Empty>Nessuna campagna nel registro.</Empty> : null}
+        {hasPermission(user.grants, "marketing.campaigns") ? (
+          <details className="platform-card">
+            <summary>Nuova campagna</summary>
+            <form className="platform-form" onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); const form = e.currentTarget; run(() => platformApi("campaigns", "POST", { name: f.get("name"), channel: f.get("channel"), status: "draft", destination: f.get("destination") || "/preventivo", utmSource: f.get("source"), utmMedium: f.get("medium"), utmCampaign: f.get("campaign"), ...(f.get("content") ? { utmContent: f.get("content") } : {}), budgetCents: Math.round(Number(f.get("budget") || 0) * 100), ...(f.get("starts") ? { startsAt: new Date(String(f.get("starts"))).toISOString() } : {}), ...(f.get("ends") ? { endsAt: new Date(String(f.get("ends"))).toISOString() } : {}), ...(f.get("notes") ? { notes: f.get("notes") } : {}) }).then(() => form.reset()), "Campagna creata in bozza."); }}>
+              <Field label="Nome" name="name" required />
+              <label>Canale<select name="channel"><option value="google_ads">Google Ads</option><option value="meta">Meta</option><option value="email">Email</option><option value="marketplace">Marketplace</option><option value="partner">Partner</option><option value="organic">Organico</option><option value="referral">Referral</option><option value="other">Altro</option></select></label>
+              <Field label="Destinazione (percorso interno)" name="destination" defaultValue="/preventivo" />
+              <Field label="utm_source" name="source" required />
+              <Field label="utm_medium" name="medium" required />
+              <Field label="utm_campaign" name="campaign" required />
+              <Field label="utm_content (facoltativo)" name="content" />
+              <label>Budget (€)<input name="budget" type="number" min={0} step={0.01} /></label>
+              <Field label="Inizio" name="starts" type="date" />
+              <Field label="Fine" name="ends" type="date" />
+              <label>Note<textarea name="notes" maxLength={2000} /></label>
+              <button className="platform-button" disabled={busy}>Crea la campagna</button>
+            </form>
+          </details>
+        ) : null}
+      </section>
+      {hasPermission(user.grants, "marketing.contacts") ? (
+        <section className="platform-card">
+          <h2>Contatti autorizzati alle comunicazioni facoltative</h2>
+          <p>Solo chi ha dato il consenso e non lo ha revocato: nome, email, origine, data del consenso. Nessuna nota, telefono o documento.</p>
+          {contacts.map((c) => <div className="platform-row" key={c.id}><span><strong>{c.nome}</strong><small>{c.email} · {c.fonte}{c.campaign ? ` · ${c.campaign}` : ""} · consenso {date(c.consentAt)}</small></span><State value={c.stage} /><span>{c.assignedName ?? "non assegnato"}</span></div>)}
+          {!contacts.length ? <Empty>Nessun contatto con consenso attivo.</Empty> : null}
+          {can(user.grants, "export") ? <a className="platform-text-button" href="/api/platform/leads/export" download>Esporta CSV →</a> : null}
+        </section>
+      ) : null}
+      {automation ? (
+        <section className="platform-card">
+          <h2>Automazioni di recupero</h2>
+          <p>La bozza non invia nulla. Attiva: {automation.active ? `versione ${(automation.active as { version?: string }).version ?? "?"}` : "regole predefinite"}. {automation.canActivate ? "Puoi attivare la bozza." : "L’attivazione richiede la delega «automation.activate»."}</p>
+          <form className="platform-form" onSubmit={(e) => { e.preventDefault(); const raw = String(new FormData(e.currentTarget).get("draft")); run(async () => { let value: unknown; try { value = JSON.parse(raw); } catch { throw new Error("La bozza deve essere JSON valido."); } return platformApi("automations", "PUT", { value }); }, "Bozza salvata (non attiva)."); }}>
+            <label>Bozza (JSON)<textarea name="draft" rows={12} defaultValue={JSON.stringify(automation.draft ?? automation.active ?? automation.defaults, null, 2)} /></label>
+            <button disabled={busy || !hasPermission(user.grants, "automation.draft")}>Salva la bozza</button>
+          </form>
+          {automation.canActivate && automation.draft ? <button className="platform-button" disabled={busy} onClick={() => { if (window.confirm("Attivi la bozza? Da questo momento i recuperi seguono queste regole.")) run(() => platformApi("automations/activate", "POST"), "Automazione attivata."); }}>Attiva la bozza</button> : null}
+        </section>
+      ) : null}
+      {integrations ? (
+        <section className="platform-card">
+          <h2>Collegamenti esterni</h2>
+          {Object.entries(integrations).map(([key, i]) => <div className="platform-row" key={key}><span>{i.label}</span><State value={i.configured ? "ready" : i.mode === "prepared" ? "pending" : "attention"} /><small>{i.detail}</small></div>)}
+          <p><small>Le credenziali si impostano nelle variabili d’ambiente del progetto (vedi docs/INTEGRAZIONI.md), mai da qui.</small></p>
+        </section>
+      ) : null}
+    </>
+  );
+}
 function TeamView({
   users,
   run,
@@ -1845,6 +1978,13 @@ function TeamView({
                   </label>
                   <button disabled={busy}>Salva e revoca le sessioni</button>
                 </form>
+                {m.role === "admin" || m.role === "marketing" ? (
+                  <form className="platform-form" onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); const chosen = f.getAll("mkt").map(String) as Permission[]; const base = (m.grants ?? ROLE_GRANTS[m.role]).filter((g) => !(MARKETING_PERMISSIONS as string[]).includes(g.permission)); run(() => platformApi(`memberships/${m.id}`, "PATCH", { active: m.active, grants: [...base, ...chosen.map((permission) => ({ permission, scope: "organization" as const }))] }), "Permessi marketing aggiornati."); }}>
+                    <p><strong>Permessi marketing per questo profilo</strong> (uno per uno; l’attivazione delle automazioni, i ricavi aggregati, l’export e i collegamenti sono deleghe separate):</p>
+                    {MARKETING_PERMISSIONS.map((perm) => <label className="platform-check" key={perm}><input type="checkbox" name="mkt" value={perm} defaultChecked={(m.grants ?? ROLE_GRANTS[m.role]).some((g) => g.permission === perm)} />{MARKETING_LABELS[perm] ?? perm}</label>)}
+                    <button disabled={busy}>Salva permessi marketing</button>
+                  </form>
+                ) : null}
               </details>
             ))}
           </article>

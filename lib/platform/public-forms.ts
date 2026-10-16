@@ -1,6 +1,7 @@
 import { randomBytes, createHash } from "node:crypto";
 import { eq, and, sql } from "drizzle-orm";
 import { z } from "zod";
+import { sanitizeAttribution, scoreLead } from "@/lib/attribution";
 import { getDb } from "@/db";
 import { leads, quotes, agencyLeads } from "@/db/schema";
 import {
@@ -98,6 +99,7 @@ export async function publicQuote(request: Request) {
       return previous.result;
     }
     const { ricontatto, ...contatto } = body.contatto;
+    const attribution = sanitizeAttribution(body.attribution);
     const [lead] = await tx
       .insert(leads)
       .values({
@@ -106,6 +108,11 @@ export async function publicQuote(request: Request) {
         email: body.contatto.email.toLowerCase(),
         fonte: "preventivo",
         stage: "new",
+        attribution,
+        sourceDetail: attribution?.utmCampaign ?? attribution?.utmSource ?? null,
+        marketingConsentAt: contatto.consensoMarketing ? new Date() : null,
+        contactPreferences: { email: true, phone: ricontatto && Boolean(contatto.telefono), whatsapp: false, sms: false },
+        leadScore: scoreLead({ hasPhone: Boolean(contatto.telefono), wordCount: body.input.wordCount, projectType: body.input.projectType, urgency: body.input.urgency, requestedServices: body.input.requestedServices.length, noteLength: contatto.note?.length }),
       })
       .returning();
     const seller = await assignInboundLead(tx, lead!.id);
@@ -230,6 +237,9 @@ export async function publicContact(request: Request, agency = false) {
         fonte: agency ? "agenzie" : "contatto",
         consensoPrivacy: true,
         consensoMarketing: contact.success ? contact.data.consensoMarketing : false,
+        marketingConsentAt: contact.success && contact.data.consensoMarketing ? new Date() : null,
+        attribution: contact.success ? sanitizeAttribution(contact.data.attribution) : null,
+        sourceDetail: contact.success ? sanitizeAttribution(contact.data.attribution)?.utmCampaign ?? null : null,
         note: message,
       })
       .returning();

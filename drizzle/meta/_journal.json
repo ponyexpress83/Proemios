@@ -71,6 +71,13 @@
       "when": 1792181409426,
       "tag": "0009_crm_pipeline",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792182201300,
+      "tag": "0010_marketing_campaigns",
+      "breakpoints": true
     }
   ]
 }

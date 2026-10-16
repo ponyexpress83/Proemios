@@ -502,6 +502,52 @@ export const contracts = pgTable(
   },
   (t) => [uniqueIndex("contract_quote_version_idx").on(t.quoteId, t.version), index("contract_author_idx").on(t.authorId)],
 );
+/**
+ * Registro delle campagne: ogni campagna ha UTM propri e un link tracciato.
+ * L'attribuzione a lead, proposte e incassi avviene per id di campagna (parametro
+ * «pc» del link) o, in mancanza, per corrispondenza degli UTM. La spesa arriva
+ * da import CSV o inserimento manuale, mai da collegamenti pubblicitari automatici.
+ */
+export const campaigns = pgTable(
+  "platform_campaigns",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    name: text("name").notNull(),
+    channel: text("channel").notNull().default("other"),
+    status: text("status").notNull().default("draft"),
+    startsAt: timestamp("starts_at", { withTimezone: true }),
+    endsAt: timestamp("ends_at", { withTimezone: true }),
+    destination: text("destination").notNull().default("/preventivo"),
+    utmSource: text("utm_source").notNull(),
+    utmMedium: text("utm_medium").notNull(),
+    utmCampaign: text("utm_campaign").notNull(),
+    utmContent: text("utm_content"),
+    utmTerm: text("utm_term"),
+    partnerId: text("partner_id").references(() => user.id),
+    sellerId: text("seller_id").references(() => user.id),
+    budgetCents: integer("budget_cents").notNull().default(0),
+    notes: text("notes"),
+    createdBy: text("created_by").references(() => user.id),
+    createdAt: created(),
+    updatedAt: updated(),
+  },
+  (t) => [uniqueIndex("campaign_utm_idx").on(t.utmSource, t.utmMedium, t.utmCampaign)],
+);
+export const campaignSpend = pgTable(
+  "platform_campaign_spend",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    campaignId: uuid("campaign_id").notNull().references(() => campaigns.id, { onDelete: "cascade" }),
+    day: text("day").notNull(),
+    spendCents: integer("spend_cents").notNull().default(0),
+    impressions: integer("impressions"),
+    clicks: integer("clicks"),
+    source: text("source").notNull().default("manual"),
+    createdBy: text("created_by").references(() => user.id),
+    createdAt: created(),
+  },
+  (t) => [uniqueIndex("campaign_spend_day_idx").on(t.campaignId, t.day, t.source)],
+);
 export type ContractAcceptances = {
   terms: true;
   orderSheet: true;
