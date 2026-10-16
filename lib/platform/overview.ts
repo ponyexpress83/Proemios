@@ -31,7 +31,7 @@ export async function overviewCollection(request: Request, actor: Actor) {
       .leftJoin(leadOwnership, eq(leadOwnership.leadId, leads.id))
       .leftJoin(quotes, eq(quotes.leadId, leads.id))
       .leftJoin(quoteRecords, eq(quoteRecords.quoteId, quotes.id))
-      .where(and(leadPredicate(actor, "crm.read"), sql`${leads.stage} not in ('won','lost')`))
+      .where(and(leadPredicate(actor, "crm.read"), sql`${leads.stage} not in ('won','lost','unreachable')`))
       .orderBy(desc(leads.createdAt))
       .limit(300);
     const quoteIds = rows.map((r) => r.quote?.id).filter((x): x is string => Boolean(x));
@@ -43,6 +43,10 @@ export async function overviewCollection(request: Request, actor: Actor) {
       seen.add(key);
       const href = r.quote ? `/spazio?preventivo=${r.quote.id}` : `/spazio?lead=${r.lead.id}`;
       const who = r.lead.nome;
+      // Prossima azione concordata sul contatto: scaduta o in scadenza viene prima di tutto.
+      if (r.lead.nextActionAt && r.lead.nextActionAt.getTime() < Date.now() + DAY) items.push({ kind: "next-action", title: `${r.lead.nextAction ?? "Prossima azione"}: ${who}`, detail: `${r.lead.nextActionAt.getTime() < Date.now() ? "Scaduta il" : "Entro il"} ${r.lead.nextActionAt.toLocaleString("it-IT", { dateStyle: "short", timeStyle: "short" })}${r.lead.sourceDetail ? ` · ${r.lead.sourceDetail}` : ""}`, href: `/spazio?lead=${r.lead.id}`, urgency: r.lead.nextActionAt.getTime() < Date.now() ? "high" : "normal", at: r.lead.nextActionAt.toISOString() });
+      if (r.lead.stage === "recovery") items.push({ kind: "recovery", title: `Da recuperare: ${who}`, detail: `Pagamento non concluso. Canali ammessi: ${r.lead.contactPreferences ? ["phone", "whatsapp", "sms", "email"].filter((c) => r.lead.contactPreferences?.[c as "phone"]).join(", ") || "nessuno" : "da verificare"}.`, href: `/spazio?lead=${r.lead.id}`, urgency: "high", at: r.lead.updatedAt.toISOString() });
+      else if (r.lead.stage === "negotiation") items.push({ kind: "negotiation", title: `In negoziazione: ${who}`, detail: r.lead.nextAction ?? "Proposta in trattativa: ogni variazione è una nuova versione.", href, urgency: "normal", at: r.lead.updatedAt.toISOString() });
       if (!r.quote || !r.record) {
         items.push({ kind: "lead", title: `Crea la proposta per ${who}`, detail: `Contatto del ${r.lead.createdAt.toLocaleDateString("it-IT")}${r.lead.note ? ` · ${r.lead.note.slice(0, 80)}` : ""}`, href, urgency: daysAgo(r.lead.createdAt) >= 2 ? "high" : "normal", at: r.lead.createdAt.toISOString() });
         continue;

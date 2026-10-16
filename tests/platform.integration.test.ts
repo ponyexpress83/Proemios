@@ -900,9 +900,163 @@ describe("contract, payment plan, refunds, withdrawal and project start", () => 
     const blocked = await call("firstEuro", "checkout", "POST", { quoteId: firstQuote, kind: "balance" });
     expect(blocked.status).toBe(409); expect((await blocked.json()).code).toBe("WITHDRAWN");
     expect((await call("editorA", `contracts/${contractId}/withdrawal`, "POST", { outcome: "accepted" })).status).toBe(404);
-    expect((await call("sellerA", `contracts/${contractId}/withdrawal`, "POST", { outcome: "accepted" })).status).toBe(403);
+    expect((await call("admin", `contracts/${contractId}/withdrawal`, "POST", { outcome: "accepted" })).status).toBe(403);
     const closed = await data(await call("finance", `contracts/${contractId}/withdrawal`, "POST", { outcome: "accepted", note: "Rimborso autorizzato separatamente." }));
     expect(closed.contract.withdrawalOutcome).toBe("accepted");
     expect((await db.select().from(platform.projects).where(eq(platform.projects.quoteId, firstQuote)))[0]!.remindersPausedAt).not.toBeNull();
+  });
+});
+
+describe("CRM pipeline, authorized import, recoveries and consents", () => {
+  let marketLead: string, recoveryQuote: string, recoveryLead: string;
+  const HOUR = 3600_000;
+  it("derives the pipeline from facts, allows only manual states by hand and never marks a purchase without a verified payment", async () => {
+    // The paid lead was reassigned to sellerB during the payment tests.
+    const paid = await data(await call("sellerB", `leads/${leadId}`));
+    expect(paid.lead.pipeline).toBe("won");
+    expect((await call("sellerB", `leads/${leadId}`, "PATCH", { stage: "lost", lostReason: "Prova" })).status).toBe(409);
+    expect((await call("sellerA", `leads/${leadId}`)).status).toBe(404);
+    const created = await data(await call("sellerA", "leads", "POST", { nome: "Pipeline Test", email: "pipeline@example.test", consensoPrivacy: true }), 201);
+    const fresh = await data(await call("sellerA", `leads/${created.lead.id}`));
+    expect(fresh.lead.pipeline).toBe("received"); expect(fresh.activities.some((a: { kind: string }) => a.kind === "created")).toBe(true);
+    expect((await call("sellerA", `leads/${created.lead.id}`, "PATCH", { stage: "won" })).status).toBe(409);
+    expect((await call("sellerA", `leads/${created.lead.id}`, "PATCH", { stage: "quote_sent" })).status).toBe(409);
+    expect((await call("sellerA", `leads/${created.lead.id}`, "PATCH", { stage: "lost" })).status).toBe(422);
+    const due = new Date(Date.now() + 2 * HOUR).toISOString();
+    await data(await call("sellerA", `leads/${created.lead.id}`, "PATCH", { stage: "negotiation", nextAction: "Richiamare per il pacchetto Consigliato", nextActionAt: due, contactPreferences: { email: true, phone: true, whatsapp: false, sms: false } }));
+    const negotiating = await data(await call("sellerA", `leads/${created.lead.id}`));
+    expect(negotiating.lead.pipeline).toBe("negotiation"); expect(negotiating.lead.nextAction).toContain("Richiamare");
+    expect((await data(await call("sellerA", "overview"))).today.some((i: { kind: string; title: string }) => i.kind === "next-action" && i.title.includes("Pipeline Test"))).toBe(true);
+    // A legacy quote for this lead becomes a derived state again once the team closes the negotiation.
+    const lost = await data(await call("sellerA", `leads/${created.lead.id}`, "PATCH", { stage: "lost", lostReason: "Ha scelto un altro fornitore" }));
+    expect(lost.pipeline).toBe("lost");
+    const closed = await data(await call("sellerA", `leads/${created.lead.id}`));
+    expect(closed.lead.lostReason).toBe("Ha scelto un altro fornitore"); expect(closed.lead.closedAt).toBeTruthy();
+    expect(closed.activities.filter((a: { kind: string }) => a.kind === "state")).toHaveLength(2);
+    // Manual channel activities respect the person's channel preferences; nothing is ever sent from here.
+    expect((await call("sellerA", `leads/${created.lead.id}/activities`, "POST", { kind: "whatsapp", body: "Messaggio di prova", outcome: "reached" })).status).toBe(409);
+    await data(await call("sellerA", `leads/${created.lead.id}/activities`, "POST", { kind: "call", body: "Telefonata: richiamare domani", outcome: "callback", nextAction: "Richiamare", nextActionAt: due }), 201);
+    expect((await data(await call("sellerA", `leads/${created.lead.id}`))).lead.lastContactAt).toBeTruthy();
+  });
+  it("imports authorized marketplace contacts once, without any outbound message, and lets the assigned seller take over", async () => {
+    expect((await call("sellerA", "leads/import", "POST", { fonte: "marketplace", sourceDetail: "AddLance", rows: [] })).status).toBe(403);
+    expect((await call("sellerA", "leads", "POST", { nome: "Market Lead", email: "market@example.test", fonte: "marketplace", sourceDetail: "AddLance" })).status).toBe(403);
+    const before = (await db.select().from(platform.emailOutbox)).length;
+    const result = await data(await call("owner", "leads/import", "POST", { fonte: "marketplace", sourceDetail: "AddLance · offerta 1234", rows: [
+      { nome: "Market Lead", email: "Market@example.test", telefono: "+39 333 0000000", externalRef: "addlance-1", consensoPrivacy: true, note: "Ha risposto all'offerta." },
+      { nome: "Pipeline Test", email: "pipeline@example.test", externalRef: "addlance-2" },
+      { nome: "X", email: "non-valida" },
+    ] }), 201);
+    expect(result).toMatchObject({ imported: 1, duplicates: 1, invalid: 1 });
+    marketLead = result.leadIds[0];
+    expect((await db.select().from(platform.emailOutbox)).length).toBe(before);
+    const csv = await data(await handler(new Request(`${origin}/api/platform/leads/import?fonte=marketplace&origine=AddLance%20CSV`, { method: "POST", headers: { origin, cookie: actors.owner!.cookie, "content-type": "text/csv" }, body: 'nome,email,telefono,ref,consenso\n"Rossi, Anna",anna.rossi@example.test,,addlance-9,true\nMarket Lead,market@example.test,,addlance-1,true\n' })), 201);
+    expect(csv).toMatchObject({ imported: 1, duplicates: 1, invalid: 0 });
+    const [anna] = await db.select().from(schema.leads).where(eq(schema.leads.email, "anna.rossi@example.test"));
+    expect(anna!.nome).toBe("Rossi, Anna"); expect(anna!.fonte).toBe("marketplace"); expect(anna!.sourceDetail).toBe("AddLance CSV");
+    expect((await call("admin", "leads", "POST", { nome: "Market Lead", email: "market@example.test", fonte: "marketplace" })).status).toBe(409);
+    // Unassigned until the team hands it over; then the seller works it with the person's channels only.
+    expect((await call("sellerA", `leads/${marketLead}`)).status).toBe(404);
+    expect((await call("sellerA", `leads/${marketLead}`, "PATCH", { assignedTo: actors.sellerA!.id })).status).toBe(404);
+    await data(await call("owner", `leads/${marketLead}`, "PATCH", { assignedTo: actors.sellerA!.id, contactPreferences: { email: true, phone: true, whatsapp: true, sms: false } }));
+    const mine = await data(await call("sellerA", `leads/${marketLead}`));
+    expect(mine.lead.fonte).toBe("marketplace"); expect(mine.ownership.assignedTo).toBe(actors.sellerA!.id);
+    expect(mine.activities.some((a: { kind: string }) => a.kind === "assignment")).toBe(true);
+    await data(await call("sellerA", `leads/${marketLead}/activities`, "POST", { kind: "whatsapp", body: "Presentazione e richiesta del manoscritto", outcome: "reached" }), 201);
+    expect((await call("sellerA", `leads/${marketLead}/activities`, "POST", { kind: "sms", body: "no", outcome: "other" })).status).toBe(409);
+    const list = await data(await call("sellerA", "leads?fonte=marketplace"));
+    expect(list.leads.map((l: { id: string }) => l.id)).toContain(marketLead);
+    expect(list.leads.every((l: { fonte: string }) => l.fonte === "marketplace")).toBe(true);
+  });
+  it("recovers abandoned checkouts step by step, stops on payment, reply, takeover, revoked consent or frequency limit", async () => {
+    const { runRecovery, unsubscribeLink } = await import("@/lib/platform/recovery");
+    const { computeQuote } = await import("@/lib/pricing");
+    const { defaultPaymentPolicy } = await import("@/lib/platform/config");
+    const packages = computeQuote(priceInput as Parameters<typeof computeQuote>[0]).packages;
+    async function scenario(email: string, options: { marketing?: boolean; emailAllowed?: boolean; status?: string } = {}) {
+      const [lead] = await db.insert(schema.leads).values({ nome: "Recovery Case", email, fonte: "preventivo", consensoPrivacy: true, consensoMarketing: options.marketing ?? false, contactPreferences: options.emailAllowed === false ? { email: false, phone: true, whatsapp: false, sms: false } : null }).returning();
+      const [quote] = await db.insert(schema.quotes).values({ leadId: lead!.id, input: priceInput, pacchettiGenerati: packages, prezzoTotale: packages[1].total, acconto: packages[1].deposit, stato: "draft" }).returning();
+      await db.insert(platform.quoteRecords).values({ quoteId: quote!.id, pricingVersion: "test", commercialState: "accepted", acceptedAt: new Date(), acceptedBy: actors.authorA!.id, selectedTier: "consigliato", taxPolicy: defaultPaymentPolicy, offeredAt: new Date() });
+      await db.insert(platform.leadOwnership).values({ leadId: lead!.id, authorId: actors.authorA!.id, assignedTo: actors.sellerA!.id });
+      const [order] = await db.insert(platform.paymentOrders).values({ quoteId: quote!.id, authorId: actors.authorA!.id, tier: "consigliato", amountCents: 1000, status: options.status ?? "pending", stripeSessionId: `cs_test_${randomUUID()}` }).returning();
+      return { leadId: lead!.id, quoteId: quote!.id, orderId: order!.id };
+    }
+    const mails = async (email: string) => (await db.select().from(platform.emailOutbox)).filter((m) => m.recipient === email);
+    const start = Date.now();
+    const main = await scenario("recovery-main@example.test", { status: "failed" });
+    recoveryQuote = main.quoteId; recoveryLead = main.leadId;
+    expect((await data(await call("sellerA", `leads/${main.leadId}`))).lead.pipeline).toBe("payment_failed");
+    expect(await runRecovery(new Date(start + 1 * HOUR))).toMatchObject({ sent: 0, tasks: 0 });
+    expect(await runRecovery(new Date(start + 3 * HOUR))).toMatchObject({ sent: 1 });
+    expect(await runRecovery(new Date(start + 3 * HOUR))).toMatchObject({ sent: 0 });
+    expect((await mails("recovery-main@example.test")).map((m) => m.subject)).toEqual(["Il tuo pagamento è rimasto in sospeso · Proemios"]);
+    expect(await runRecovery(new Date(start + 25 * HOUR))).toMatchObject({ sent: 1 });
+    const third = await runRecovery(new Date(start + 61 * HOUR));
+    expect(third).toMatchObject({ sent: 0, tasks: 1 });
+    expect((await mails("recovery-main@example.test"))).toHaveLength(2);
+    const handed = await data(await call("sellerA", `leads/${main.leadId}`));
+    expect(handed.lead.pipeline).toBe("recovery"); expect(handed.tasks.some((t: { title: string }) => t.title.startsWith("Recupera"))).toBe(true);
+    expect((await db.select().from(platform.notifications).where(eq(platform.notifications.userId, actors.sellerA!.id))).some((n) => n.title === "Contatto da recuperare")).toBe(true);
+    expect(handed.activities.filter((a: { kind: string }) => a.kind === "automation")).toHaveLength(3);
+    // Paid in the meantime: nothing goes out, the state is "won" from the verified event.
+    const { processStripeEvent } = await import("@/lib/platform/payments");
+    const paidCase = await scenario("recovery-paid@example.test");
+    const [paidOrder] = await db.select().from(platform.paymentOrders).where(eq(platform.paymentOrders.id, paidCase.orderId));
+    await processStripeEvent({ id: `evt_test_${randomUUID()}`, type: "checkout.session.completed", livemode: false, data: { object: { id: paidOrder!.stripeSessionId, metadata: { orderId: paidCase.orderId, quoteId: paidCase.quoteId }, client_reference_id: paidCase.orderId, currency: "eur", amount_total: 1000, payment_status: "paid", payment_intent: `pi_test_${randomUUID()}` } } } as unknown as Stripe.Event);
+    await runRecovery(new Date(start + 3 * HOUR));
+    expect(await mails("recovery-paid@example.test")).toHaveLength(0);
+    expect((await data(await call("sellerA", `leads/${paidCase.leadId}`))).lead.pipeline).toBe("won");
+    // The person replied: the seller takes over, automations stop.
+    const replied = await scenario("recovery-replied@example.test");
+    await db.insert(platform.leadActivities).values({ leadId: replied.leadId, kind: "email", direction: "inbound", body: "Risposta della persona" });
+    expect(await runRecovery(new Date(start + 3 * HOUR))).toMatchObject({ sent: 0 });
+    expect(await mails("recovery-replied@example.test")).toHaveLength(0);
+    const takeover = await scenario("recovery-takeover@example.test");
+    await data(await call("sellerA", `leads/${takeover.leadId}/activities`, "POST", { kind: "call", body: "Parlato: pensa", outcome: "reached" }), 201);
+    await runRecovery(new Date(start + 3 * HOUR));
+    expect(await mails("recovery-takeover@example.test")).toHaveLength(0);
+    // Email channel excluded by the person: skipped and recorded, never sent.
+    const noEmail = await scenario("recovery-noemail@example.test", { emailAllowed: false });
+    await runRecovery(new Date(start + 3 * HOUR));
+    expect(await mails("recovery-noemail@example.test")).toHaveLength(0);
+    expect((await db.select().from(platform.leadActivities).where(eq(platform.leadActivities.leadId, noEmail.leadId))).some((a) => a.outcome === "skipped")).toBe(true);
+    // A marketing-purpose step needs explicit consent; the link in it revokes it without login.
+    await data(await call("owner", "settings", "PUT", { key: "recovery-rules", value: { version: "mkt-test", enabled: true, triggers: ["checkout_started", "payment_failed"], steps: [{ key: "promo", afterHours: 1, channel: "email", purpose: "marketing", subject: "Una guida per te · Proemios", body: "ti mandiamo la nostra guida alla pubblicazione, senza impegno." }], maxPerWeek: 1, stopOnSellerActivity: true } }));
+    const noConsent = await scenario("recovery-noconsent@example.test");
+    const consented = await scenario("recovery-consent@example.test", { marketing: true });
+    await runRecovery(new Date(start + 2 * HOUR));
+    expect(await mails("recovery-noconsent@example.test")).toHaveLength(0);
+    expect((await mails("recovery-consent@example.test")).map((m) => m.subject)).toEqual(["Una guida per te · Proemios"]);
+    const { GET: revoke } = await import("@/app/api/consensi/revoca/route");
+    expect((await revoke(new Request(`${origin}/api/consensi/revoca?lead=${consented.leadId}&t=wrong`))).status).toBe(400);
+    expect((await revoke(new Request(unsubscribeLink(consented.leadId)))).status).toBe(200);
+    const [revoked] = await db.select().from(schema.leads).where(eq(schema.leads.id, consented.leadId));
+    expect(revoked!.consensoMarketing).toBe(false); expect(revoked!.marketingRevokedAt).toBeTruthy();
+    void noConsent;
+    await db.delete(platform.platformSettings).where(eq(platform.platformSettings.key, "recovery-rules"));
+  });
+  it("keeps discounts inside the authorized thresholds, as new versions, with the alternatives suggested first", async () => {
+    const created = await data(await call("sellerB", `leads/${leadId}/quotes`, "POST", { input: priceInput }), 201);
+    const quote = created.quote.id as string;
+    const await0 = (id: string) => call("sellerB", `quotes/${id}`);
+    const version = async () => (await data(await await0(quote))).record.version as number;
+    const blocked = await call("sellerB", `quotes/${quote}`, "PATCH", { version: await version(), input: priceInput, discountBps: 500, discountNote: "Richiesta del cliente" });
+    expect(blocked.status).toBe(409); expect((await blocked.json()).code).toBe("APPROVAL_REQUIRED");
+    await data(await call("owner", "settings", "PUT", { key: "purchase-rule", value: { version: "discount-test", autoOfferSingleServices: [], autoOfferFullPath: false, validityDays: 30, maxInstallments: 1, startAfter: {}, balanceBeforeDelivery: true, maxSellerDiscountBps: 1000, maxDiscountBps: 2000 } }));
+    const ok = await data(await call("sellerB", `quotes/${quote}`, "PATCH", { version: await version(), input: priceInput, discountBps: 500, discountNote: "Richiesta del cliente" }));
+    expect(ok).toMatchObject({ discountBps: 500, exception: false });
+    const detail = await data(await await0(quote));
+    const base = created.packages.find((p: { recommended: boolean }) => p.recommended).total;
+    const discounted = detail.packages.find((p: { recommended: boolean }) => p.recommended);
+    expect(discounted.total).toBe(base - Math.round(base * 0.05));
+    expect(discounted.lineItems.some((li: { key: string; amount: number }) => li.key === "negotiatedDiscount" && li.amount < 0)).toBe(true);
+    expect(detail.history).toHaveLength(1);
+    expect((await call("sellerB", `quotes/${quote}`, "PATCH", { version: await version(), input: priceInput, discountBps: 1500 })).status).toBe(409);
+    expect((await data(await call("owner", `quotes/${quote}`, "PATCH", { version: await version(), input: priceInput, discountBps: 1500 }))).exception).toBe(true);
+    expect((await call("owner", `quotes/${quote}`, "PATCH", { version: await version(), input: priceInput, discountBps: 2500 })).status).toBe(422);
+    const lead = await data(await call("sellerB", `leads/${leadId}`));
+    expect(lead.activities.filter((a: { kind: string }) => a.kind === "negotiation")).toHaveLength(2);
+    await db.delete(platform.platformSettings).where(eq(platform.platformSettings.key, "purchase-rule"));
+    void recoveryQuote; void recoveryLead;
   });
 });

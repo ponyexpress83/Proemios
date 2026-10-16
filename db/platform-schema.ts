@@ -206,6 +206,28 @@ export const leadOwnership = pgTable("platform_lead_ownership", {
   assignedTo: text("assigned_to").references(() => user.id),
   updatedAt: updated(),
 });
+/**
+ * Storia del contatto: attività manuali (telefonate, WhatsApp, SMS, incontri),
+ * cambi di stato, assegnazioni, automazioni inviate, importazioni. Le note
+ * libere restano in platform_lead_notes; qui ogni riga ha un tipo e un canale.
+ */
+export const leadActivities = pgTable(
+  "platform_lead_activities",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    leadId: uuid("lead_id").notNull(),
+    actorId: text("actor_id").references(() => user.id),
+    kind: text("kind").notNull(),
+    channel: text("channel"),
+    direction: text("direction").notNull().default("outbound"),
+    purpose: text("purpose"),
+    body: text("body"),
+    outcome: text("outcome"),
+    eventKey: text("event_key").unique(),
+    createdAt: created(),
+  },
+  (t) => [index("lead_activity_lead_idx").on(t.leadId, t.createdAt)],
+);
 export const leadNotes = pgTable("platform_lead_notes", {
   id: uuid("id").defaultRandom().primaryKey(),
   leadId: uuid("lead_id").notNull(),
@@ -252,6 +274,11 @@ export const quoteRecords = pgTable("platform_quote_records", {
    * pagamento unico). Null: acconto + saldo.
    */
   paymentPlan: jsonb("payment_plan").$type<PaymentPlan>(),
+  /** Sconto commerciale applicato dal team entro le soglie (basis points), con chi lo ha concesso. */
+  discountBps: integer("discount_bps").notNull().default(0),
+  discountBy: text("discount_by").references(() => user.id),
+  discountNote: text("discount_note"),
+  discountApprovedBy: text("discount_approved_by").references(() => user.id),
 });
 export type PaymentPlan = {
   installments: number;

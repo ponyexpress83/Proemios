@@ -27,7 +27,7 @@ export async function assignInboundLead(tx: Tx, leadId: string): Promise<string 
     .select({ id: leadOwnership.assignedTo, count: sql<number>`count(*)::int` })
     .from(leadOwnership)
     .innerJoin(leads, eq(leads.id, leadOwnership.leadId))
-    .where(and(inArray(leadOwnership.assignedTo, sellerIds), sql`${leads.stage} not in ('won', 'lost')`))
+    .where(and(inArray(leadOwnership.assignedTo, sellerIds), sql`${leads.stage} not in ('won', 'lost', 'unreachable')`))
     .groupBy(leadOwnership.assignedTo);
   const workload = new Map(assigned.map((r) => [r.id, Number(r.count)]));
   const seller = sellerIds.reduce((best, id) =>

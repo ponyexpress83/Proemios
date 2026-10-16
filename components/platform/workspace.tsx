@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState, type ReactNode } from "react";
+import { PIPELINE_STATES, PIPELINE_LABELS, type PipelineState } from "@/lib/platform/pipeline";
 import Link from "next/link";
 import type { Route } from "next";
 import type { PricingInput } from "@/lib/pricing";
@@ -44,16 +45,32 @@ type StoredFile = {
 };
 type Task = { id: string; title: string; done: boolean; dueAt: string | null; internal: boolean };
 type Message = { id: string; body: string; internal: boolean; name: string; createdAt: string };
+type ContactPreferences = { email: boolean; phone: boolean; whatsapp: boolean; sms: boolean; note?: string | null };
 type Lead = {
   id: string;
   nome: string;
   email: string;
   telefono: string | null;
   stage: string;
+  pipeline?: PipelineState;
+  fonte?: string;
+  sourceDetail?: string | null;
+  externalRef?: string | null;
   leadScore: number;
   note: string | null;
   assignedTo: string | null;
+  assignedName?: string | null;
+  nextAction?: string | null;
+  nextActionAt?: string | null;
+  lastContactAt?: string | null;
+  lostReason?: string | null;
+  consensoPrivacy?: boolean;
+  consensoMarketing?: boolean;
+  marketingRevokedAt?: string | null;
+  contactPreferences?: ContactPreferences | null;
+  createdAt?: string;
 };
+type LeadActivity = { id: string; kind: string; channel: string | null; direction: string; purpose: string | null; body: string | null; outcome: string | null; createdAt: string; name: string | null };
 type Quote = {
   id: string;
   name?: string;
@@ -150,8 +167,15 @@ type QuoteDetail = {
 };
 type LeadDetail = {
   lead: Lead;
+  ownership: { assignedTo: string | null; assignedName: string | null; authorId: string | null } | null;
   notes: Array<{ id: string; body: string; name: string; createdAt: string }>;
-  quotes: Quote[];
+  activities: LeadActivity[];
+  tasks: Array<{ id: string; title: string; dueAt: string | null; done: boolean }>;
+  quotes: Array<Quote & { journey?: string | null; commercialState?: string | null }>;
+  orders: Array<{ id: string; quoteId: string; kind: string; sequence: number; status: string; amountCents: number }>;
+  contracts: Array<{ id: string; quoteId: string; acceptedAt: string; withdrawalRequestedAt: string | null }>;
+  states: PipelineState[];
+  manualStates: PipelineState[];
 };
 const money = (cents: number) =>
   new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(cents / 100);
@@ -277,9 +301,10 @@ export function PlatformWorkspace({ user }: { user: Profile }) {
     return () => { active = false; };
   }, []);
   useEffect(() => {
-    const params = new URLSearchParams(location.search), quote = params.get("preventivo"), project = params.get("progetto");
+    const params = new URLSearchParams(location.search), quote = params.get("preventivo"), project = params.get("progetto"), lead = params.get("lead");
     if (quote && hasPermission(user.grants, "quote.read")) { setTab("quotes"); setSelected(quote); }
     else if (project && hasPermission(user.grants, "project.read")) { setTab("projects"); setSelected(project); }
+    else if (lead && hasPermission(user.grants, "crm.read")) { setTab("leads"); setSelected(lead); }
   }, [user.grants]);
   useEffect(() => {
     let active = true;
@@ -394,7 +419,7 @@ export function PlatformWorkspace({ user }: { user: Profile }) {
             {tab === "projects" ? (
               <ProjectView id={selected} user={user} />
             ) : tab === "leads" ? (
-              <LeadView id={selected} />
+              <LeadView id={selected} user={user} />
             ) : (
               <QuoteView id={selected} user={user} />
             )}
@@ -486,14 +511,14 @@ export function PlatformWorkspace({ user }: { user: Profile }) {
                   {crmQuery ? <button className="platform-text-button" onClick={() => setCrmQuery("")}>Mostra tutti i contatti autorizzati</button> : null}
                 </section>
                 <div className="platform-grid">
-                  {["new", "contacted", "qualified", "proposal", "won", "lost"].map((stage) => (
-                    <section className="platform-card" key={stage}>
+                  {PIPELINE_STATES.map((state) => (
+                    <section className="platform-card" key={state}>
                       <h2>
-                        {stages[stage]}{" "}
-                        <small>{data.leads?.filter((l) => l.stage === stage).length ?? 0}</small>
+                        {PIPELINE_LABELS[state]}{" "}
+                        <small>{data.leads?.filter((l) => (l.pipeline ?? l.stage) === state).length ?? 0}</small>
                       </h2>
                       {data.leads
-                        ?.filter((l) => l.stage === stage)
+                        ?.filter((l) => (l.pipeline ?? l.stage) === state)
                         .map((l) => (
                           <button
                             className="platform-lead"
@@ -502,7 +527,8 @@ export function PlatformWorkspace({ user }: { user: Profile }) {
                           >
                             <strong>{l.nome}</strong>
                             <span>{l.email}</span>
-                            <small>Priorità {l.leadScore}/100</small>
+                            <small>{l.fonte ?? "sito"}{l.sourceDetail ? ` · ${l.sourceDetail}` : ""}{l.assignedName ? ` · ${l.assignedName}` : " · non assegnato"}</small>
+                            {l.nextActionAt ? <small>{l.nextAction ?? "Prossima azione"} · {new Date(l.nextActionAt).toLocaleString("it-IT", { dateStyle: "short", timeStyle: "short" })}</small> : null}
                           </button>
                         ))}
                     </section>
@@ -542,6 +568,19 @@ export function PlatformWorkspace({ user }: { user: Profile }) {
                       <button className="platform-button" disabled={busy}>
                         Salva contatto →
                       </button>
+                    </form>
+                  </details>
+                ) : null}
+                {can(user.grants, "crm.import") ? (
+                  <details className="platform-card">
+                    <summary>Importa contatti autorizzati (marketplace, file)</summary>
+                    <p>Solo contatti che hanno risposto a un’offerta o hanno chiesto di essere ricontattati: l’import non invia nulla, non fa scraping e ignora i doppioni (email o riferimento). Colonne CSV: nome, email, telefono, note, ref, consenso.</p>
+                    <form className="platform-form" onSubmit={async (e) => { e.preventDefault(); const f = new FormData(e.currentTarget); const file = f.get("file"); const origin = String(f.get("origine") || "file CSV"); const fonte = String(f.get("fonte") || "import"); await run(async () => { const text = file instanceof File ? await file.text() : String(f.get("testo") ?? ""); const response = await fetch(`/api/platform/leads/import?fonte=${encodeURIComponent(fonte)}&origine=${encodeURIComponent(origin)}`, { method: "POST", credentials: "same-origin", headers: { "Content-Type": "text/csv" }, body: text }); const result = await response.json(); if (!response.ok) throw new Error(result.errore ?? "Import non riuscito."); setNotice(`Importati ${result.imported}, doppioni ${result.duplicates}, righe non valide ${result.invalid}.`); }, "Import completato."); }}>
+                      <label>Origine<select name="fonte"><option value="marketplace">Marketplace (es. AddLance)</option><option value="import">Altra lista autorizzata</option></select></label>
+                      <Field label="Dettaglio origine (es. AddLance · offerta 1234)" name="origine" required />
+                      <label>File CSV<input name="file" type="file" accept=".csv,text/csv" /></label>
+                      <label>Oppure incolla il CSV<textarea name="testo" rows={4} placeholder={"nome,email,telefono,ref,consenso\nMario Rossi,mario@esempio.it,+39…,addlance-1,true"} /></label>
+                      <button className="platform-button" disabled={busy}>Importa</button>
                     </form>
                   </details>
                 ) : null}
@@ -1258,11 +1297,12 @@ function ProjectView({ id, user }: { id: string; user: Profile }) {
     </>
   );
 }
-function LeadView({ id }: { id: string }) {
+function LeadView({ id, user }: { id: string; user: Profile }) {
   const [detail, setDetail] = useState<LeadDetail | null>(null),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
-    [refresh, setRefresh] = useState(0);
+    [refresh, setRefresh] = useState(0),
+    [team, setTeam] = useState<Person[]>([]);
   useEffect(() => {
     let active = true;
     platformApi<LeadDetail>(`leads/${id}`)
@@ -1272,10 +1312,11 @@ function LeadView({ id }: { id: string }) {
       .catch((e) => {
         if (active) setError(e.message);
       });
+    if (hasPermission(user.grants, "role.manage")) platformApi<{ users: Person[] }>("team").then((t) => { if (active) setTeam(t.users ?? []); }).catch(() => {});
     return () => {
       active = false;
     };
-  }, [id, refresh]);
+  }, [id, refresh, user.grants]);
   async function run(work: () => Promise<unknown>) {
     setError("");
     setBusy(true);
@@ -1289,46 +1330,108 @@ function LeadView({ id }: { id: string }) {
     }
   }
   if (!detail) return <p role={error ? "alert" : "status"}>{error || "Caricamento…"}</p>;
+  const lead = detail.lead, prefs = lead.contactPreferences, pipeline = lead.pipeline ?? "received";
+  const writable = hasPermission(user.grants, "crm.write");
+  const channelLabel: Record<string, string> = { call: "Telefonata", whatsapp: "WhatsApp", sms: "SMS", email: "Email", meeting: "Incontro", other: "Altro", automation: "Automazione", state: "Stato", assignment: "Assegnazione", import: "Import", created: "Creazione", consent: "Consenso", negotiation: "Negoziazione" };
+  const toLocal = (iso: string | null | undefined) => iso ? new Date(new Date(iso).getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16) : "";
   return (
     <>
       <section className="platform-card">
-        <h2>{detail.lead.nome}</h2>
+        <h2>{lead.nome} <State value={PIPELINE_LABELS[pipeline]} /></h2>
         <p>
-          {detail.lead.email} · {detail.lead.telefono || "Nessun telefono"}
+          {lead.email} · {lead.telefono || "Nessun telefono"} · origine {lead.fonte ?? "sito"}{lead.sourceDetail ? ` (${lead.sourceDetail})` : ""}{lead.externalRef ? ` · rif. ${lead.externalRef}` : ""}
         </p>
-        <p>{detail.lead.note}</p>
-        <form
-          className="platform-inline"
-          onSubmit={(e) => {
-            e.preventDefault();
-            const f = new FormData(e.currentTarget);
-            run(() =>
-              platformApi(`leads/${id}`, "PATCH", {
-                stage: f.get("stage"),
-                lostReason: f.get("reason"),
-              }),
-            );
-          }}
-        >
-          <label>
-            Fase
-            <select name="stage" defaultValue={detail.lead.stage}>
-              {["new", "contacted", "qualified", "proposal", "won", "lost"].map((s) => (
-                <option key={s} value={s}>
-                  {stages[s]}
-                </option>
-              ))}
-            </select>
-          </label>
-          <Field label="Motivo se chiuso" name="reason" />
-          <button disabled={busy}>Salva fase</button>
-        </form>
+        <p>Responsabile: {detail.ownership?.assignedName ?? "non assegnato"}{detail.ownership?.authorId ? " · account autore collegato" : ""}{lead.lastContactAt ? ` · ultimo contatto ${date(lead.lastContactAt)}` : ""}</p>
+        {lead.nextAction || lead.nextActionAt ? <p><strong>Prossima azione:</strong> {lead.nextAction ?? "—"}{lead.nextActionAt ? ` · entro ${new Date(lead.nextActionAt).toLocaleString("it-IT", { dateStyle: "short", timeStyle: "short" })}` : ""}</p> : null}
+        {lead.lostReason ? <p><strong>Motivo chiusura:</strong> {lead.lostReason}</p> : null}
+        <p>{lead.note}</p>
+        <p><small>Consensi: informativa {lead.consensoPrivacy ? "accettata" : "non registrata"} · comunicazioni facoltative {lead.consensoMarketing ? "sì" : lead.marketingRevokedAt ? "revocate" : "no"} · canali ammessi: {prefs ? (["email", "phone", "whatsapp", "sms"] as const).filter((c) => prefs[c]).map((c) => ({ email: "email", phone: "telefono", whatsapp: "WhatsApp", sms: "SMS" })[c]).join(", ") || "nessuno" : "da verificare con la persona"}. Nessun messaggio automatico parte su WhatsApp o SMS.</small></p>
+        {writable ? (
+          <form
+            className="platform-inline"
+            onSubmit={(e) => {
+              e.preventDefault();
+              const f = new FormData(e.currentTarget);
+              run(() =>
+                platformApi(`leads/${id}`, "PATCH", {
+                  stage: f.get("stage"),
+                  ...(f.get("reason") ? { lostReason: f.get("reason") } : {}),
+                }),
+              );
+            }}
+          >
+            <label>
+              Stato (solo quelli decisi dal team)
+              <select name="stage" defaultValue={detail.manualStates.includes(pipeline) ? pipeline : "received"}>
+                {detail.manualStates.map((s) => (
+                  <option key={s} value={s}>
+                    {PIPELINE_LABELS[s]}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <Field label="Motivo se perso o non contattabile" name="reason" />
+            <button disabled={busy}>Salva stato</button>
+            <small>Gli altri stati (proposta, accettata, checkout, pagamento) derivano dai fatti e non si impostano a mano. «Acquisto concluso» arriva solo da un incasso verificato.</small>
+          </form>
+        ) : null}
+        {writable ? (
+          <form className="platform-inline" onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); run(() => platformApi(`leads/${id}`, "PATCH", { nextAction: String(f.get("next") ?? "") || null, nextActionAt: f.get("due") ? new Date(String(f.get("due"))).toISOString() : null })); }}>
+            <Field label="Prossima azione" name="next" defaultValue={lead.nextAction ?? ""} />
+            <Field label="Entro" name="due" type="datetime-local" defaultValue={toLocal(lead.nextActionAt)} />
+            <button disabled={busy}>Aggiorna</button>
+          </form>
+        ) : null}
+        {writable ? (
+          <form className="platform-inline" onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); run(() => platformApi(`leads/${id}`, "PATCH", { contactPreferences: { email: f.get("email") === "on", phone: f.get("phone") === "on", whatsapp: f.get("whatsapp") === "on", sms: f.get("sms") === "on", note: String(f.get("prefnote") ?? "") || null } })); }}>
+            <span>Canali ammessi (come dichiarato dalla persona):</span>
+            {(["email", "phone", "whatsapp", "sms"] as const).map((c) => <label className="platform-check" key={c}><input type="checkbox" name={c} defaultChecked={prefs ? prefs[c] : c === "email"} />{({ email: "Email", phone: "Telefono", whatsapp: "WhatsApp", sms: "SMS" })[c]}</label>)}
+            <Field label="Nota (orari, lingua…)" name="prefnote" defaultValue={prefs?.note ?? ""} />
+            <button disabled={busy}>Salva canali</button>
+          </form>
+        ) : null}
+        {writable ? (
+          <form className="platform-inline" onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); const grant = f.get("consent") === "grant"; run(() => platformApi(`leads/${id}`, "PATCH", { marketingConsent: grant, ...(grant ? { consentEvidence: String(f.get("evidence") ?? "") } : {}) })); }}>
+            <label>Comunicazioni facoltative<select name="consent" defaultValue={lead.consensoMarketing ? "grant" : "revoke"}><option value="grant">Consenso registrato</option><option value="revoke">Revocato / non dato</option></select></label>
+            <Field label="Prova del consenso (data e testo della richiesta)" name="evidence" />
+            <button disabled={busy}>Registra</button>
+          </form>
+        ) : null}
+        {hasPermission(user.grants, "crm.assign") && team.length ? (
+          <form className="platform-inline" onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); run(() => platformApi(`leads/${id}`, "PATCH", { assignedTo: String(f.get("assignee")) })); }}>
+            <label>Responsabile<select name="assignee" defaultValue={detail.ownership?.assignedTo ?? ""}>{team.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select></label>
+            <button disabled={busy}>Assegna</button>
+          </form>
+        ) : null}
       </section>
       {error ? (
         <p className="platform-error" role="alert">
           {error}
         </p>
       ) : null}
+      <section className="platform-card">
+        <h2>Storia del contatto</h2>
+        {detail.activities.map((a) => (
+          <article key={a.id}>
+            <strong>{channelLabel[a.kind] ?? a.kind}{a.direction === "inbound" ? " · ricevuto" : ""}{a.purpose ? ` · ${a.purpose}` : ""}</strong>
+            <small> · {a.name ?? "automazione"} · {new Date(a.createdAt).toLocaleString("it-IT", { dateStyle: "short", timeStyle: "short" })}{a.outcome ? ` · ${a.outcome}` : ""}</small>
+            {a.body ? <p>{a.body}</p> : null}
+          </article>
+        ))}
+        {!detail.activities.length ? <Empty>Nessuna attività registrata.</Empty> : null}
+        {writable ? (
+          <form className="platform-form" onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); const form = e.currentTarget; run(() => platformApi(`leads/${id}/activities`, "POST", { kind: f.get("kind"), direction: f.get("direction"), body: f.get("body"), outcome: f.get("outcome"), ...(f.get("next") ? { nextAction: f.get("next") } : {}), ...(f.get("due") ? { nextActionAt: new Date(String(f.get("due"))).toISOString() } : {}) }).then(() => form.reset())); }}>
+            <label>Attività<select name="kind"><option value="call">Telefonata</option><option value="whatsapp">WhatsApp (manuale)</option><option value="sms">SMS (manuale)</option><option value="email">Email</option><option value="meeting">Incontro</option><option value="other">Altro</option></select></label>
+            <label>Direzione<select name="direction"><option value="outbound">Fatta da noi</option><option value="inbound">Ricevuta dalla persona</option></select></label>
+            <label>Cosa è successo<textarea name="body" required maxLength={5000} /></label>
+            <label>Esito<select name="outcome"><option value="reached">Raggiunto</option><option value="no-answer">Nessuna risposta</option><option value="callback">Richiamare</option><option value="replied">Ha risposto</option><option value="declined">Ha rifiutato</option><option value="other">Altro</option></select></label>
+            <Field label="Prossima azione (facoltativa)" name="next" />
+            <Field label="Entro" name="due" type="datetime-local" />
+            <button disabled={busy}>Registra attività</button>
+            <small>Qui si registra ciò che è stato fatto: WhatsApp e SMS si inviano dal telefono aziendale, solo sui canali ammessi.</small>
+          </form>
+        ) : null}
+      </section>
       <section className="platform-card">
         <h2>Note e follow-up</h2>
         {detail.notes.map((n) => (
@@ -1338,6 +1441,7 @@ function LeadView({ id }: { id: string }) {
             <p>{n.body}</p>
           </article>
         ))}
+        {detail.tasks.length ? <ul>{detail.tasks.map((t) => <li key={t.id}>{t.title}{t.dueAt ? ` · entro ${date(t.dueAt)}` : ""}</li>)}</ul> : null}
         <form
           className="platform-form"
           onSubmit={(e) => {
@@ -1442,8 +1546,8 @@ function LeadView({ id }: { id: string }) {
         <h2>Proposte</h2>
         {detail.quotes.map((q) => (
           <div className="platform-row" key={q.id}>
-            <span>{q.id.slice(0, 8)}</span>
-            <State value={q.stato} />
+            <span>{q.id.slice(0, 8)}{detail.contracts.some((c) => c.quoteId === q.id) ? " · contratto" : ""}</span>
+            <State value={q.journey ?? q.stato} />
             <strong>{money((q.prezzoTotale ?? 0) * 100)}</strong>
             <button
               disabled={busy}
@@ -1498,6 +1602,12 @@ function QuoteView({ id, user }: { id: string; user: Profile }) {
           <label>Tempi<select name="urgency" defaultValue={detail.quote.input.urgency ?? "standard"}><option value="standard">Standard</option><option value="prioritaria">Prioritari, con maggiorazione</option></select></label>
           <Field label="Validità concordata della proposta (facoltativa)" name="expiry" type="datetime-local" />
           <button className="platform-button" disabled={busy}>Salva nuova versione</button>
+        </form>
+        <p><strong>Prima di uno sconto</strong>, proponi in ordine: pagamento dilazionato (rate del saldo, qui sotto), servizio a fasi, un pacchetto più essenziale, un confronto con il consulente. Lo sconto resta entro la soglia della regola «Cosa è acquistabile subito»; oltre serve l’approvazione e ogni variazione è una nuova versione, mai una sovrascrittura.</p>
+        <form className="platform-inline" onSubmit={event => { event.preventDefault(); const f = new FormData(event.currentTarget); run(() => platformApi(`quotes/${id}`, "PATCH", { version: detail.record.version, input: detail.quote.input, discountBps: Math.round(Number(f.get("discount") || 0) * 100), ...(f.get("why") ? { discountNote: String(f.get("why")) } : {}) })); }}>
+          <label>Sconto commerciale (%)<input name="discount" type="number" min={0} max={50} step={0.5} defaultValue={0} /></label>
+          <Field label="Motivo (visibile nella storia del contatto)" name="why" />
+          <button className="platform-button" disabled={busy}>Nuova versione con sconto</button>
         </form>
       </details> : null}
       <section className="platform-card">
@@ -2006,10 +2116,10 @@ function SettingsView({
           versione precedente. Il salvataggio registra il responsabile e la data di approvazione.
         </p>
       </section>
-      {["payment-policy", "commission-rule", "purchase-rule", "reminder-rules"].map((key) => (
+      {["payment-policy", "commission-rule", "purchase-rule", "reminder-rules", "recovery-rules"].map((key) => (
         <details className="platform-card" key={key}>
           <summary>
-            {{ "payment-policy": "IVA e termini", "commission-rule": "Commissioni e attribuzione", "purchase-rule": "Cosa è acquistabile subito", "reminder-rules": "Promemoria automatici" }[key]}
+            {{ "payment-policy": "IVA e termini", "commission-rule": "Commissioni e attribuzione", "purchase-rule": "Cosa è acquistabile subito", "reminder-rules": "Promemoria automatici", "recovery-rules": "Recupero dei pagamenti non conclusi" }[key]}
           </summary>
           <form
             className="platform-form"
@@ -2033,6 +2143,7 @@ function SettingsView({
                 "commission-rule": 'Valori richiesti: version, sellerBps, affiliateBps (100 = 1%), base "collected-excluding-tax", attributionDays (1–365), attribution "code-on-quote". Facoltativo: assistedSalesOnly (true = provvigione al venditore solo con un intervento tracciato: revisione, invio o offerta; la sola assegnazione del contatto non basta).',
                 "purchase-rule": "Quali richieste pubbliche nascono già acquistabili: autoOfferSingleServices (elenco di servizi singoli a prezzo fisso), autoOfferFullPath (percorsi completi), validityDays. maxInstallments: rate del saldo che un venditore può concedere da solo (1 = nessuna). startAfter: per servizio, se la lavorazione parte dopo l'acconto (predefinito) o dopo il saldo, es. {\"cover\":\"balance\"}. balanceBeforeDelivery: la consegna finale richiede il saldo. Tutto il resto resta una stima finché il team non la rende acquistabile. Predefinito prudente: solo copertina, EPUB, KDP, ISBN e scheda Amazon.",
                 "reminder-rules": "enabled, unconfirmedDays, expiryDays, unpaidDays, materialsDays, approvalDays. I promemoria si fermano al cambio di stato, non si ripetono e si possono sospendere sulla singola proposta o progetto.",
+                "recovery-rules": "enabled, triggers (checkout_started, payment_failed), steps [{key, afterHours, channel: email|task, purpose: assistance|contractual|cart|marketing, subject, body}], maxPerWeek, stopOnSellerActivity. Prima di ogni passo si rilegge lo stato: pagamento, risposta, presa in carico, chiusura o revoca fermano tutto. Lo scopo «marketing» richiede il consenso esplicito; «task» crea un'attività manuale per il venditore (telefonata, WhatsApp, SMS) e non invia nulla.",
               }[key]}
             </p>
             <label>

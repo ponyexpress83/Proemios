@@ -32,6 +32,8 @@ import {
   quoteSend,
   quoteClaim,
   crmExport,
+  leadImport,
+  leadActivity,
 } from "@/lib/platform/crm";
 import {
   teamCollection,
@@ -95,7 +97,7 @@ const handler = route(async (request) => {
   if (area === "me" && id === "billing" && !action) return billingProfile(request, actor);
   if (
     id &&
-    !["export", "reconcile", "run", "status"].includes(id) &&
+    !["export", "reconcile", "run", "status", "import"].includes(id) &&
     !z.string().uuid().safeParse(id).success
   )
     throw notFound();
@@ -117,8 +119,10 @@ const handler = route(async (request) => {
     case "leads":
       if (!id) return leadCollection(request, actor);
       if (id === "export" && request.method === "GET") return crmExport(actor);
+      if (id === "import" && !action) return leadImport(request, actor);
       if (!action) return leadDetail(request, actor, id);
       if (action === "notes") return leadNote(request, actor, id);
+      if (action === "activities") return leadActivity(request, actor, id);
       if (action === "quotes") return createQuoteForLead(request, actor, id);
       break;
     case "quotes":

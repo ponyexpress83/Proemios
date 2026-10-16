@@ -64,6 +64,13 @@
       "when": 1792180103769,
       "tag": "0008_contracts_and_plans",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792181409426,
+      "tag": "0009_crm_pipeline",
+      "breakpoints": true
     }
   ]
 }

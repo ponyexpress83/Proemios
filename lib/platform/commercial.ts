@@ -34,6 +34,10 @@ export const purchaseRuleSchema = z.object({
   startAfter: z.record(serviceKeySchema, z.enum(["deposit", "balance"])).default({}),
   /** La consegna finale richiede il saldo confermato (salvo progetti senza proposta). */
   balanceBeforeDelivery: z.boolean().default(true),
+  /** Sconto massimo (basis points) che un venditore può concedere da solo; oltre serve l'approvazione. 0 = nessuno. */
+  maxSellerDiscountBps: z.number().int().min(0).max(5000).default(0),
+  /** Sconto massimo in assoluto, anche con approvazione. */
+  maxDiscountBps: z.number().int().min(0).max(5000).default(2000),
   approvedAt: z.string().datetime(),
   approvedBy: z.string().min(1),
 });
@@ -46,6 +50,8 @@ export const defaultPurchaseRule: PurchaseRule = {
   maxInstallments: 1,
   startAfter: {},
   balanceBeforeDelivery: true,
+  maxSellerDiscountBps: 0,
+  maxDiscountBps: 2000,
   approvedAt: "2026-10-15T00:00:00.000Z",
   approvedBy: "predefinita",
 };
