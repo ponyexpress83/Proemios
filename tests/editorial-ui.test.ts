@@ -65,6 +65,27 @@ describe("interazioni della homepage", () => {
     expect(screen.getByRole("heading", {name:"Tre percorsi, una storia."})).toBeTruthy();
     expect(within(screen.getByRole("dialog")).getByText(/50.000 parole/)).toBeTruthy();
   });
+  it("con «solo un servizio» l’assistente mostra una sola proposta a prezzo di listino con il dettaglio voci", async () => {
+    render(createElement(HomePage));
+    fireEvent.click(screen.getByRole("button", {name:"Calcola il preventivo"}));
+    fireEvent.change(screen.getByRole("textbox", {name:"La tua risposta"}), {target:{value:"Ho scritto un romanzo finito di 50.000 parole."}});
+    fireEvent.click(screen.getByRole("button", {name:"Conferma risposta"}));
+    const dialog = within(screen.getByRole("dialog"));
+    expect(dialog.getByRole("heading", {name:"Tre percorsi, una storia."})).toBeTruthy();
+    // riapre le risposte dal brief e chiede la sola correzione bozze
+    fireEvent.click(dialog.getByRole("button", {name:/Brief completo/}));
+    fireEvent.click(dialog.getByRole("button", {name:"Romanzo"}));
+    fireEvent.click(dialog.getByRole("button", {name:"Finito, da revisionare"}));
+    fireEvent.click(dialog.getByRole("button", {name:"50.000 parole"}));
+    fireEvent.click(dialog.getByRole("button", {name:/^Solo un servizio/}));
+    fireEvent.click(dialog.getByRole("button", {name:/^Correzione bozze/}));
+    fireEvent.click(dialog.getByRole("button", {name:/Conferma i servizi/}));
+    fireEvent.click(dialog.getByRole("button", {name:"Tempi standard"}));
+    expect(dialog.getByRole("heading", {name:"Solo il servizio che hai chiesto."})).toBeTruthy();
+    expect(dialog.getAllByText("Dettaglio voci")).toHaveLength(1);
+    expect(dialog.getAllByText("450 €")).toHaveLength(2);
+    expect(dialog.getByRole("link", {name:/Rivedi e completa/}).getAttribute("href")).toContain("singolo=1");
+  });
   it("libro e CTA aprono lo stesso assistente, preservano le risposte e restituiscono il focus", async () => {
     render(createElement(HomePage));
     const cta = screen.getByRole("button", { name: "Calcola il preventivo" });

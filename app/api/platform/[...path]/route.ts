@@ -4,7 +4,7 @@ import { billingProfile } from "@/lib/platform/billing";
 import { quoteConfirm, quotePrefer } from "@/lib/platform/purchase";
 import { overviewCollection } from "@/lib/platform/overview";
 import { quoteReview, quoteOffer, quoteReminders } from "@/lib/platform/crm";
-import { invoiceCollection, invoicePdf, invoiceRetry } from "@/lib/platform/invoices";
+import { invoiceCollection, invoicePdf, invoiceRetry, invoiceStatus } from "@/lib/platform/invoices";
 import { route, json, notFound, checkMutationOrigin } from "@/lib/platform/http";
 import { getActor } from "@/lib/platform/access";
 import { quotePdf } from "@/lib/platform/quote-pdf";
@@ -92,7 +92,7 @@ const handler = route(async (request) => {
   if (area === "me" && id === "billing" && !action) return billingProfile(request, actor);
   if (
     id &&
-    !["export", "reconcile", "run"].includes(id) &&
+    !["export", "reconcile", "run", "status"].includes(id) &&
     !z.string().uuid().safeParse(id).success
   )
     throw notFound();
@@ -142,6 +142,7 @@ const handler = route(async (request) => {
       break;
     case "invoices":
       if (!id) return invoiceCollection(request, actor);
+      if (id === "status" && !action) return invoiceStatus(request, actor);
       if (action === "pdf" && request.method === "GET") return invoicePdf(actor, id);
       if (action === "retry") return invoiceRetry(request, actor, id);
       break;

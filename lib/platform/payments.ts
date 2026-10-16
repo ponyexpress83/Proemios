@@ -20,14 +20,15 @@ import { quoteAccess, ensureQuotePolicy } from "./crm";
 import { journeyStage } from "./commercial";
 import { demand, demandAvailable, demandRecent, audit, type Actor } from "./access";
 import { can } from "./permissions";
-import { readBody, json, PlatformError, unavailable, notFound, csvCell } from "./http";
+import { readBody, json, PlatformError, unavailable, notFound, csvCell, afterResponse } from "./http";
 import { paymentPolicySchema, commissionRuleSchema, moneyBreakdown, appOrigin } from "./config";
 import { limitRequest } from "./rate-limit";
 import type { QuotePackage } from "@/lib/pricing";
 import { impaginaEmail, esc, destinatarioInterno } from "@/lib/email";
 import { protectMailHtml } from "./mail";
 import { requireBillingProfile, getBillingProfile, type BillingProfile } from "./billing";
-import { queueInvoice, invoiceView } from "./invoices";
+import { queueInvoice, invoiceView, issueQueuedInvoices } from "./invoices";
+import { ficConfigured, ficSendsToSdi } from "./fic";
 import { recordFunnel } from "./funnel";
 import { billingProfiles, invoices, projects } from "@/db/platform-schema";
 
@@ -442,7 +443,9 @@ export async function financeCollection(request: Request, actor: Actor) {
   ]);
   const [totals] = await getDb().select({ balanceCents: sql<number>`coalesce(sum(${ledgerEntries.amountCents}),0)::double precision`, entries: sql<number>`count(*)::integer` }).from(ledgerEntries);
   const issued = await getDb().select().from(invoices).orderBy(desc(invoices.createdAt)).limit(200);
-  return json({ orders, ledger, commissions: payouts, totals, refunds: await getDb().select().from(refundRequests).orderBy(desc(refundRequests.createdAt)).limit(200), invoices: issued.map((r) => invoiceView(r, true)) });
+  // Il cron gira una volta al giorno: aprire Finance riprova subito le fatture in attesa.
+  if (issued.some((r) => r.status === "queued" || r.status === "retry")) afterResponse(() => issueQueuedInvoices(3).then(() => undefined));
+  return json({ orders, ledger, commissions: payouts, totals, invoicing: { configured: ficConfigured(), sendsToSdi: ficSendsToSdi() }, refunds: await getDb().select().from(refundRequests).orderBy(desc(refundRequests.createdAt)).limit(200), invoices: issued.map((r) => invoiceView(r, true)) });
 }
 export async function refundPrepare(request: Request, actor: Actor) {
   if (request.method !== "POST") throw notFound();

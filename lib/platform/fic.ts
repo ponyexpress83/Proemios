@@ -37,6 +37,58 @@ async function call<T>(path: string, init: RequestInit & { raw?: boolean } = {})
   }
   return (init.raw ? response : response.json()) as Promise<T>;
 }
+/**
+ * Verifica il collegamento senza emettere nulla: azienda raggiungibile,
+ * aliquote e conti d'incasso disponibili. Ogni voce riporta il proprio errore
+ * (per esempio un ambito mancante nel token) senza bloccare le altre.
+ */
+export type FicProbe = {
+  company: { id: number; name: string } | null;
+  companies: Array<{ id: number; name: string }>;
+  vatTypes: Array<{ id: number; value: number; description: string; isDefault: boolean }>;
+  paymentAccounts: Array<{ id: number; name: string }>;
+  errors: Record<string, string>;
+};
+export async function ficProbe(): Promise<FicProbe> {
+  const probe: FicProbe = { company: null, companies: [], vatTypes: [], paymentAccounts: [], errors: {} };
+  if (!ficConfigured()) {
+    probe.errors.config = "FIC_ACCESS_TOKEN o FIC_COMPANY_ID mancanti.";
+    return probe;
+  }
+  const companyId = Number(process.env.FIC_COMPANY_ID);
+  const headers = { authorization: `Bearer ${process.env.FIC_ACCESS_TOKEN}`, accept: "application/json" };
+  const read = async (path: string) => {
+    const response = await fetch(`${BASE}${path}`, { headers, cache: "no-store" });
+    if (!response.ok) {
+      const text = (await response.text().catch(() => "")).slice(0, 300);
+      throw new Error(`${response.status}: ${text || response.statusText}`);
+    }
+    return response.json() as Promise<{ data: unknown }>;
+  };
+  const message = (error: unknown) => (error instanceof Error ? error.message : "errore");
+  try {
+    const result = await read("/user/companies");
+    const list = ((result.data as { companies?: Array<{ id: number; name: string }> })?.companies ?? []).map((c) => ({ id: c.id, name: c.name }));
+    probe.companies = list;
+    probe.company = list.find((c) => c.id === companyId) ?? null;
+    if (!probe.company) probe.errors.company = `L'azienda ${companyId} non è tra quelle del token (${list.map((c) => `${c.id} ${c.name}`).join(", ") || "nessuna"}).`;
+  } catch (error) {
+    probe.errors.company = message(error);
+  }
+  try {
+    const result = await read(`/c/${companyId}/info/vat_types`);
+    probe.vatTypes = ((result.data as Array<{ id: number; value: number; description?: string; is_default?: boolean }>) ?? []).map((v) => ({ id: v.id, value: v.value, description: v.description ?? "", isDefault: Boolean(v.is_default) }));
+  } catch (error) {
+    probe.errors.vatTypes = message(error);
+  }
+  try {
+    const result = await read(`/c/${companyId}/info/payment_accounts`);
+    probe.paymentAccounts = ((result.data as Array<{ id: number; name: string }>) ?? []).map((a) => ({ id: a.id, name: a.name }));
+  } catch (error) {
+    probe.errors.paymentAccounts = message(error);
+  }
+  return probe;
+}
 export type FicEntity = {
   name: string;
   tax_code?: string;

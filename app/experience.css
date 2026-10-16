@@ -669,6 +669,52 @@
   color: #626477;
   line-height: 1.7;
 }
+.assistant-packages .assistant-lines {
+  grid-column: 1/-1;
+  font-size: 13px;
+  color: #3a3d52;
+}
+.assistant-packages .assistant-lines summary {
+  cursor: pointer;
+  color: #8c3024;
+  font-weight: 600;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.assistant-packages .assistant-lines ul {
+  list-style: none;
+  padding: 0;
+  margin: 10px 0 0;
+  display: grid;
+  gap: 6px;
+}
+.assistant-packages .assistant-lines li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px dotted #ece8e4;
+  padding-bottom: 4px;
+}
+.assistant-packages .assistant-lines p {
+  margin-top: 10px;
+  font-size: 12px;
+  color: #626477;
+}
+.assistant-mode {
+  grid-column: 1/-1;
+  display: flex;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.assistant-mode button {
+  flex: 1;
+  justify-content: center;
+}
+.assistant-mode button[aria-pressed="true"] {
+  border-color: #f16650;
+  background: #fff0eb;
+}
 .proemios-public .assistant-result .button {
   margin-top: 20px;
   width: 100%;

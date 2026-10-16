@@ -100,6 +100,7 @@ type Collection = {
   orders?: Order[];
   ledger?: Ledger[];
   invoices?: Array<{ id: string; kind: string; grossCents: number; number: string | null; issuedOn: string | null; status: string; attempts?: number; error?: string | null; createdAt: string }>;
+  invoicing?: { configured: boolean; sendsToSdi: boolean };
   notifications?: Notification[];
   profiles?: Array<{ userId: string; code: string; active: boolean; link: string }>;
   conversions?: Array<{ id: string; createdAt: string; ruleVersion: string }>;
@@ -685,6 +686,7 @@ export function PlatformWorkspace({ user }: { user: Profile }) {
                   }
                 />
                 <p className="platform-notice">Finance legge incassi, fatture e commissioni e prepara le rettifiche. Liquidare una commissione o autorizzare un rimborso richiede le deleghe esplicite «commission.pay» e «refund.authorize», assegnate dal proprietario in Persone e accessi.</p>
+                <InvoicingPanel initial={data.invoicing} />
                 <div className="platform-card">
                   <h2>Fatture emesse</h2>
                   <small>Ogni incasso confermato diventa una fattura su Fatture in Cloud. «creata»: da trasmettere allo SdI da Fatture in Cloud. «inviata»: già trasmessa.</small>
@@ -1834,6 +1836,101 @@ function TodayView({ data }: { data: Collection }) {
         </section>
       ) : null}
     </>
+  );
+}
+type InvoicingStatus = {
+  configured: boolean;
+  sendsToSdi: boolean;
+  env: { token: boolean; company: boolean; vatId: string | null; vatIdExempt: string | null; paymentAccountId: string | null; cron: boolean };
+  queue: Record<string, number>;
+  lastIssued: { number: string | null; issuedOn: string | null; status: string } | null;
+  probe: {
+    company: { id: number; name: string } | null;
+    companies: Array<{ id: number; name: string }>;
+    vatTypes: Array<{ id: number; value: number; description: string; isDefault: boolean }>;
+    paymentAccounts: Array<{ id: number; name: string }>;
+    errors: Record<string, string>;
+  } | null;
+};
+/**
+ * Stato della fatturazione automatica e verifica del collegamento a Fatture
+ * in Cloud: nessun documento viene creato, si leggono solo azienda, aliquote
+ * e conti d'incasso per completare la configurazione.
+ */
+function InvoicingPanel({ initial }: { initial?: { configured: boolean; sendsToSdi: boolean } }) {
+  const [status, setStatus] = useState<InvoicingStatus | null>(null);
+  const [checking, setChecking] = useState(false);
+  const [problem, setProblem] = useState<string | null>(null);
+  const configured = status?.configured ?? initial?.configured ?? false;
+  const sendsToSdi = status?.sendsToSdi ?? initial?.sendsToSdi ?? false;
+  async function verify() {
+    setChecking(true);
+    setProblem(null);
+    try {
+      setStatus(await platformApi<InvoicingStatus>("invoices/status?verifica=1"));
+    } catch (error) {
+      setProblem(error instanceof Error ? error.message : "Verifica non riuscita.");
+    } finally {
+      setChecking(false);
+    }
+  }
+  const pending = (status?.queue.queued ?? 0) + (status?.queue.retry ?? 0);
+  return (
+    <section className="platform-card platform-invoicing">
+      <h2>Fatturazione automatica</h2>
+      <State value={configured ? (sendsToSdi ? "ready" : "held") : "blocked"} />
+      <p>
+        {configured
+          ? sendsToSdi
+            ? "Attiva: ogni incasso confermato da Stripe diventa una fattura su Fatture in Cloud e viene trasmessa allo SdI."
+            : "Attiva in modalità di controllo: ogni incasso diventa una fattura su Fatture in Cloud, ma la trasmissione allo SdI va fatta a mano finché FIC_SEND_TO_SDI non è impostata a 1."
+          : "Non ancora collegata: le fatture degli incassi restano in coda finché FIC_ACCESS_TOKEN e FIC_COMPANY_ID non sono impostate nell’ambiente. Nessun incasso va perso."}
+      </p>
+      <div className="platform-actions">
+        <button type="button" className="platform-text-button" disabled={checking} onClick={verify}>
+          {checking ? "Verifica in corso…" : "Verifica il collegamento"}
+        </button>
+      </div>
+      {problem ? <p className="platform-error">{problem}</p> : null}
+      {status ? (
+        <dl className="platform-attribution">
+          <dt>Token e azienda</dt>
+          <dd>{status.env.token ? "token presente" : "token mancante"} · {status.env.company ? "azienda impostata" : "azienda mancante"}</dd>
+          <dt>Aliquota e conto d’incasso</dt>
+          <dd>
+            FIC_VAT_ID {status.env.vatId ?? "non impostata (usa 0 = 22%)"} · FIC_PAYMENT_ACCOUNT_ID {status.env.paymentAccountId ?? "non impostato (pagamento senza conto)"}
+          </dd>
+          <dt>Cron notturno</dt>
+          <dd>{status.env.cron ? "configurato: riprova le fatture in attesa ogni notte" : "CRON_SECRET mancante: le fatture in attesa vengono riprovate solo dai pagamenti successivi o da questa scheda"}</dd>
+          <dt>Coda</dt>
+          <dd>
+            {pending} in attesa · {status.queue.failed ?? 0} in errore · {(status.queue.created ?? 0) + (status.queue.sent ?? 0)} emesse
+            {status.lastIssued?.number ? ` · ultima n. ${status.lastIssued.number}${status.lastIssued.issuedOn ? ` del ${date(status.lastIssued.issuedOn)}` : ""}` : ""}
+          </dd>
+          {status.probe ? (
+            <>
+              <dt>Azienda su Fatture in Cloud</dt>
+              <dd>{status.probe.company ? `${status.probe.company.name} (id ${status.probe.company.id})` : status.probe.errors.company ?? "non raggiungibile"}</dd>
+              <dt>Aliquote disponibili</dt>
+              <dd>
+                {status.probe.vatTypes.length
+                  ? status.probe.vatTypes.map((v) => `${v.id} → ${v.value}%${v.description ? ` ${v.description}` : ""}${v.isDefault ? " (predefinita)" : ""}`).join(" · ")
+                  : status.probe.errors.vatTypes ?? "nessuna"}
+              </dd>
+              <dt>Conti d’incasso</dt>
+              <dd>
+                {status.probe.paymentAccounts.length
+                  ? status.probe.paymentAccounts.map((a) => `${a.id} → ${a.name}`).join(" · ")
+                  : status.probe.errors.paymentAccounts ?? "nessuno"}
+              </dd>
+            </>
+          ) : null}
+        </dl>
+      ) : null}
+      <small>
+        Per completare: in Fatture in Cloud → Impostazioni → API crea un token con ambiti «Fatture emesse: lettura e scrittura» e «Impostazioni: lettura»; copia token e id azienda nelle variabili d’ambiente, verifica qui, poi scegli l’aliquota e il conto Stripe fra quelli elencati. Attiva FIC_SEND_TO_SDI=1 solo dopo aver controllato le prime fatture.
+      </small>
+    </section>
   );
 }
 function SettingsView({

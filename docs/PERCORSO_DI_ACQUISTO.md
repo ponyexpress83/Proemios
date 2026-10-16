@@ -18,6 +18,15 @@ Una stima non si può accettare (`409 NOT_PURCHASABLE`). Solo il team rende una 
 
 Predefinita, prudente: diventano acquistabili da sole solo le richieste di **un servizio singolo a prezzo fisso di listino** (copertina, EPUB, pubblicazione KDP, assistenza ISBN, scheda Amazon). Servizi a parola (editing, correzione, impaginazione), percorsi completi, memoir, bozze e ghostwriting restano stime finché il team non verifica. Il proprietario cambia la regola in *Regole economiche → Cosa è acquistabile subito* (`autoOfferSingleServices`, `autoOfferFullPath`, `validityDays`).
 
+### Come si compone il prezzo
+
+Il listino (`config/pricing.ts`) non cambia; cambia solo la composizione quando il cliente indica che cosa vuole:
+
+- **Un solo servizio** (dall’assistente della home con «Solo un servizio», dal configuratore o dai link `?singolo=1`): una sola proposta al prezzo di listino di quel servizio, senza impaginazione, EPUB, KDP o ISBN aggiunti. Le due porte danno lo stesso risultato.
+- **Percorso completo con una revisione richiesta**: la revisione chiesta (editing o correzione bozze) sostituisce quella di base del pacchetto, non si somma. Essenziale usa la revisione chiesta; Consigliato porta sempre l’editing (livello superiore); Signature, il percorso completo, comprende editing e correzione insieme. Esempio 50.000 parole, testo da revisionare, chiesta la correzione bozze: 1.260 / 2.260 / 4.260 € invece di 2.210 / 2.710 / 4.260 €.
+- **Editing e correzione chiesti insieme**: restano entrambi in ogni pacchetto.
+- Ogni pacchetto mostra il **dettaglio voci** (servizi, sconto volume, maggiorazione tempi, minimo di progetto) sia nell’assistente sia nel configuratore.
+
 Tre percorsi, derivati dai dati (`purchasePath`): `standard` (servizio singolo), `evaluation` (prezzo dipende dalla lettura), `complex` (memoir, solo materiali, bozza incompleta: brief → confronto → proposta per fasi).
 
 ## Continuità della scelta

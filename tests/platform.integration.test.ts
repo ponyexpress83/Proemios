@@ -640,6 +640,30 @@ describe("automatic invoicing with Fatture in Cloud", () => {
     vi.mocked(globalThis.fetch).mockRestore();
     delete process.env.FIC_ACCESS_TOKEN; delete process.env.FIC_COMPANY_ID;
   });
+  it("reports the invoicing status to finance and probes Fatture in Cloud without creating documents", async () => {
+    expect([403, 404]).toContain((await call("authorA", "invoices/status")).status);
+    const off = await data(await call("finance", "invoices/status"));
+    expect(off).toMatchObject({ configured: false, probe: null, queue: expect.objectContaining({ created: 1 }) });
+    expect(off.lastIssued?.number).toBe("12/A");
+    process.env.FIC_ACCESS_TOKEN = "fic-synthetic-token"; process.env.FIC_COMPANY_ID = "4242";
+    const probeCalls: string[] = [];
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
+      const url = String(input); probeCalls.push(`${init?.method ?? "GET"} ${url}`);
+      if (url.endsWith("/user/companies")) return Response.json({ data: { companies: [{ id: 4242, name: "Proemios Srl" }] } });
+      if (url.endsWith("/c/4242/info/vat_types")) return Response.json({ data: [{ id: 0, value: 22, description: "", is_default: true }, { id: 6, value: 0, description: "Esente art. 10" }] });
+      if (url.endsWith("/c/4242/info/payment_accounts")) return new Response("scope settings:r missing", { status: 403 });
+      throw new Error(`unexpected ${url}`);
+    });
+    const on = await data(await call("owner", "invoices/status?verifica=1"));
+    vi.mocked(globalThis.fetch).mockRestore();
+    delete process.env.FIC_ACCESS_TOKEN; delete process.env.FIC_COMPANY_ID;
+    expect(on.configured).toBe(true);
+    expect(on.probe.company).toEqual({ id: 4242, name: "Proemios Srl" });
+    expect(on.probe.vatTypes.map((v: { id: number }) => v.id)).toEqual([0, 6]);
+    expect(on.probe.paymentAccounts).toEqual([]);
+    expect(on.probe.errors.paymentAccounts).toMatch(/403/);
+    expect(probeCalls.every((c) => c.startsWith("GET "))).toBe(true);
+  });
   it("lets the dashboard decide payment methods unless they are listed explicitly", async () => {
     const { configuredPaymentMethods } = await import("@/lib/platform/payments");
     delete process.env.STRIPE_PAYMENT_METHODS; expect(configuredPaymentMethods()).toEqual([]);

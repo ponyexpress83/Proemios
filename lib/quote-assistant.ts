@@ -38,9 +38,11 @@ export function quoteWizardUrl(input: PricingInput): string {
     stato: input.textState,
     parole: String(input.wordCount),
     tempi: input.urgency || "standard",
-    servizi: (input.requestedServices || []).join(","),
+    servizi: (input.singleService ? [input.singleService] : input.requestedServices || []).join(","),
     materiale: input.materialAmount || "parziale",
   });
+  if (input.singleService) params.set("singolo", "1");
+  else if (input.requestedServices?.length === 1) params.set("singolo", "0");
   return "/preventivo?" + params.toString();
 }
 

@@ -11,6 +11,17 @@
 
 Acconto e saldo generano due fatture distinte; quella del saldo cita la fattura di acconto (numero e data).
 
+## Attivazione e verifica del collegamento
+
+L’emissione è già automatica nel codice: si accende quando esistono `FIC_ACCESS_TOKEN` e `FIC_COMPANY_ID`. Per non indovinare gli id:
+
+1. In Fatture in Cloud → Impostazioni → API crea un token con gli ambiti **Fatture emesse (lettura e scrittura)** e **Impostazioni (lettura)**; annota l’id azienda.
+2. Imposta le due variabili nell’ambiente (anteprima prima, produzione poi) e rilancia il deploy.
+3. In **Finance → Fatturazione automatica** premi **Verifica il collegamento**: la piattaforma chiama `GET /api/platform/invoices/status?verifica=1`, che legge azienda, aliquote e conti d’incasso **senza creare documenti** ed elenca gli id da copiare in `FIC_VAT_ID` e `FIC_PAYMENT_ACCOUNT_ID`.
+4. Fai un incasso di prova in modalità test di Stripe, controlla la fattura creata (stato `created`, non trasmessa) e solo poi imposta `FIC_SEND_TO_SDI=1`.
+
+Le fatture in coda vengono riprovate a ogni webhook Stripe, ogni notte dal cron e ogni volta che Finance apre la propria scheda; quelle in errore si riprovano con **Riprova**.
+
 ## Dati di fatturazione
 
 Senza dati di fatturazione il checkout risponde `409 BILLING_REQUIRED`. L'autore li inserisce una volta nella sezione Pagamenti (`PUT /api/platform/me/billing`): persona fisica con codice fiscale, oppure azienda con partita IVA e codice destinatario o PEC. Gli stessi dati creano il cliente Stripe (serve per bonifico e rate).

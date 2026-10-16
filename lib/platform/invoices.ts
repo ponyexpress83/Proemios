@@ -7,7 +7,7 @@ import { user } from "@/db/auth-schema";
 import { stripe, stripeConfigurato } from "@/lib/stripe";
 import { impaginaEmail, esc, destinatarioInterno } from "@/lib/email";
 import { paymentPolicySchema, appOrigin, type PaymentPolicy } from "./config";
-import { ficConfigured, ficCreateInvoice, ficInvoicePdf, ficSendInvoice, ficSendsToSdi, type FicEntity } from "./fic";
+import { ficConfigured, ficCreateInvoice, ficInvoicePdf, ficProbe, ficSendInvoice, ficSendsToSdi, type FicEntity } from "./fic";
 import { enqueueMail } from "./mail";
 import { json, notFound, PlatformError } from "./http";
 import { demand, demandRecent, audit, type Actor } from "./access";
@@ -206,6 +206,38 @@ export async function invoiceCollection(request: Request, actor: Actor) {
     .orderBy(desc(invoices.createdAt))
     .limit(200);
   return json({ invoices: rows.map((r) => invoiceView(r, finance)), configured: ficConfigured(), sendsToSdi: ficSendsToSdi() });
+}
+/**
+ * GET /invoices/status: stato della fatturazione automatica per chi la
+ * amministra. Con ?verifica=1 interroga Fatture in Cloud (nessun documento
+ * viene creato) e restituisce azienda, aliquote e conti d'incasso, così gli
+ * id da mettere in FIC_VAT_ID e FIC_PAYMENT_ACCOUNT_ID si leggono qui.
+ */
+export async function invoiceStatus(request: Request, actor: Actor) {
+  if (request.method !== "GET") throw notFound();
+  if (!can(actor.grants, "finance.read") && !can(actor.grants, "settings.manage")) throw new PlatformError(403, "FORBIDDEN", "Permesso mancante.");
+  const verify = new URL(request.url).searchParams.get("verifica") === "1";
+  const counts = await getDb()
+    .select({ status: invoices.status, count: sql<number>`count(*)::integer` })
+    .from(invoices)
+    .groupBy(invoices.status);
+  const [last] = await getDb().select().from(invoices).where(inArray(invoices.status, ["created", "sent"])).orderBy(desc(invoices.createdAt)).limit(1);
+  const queue = Object.fromEntries(counts.map((c) => [c.status, c.count])) as Record<string, number>;
+  return json({
+    configured: ficConfigured(),
+    sendsToSdi: ficSendsToSdi(),
+    env: {
+      token: Boolean(process.env.FIC_ACCESS_TOKEN),
+      company: Boolean(process.env.FIC_COMPANY_ID),
+      vatId: process.env.FIC_VAT_ID ?? null,
+      vatIdExempt: process.env.FIC_VAT_ID_EXEMPT ?? null,
+      paymentAccountId: process.env.FIC_PAYMENT_ACCOUNT_ID ?? null,
+      cron: Boolean(process.env.CRON_SECRET),
+    },
+    queue,
+    lastIssued: last ? invoiceView(last, true) : null,
+    probe: verify ? await ficProbe() : null,
+  });
 }
 /** GET /invoices/:id/pdf: il PDF di Fatture in Cloud, servito dalla piattaforma, mai con un link pubblico. */
 export async function invoicePdf(actor: Actor, id: string) {

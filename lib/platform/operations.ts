@@ -22,6 +22,7 @@ import { authConfigured, mailConfigured, appOrigin } from "./config";
 import { storageConfigured, deletePrivate, readPrivate, scanUpload } from "./storage";
 import { flushMail } from "./mail";
 import { issueQueuedInvoices } from "./invoices";
+import { ficConfigured } from "./fic";
 import { runReminders } from "./reminders";
 import { analysisConfigured, runAnalysisJob } from "./analysis";
 
@@ -127,6 +128,7 @@ export async function operationsCollection(request: Request, actor: Actor) {
       payments: Boolean(process.env.STRIPE_SECRET_KEY && process.env.STRIPE_WEBHOOK_SECRET),
       cron: Boolean(process.env.CRON_SECRET),
       analysis: analysisConfigured(),
+      invoicing: ficConfigured(),
     },
     mail,
     events,

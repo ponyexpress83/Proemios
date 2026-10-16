@@ -48,7 +48,7 @@ export function quotePrefill(sp: Record<string, string | undefined>): QuotePrefi
     servizi: services,
     tempi: sp.tempi ? (sp.tempi === "prioritaria" ? "prioritaria" : "standard") : undefined,
     materiale: material,
-    soloServizio: sp.singolo === "1" ? true : services.length === 1 && Boolean(sp.servizio) ? true : undefined,
+    soloServizio: sp.singolo === "1" ? true : sp.singolo === "0" ? false : services.length === 1 && Boolean(sp.servizio) ? true : undefined,
     contesto:
       sp.percorso === "storia-impresa"
         ? "Storia della mia impresa o del mio percorso di lavoro."
