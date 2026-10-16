@@ -57,6 +57,27 @@
       "when": 1792059775530,
       "tag": "0007_commercial_states",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792180103769,
+      "tag": "0008_contracts_and_plans",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792181409426,
+      "tag": "0009_crm_pipeline",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792182201300,
+      "tag": "0010_marketing_campaigns",
+      "breakpoints": true
     }
   ]
 }

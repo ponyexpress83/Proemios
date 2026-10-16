@@ -9,11 +9,11 @@ import type { Grant } from "@/lib/platform/permissions";
 import { JOURNEY_LABELS, type JourneyStage } from "@/lib/platform/commercial";
 import { BillingSection } from "./billing";
 type Props = { user: { id: string; name: string; email: string; grants: Grant[] } };
-type Project = { id: string; title: string; type: string; description: string | null; stage: string; updatedAt: string; quoteId: string | null; dueAt: string | null; members: { id: string; name: string }[]; materialsCount: number; materialsPending: number; deliveriesAwaiting: { id: string; name: string; version: number }[]; lastDeliveryAt: string | null; unreadMessages: number };
+type Project = { id: string; title: string; type: string; description: string | null; stage: string; updatedAt: string; quoteId: string | null; dueAt: string | null; members: { id: string; name: string }[]; referent?: { id: string; name: string } | null; materialsCount: number; materialsPending: number; deliveriesAwaiting: { id: string; name: string; version: number }[]; lastDeliveryAt: string | null; unreadMessages: number };
 type Quote = { id: string; stato: string; prezzoTotale: number | null; pacchettoScelto: string | null; acceptedAt: string | null; expiresAt: string | null; commercialState: string; preferredTier: string | null; selectedTier: string | null; journey: JourneyStage; depositPaid: boolean; balancePaid: boolean; paymentPending: boolean; name?: string; version?: number; input?: { singleService?: string; requestedServices?: string[] } };
 type FileEntry = { id: string; name: string; version: number; status: string; kind: string; createdAt?: string };
 type Approval = { fileId: string; decision: string };
-type Detail = { project: Project; files: FileEntry[]; tasks: { id: string; title: string; done: boolean }[]; approvals: Approval[]; members: { id: string; name: string }[] };
+type Detail = { project: Project; referent?: { id: string; name: string } | null; files: FileEntry[]; tasks: { id: string; title: string; done: boolean }[]; approvals: Approval[]; members: { id: string; name: string }[] };
 type Invoice = { id: string; kind: string; grossCents: number; number: string | null; issuedOn: string | null; status: string };
 type Payments = { accepted: boolean; journey: JourneyStage; checkoutAvailable: boolean; vatMode: string; vatRateBps: number; methods: string[]; billingReady: boolean; invoices: Invoice[]; deposit: { grossCents: number | null; paid: boolean }; balance: { grossCents: number | null; paid: boolean }; orders: { id: string; kind: string; amountCents: number; status: string; createdAt: string }[] };
 type Notification = { id: string; title: string; body: string; href: string | null; read: boolean; createdAt: string };
@@ -84,7 +84,7 @@ export function RealAuthorWorkspace({ user }: Props) {
   const unread = notifications.filter(n => !n.read).length;
   const actions = useMemo(() => nextActions(quotes, projects, open), [quotes, projects]);
   const accepted = quotes.filter(q => q.acceptedAt);
-  const referent = (p: Project) => p.members[0]?.name ?? null;
+  const referent = (p: Project) => p.referent?.name ?? p.members[0]?.name ?? null;
   return <div className="author-workspace proemios-author-real">
     <aside className="author-sidebar">
       <Link href="/" className="author-logo">proemios<span>Dalle idee alle opere</span></Link>
@@ -179,7 +179,7 @@ function ProjectDetail({ detail, linkedQuote, busy, action, onPayments, onMessag
   const decided = new Map(detail.approvals.map(a => [a.fileId, a.decision]));
   const deliveries = detail.files.filter(f => f.kind === "delivery"), materials = detail.files.filter(f => f.kind !== "delivery");
   const latestVersion = (name: string, kind: string) => Math.max(...detail.files.filter(f => f.name === name && f.kind === kind).map(f => f.version));
-  const referent = detail.members[0]?.name ?? null;
+  const referent = detail.referent?.name ?? detail.members[0]?.name ?? null;
   const paymentNeeded = linkedQuote && !linkedQuote.depositPaid;
   async function upload(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -240,7 +240,7 @@ function AuthorMessages({ projects, initial, onRead }: { projects: Project[]; in
   const project = projects.find(p => p.id === projectId);
   return <div className="author-conversation">
     <label>Il progetto <select value={projectId} onChange={e => setProjectId(e.target.value)}>{projects.map(p => <option key={p.id} value={p.id}>{p.title}</option>)}</select></label>
-    {project?.members[0] && <p><UserRound size={16} /> Ti risponde {project.members[0].name}.</p>}
+    {(project?.referent ?? project?.members[0]) && <p><UserRound size={16} /> Ti risponde {(project!.referent ?? project!.members[0])!.name}.</p>}
     {error && <p role="alert" className="platform-error">{error}</p>}
     <div className="author-message-thread" role="log">{items.length ? items.map(m => <div key={m.id} className="author-message"><strong>{m.name}</strong><small>{date(m.createdAt)}</small><p>{m.body}</p></div>) : <p>Nessun messaggio ancora. Scrivi al team per iniziare.</p>}</div>
     <form onSubmit={async e => { e.preventDefault(); setBusy(true); setError(""); try { await platformApi(`projects/${projectId}/messages`, "POST", { body: draft, internal: false }); setDraft(""); setReload(x => x + 1); } catch (err) { setError(err instanceof Error ? err.message : "Invio non riuscito"); } finally { setBusy(false); } }}>

@@ -1,4 +1,5 @@
 "use client";
+import { readSessionAttribution } from "@/lib/attribution-client";
 
 import { useState } from "react";
 import Link from "next/link";
@@ -41,7 +42,7 @@ export function ModuloContatto({
       const res = await fetch("/api/contatto", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+        body: JSON.stringify({ ...(readSessionAttribution() ? { attribution: readSessionAttribution() } : {}),
           nome: String(fd.get("nome") ?? ""),
           email: String(fd.get("email") ?? ""),
           telefono: String(fd.get("telefono") ?? ""),

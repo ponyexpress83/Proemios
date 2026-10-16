@@ -87,7 +87,7 @@ export async function runReminders(now = new Date()) {
     .where(and(isNull(quoteRecords.acceptedAt), isNull(quoteRecords.remindersPausedAt), inArray(quoteRecords.commercialState, ["estimate", "offer"]), lte(quotes.createdAt, new Date(now.getTime() - Math.min(...rules.unconfirmedDays, rules.expiryDays) * DAY))))
     .limit(200);
   for (const row of open) {
-    if (!row.lead.consensoPrivacy) continue;
+    if (!row.lead.consensoPrivacy || row.lead.contactPreferences?.email === false) continue;
     const expired = row.record.expiresAt && row.record.expiresAt.getTime() <= now.getTime();
     if (expired) continue;
     const href = row.ownership?.authorId ? `/area-autore/conferma/${row.quote.id}` : `/area-autore?preventivo=${row.quote.id}`;
@@ -116,6 +116,7 @@ export async function runReminders(now = new Date()) {
     .where(and(isNull(quoteRecords.remindersPausedAt), lte(quoteRecords.acceptedAt, new Date(now.getTime() - Math.min(...rules.unpaidDays) * DAY))))
     .limit(200);
   for (const row of accepted) {
+    if (row.lead.contactPreferences?.email === false) continue;
     const paid = await getDb().select({ id: paymentOrders.id }).from(paymentOrders).where(and(eq(paymentOrders.quoteId, row.quote.id), eq(paymentOrders.kind, "deposit"), eq(paymentOrders.status, "paid"))).limit(1);
     if (paid.length) continue;
     for (const [i, days] of rules.unpaidDays.entries())

@@ -1,14 +1,16 @@
 # Percorso di acquisto: stati, continuità, conferma e promemoria
 
-Descrive il comportamento effettivo dal ramo `claude/acquisto-continuo-20261015`.
+Descrive il comportamento effettivo dal ramo `claude/proemios-complete-v1-w78xtx` (aggiorna `claude/acquisto-continuo-20261015`). Per contratto, recesso, rate, rimborsi, CRM e marketing vedi anche `docs/CONTRATTO_E_ACCETTAZIONE.md`, `docs/CRM_E_RECUPERI.md`, `docs/MARKETING_E_ATTRIBUZIONE.md`, `docs/INTEGRAZIONI.md` e il riepilogo `docs/CONSEGNA_2026-10-16.md`.
 
 ## Stati, tenuti separati
 
 | Livello | Dove | Valori |
 |---|---|---|
 | Commerciale | `platform_quote_records.commercial_state` | `estimate` (stima indicativa) · `review` (richiesta in valutazione) · `offer` (proposta definitiva acquistabile, con eventuale `expires_at`) · `accepted` |
-| Pagamento | `platform_payment_orders` | `pending` (in elaborazione) · `paid` · `expired` · `failed` · `disputed` … |
-| Progetto | `platform_projects.stage` | `materials` → `editing` → `review` → `approved` → `delivered` |
+| Contratto | `platform_contracts` | scheda d'ordine + condizioni versionate, accettazioni separate, prova, recesso (vedi `docs/CONTRATTO_E_ACCETTAZIONE.md`) |
+| Pagamento | `platform_payment_orders` | `pending` (in elaborazione) · `paid` · `expired` · `failed` · `disputed` · `review_required` · `partially_refunded` · `refunded`; `kind` + `sequence` per acconto e rate del saldo |
+| Progetto | `platform_projects.stage` | `materials` → `editing` → `review` → `approved` → `delivered`; nasce solo con l'acconto verificato (vincolo unico su `quote_id`), `started_at` quando l'incasso previsto dal servizio (`startAfter`) è confermato |
+| Pipeline CRM | derivata (`lib/platform/pipeline.ts`) | lead ricevuto → preventivo in compilazione → proposta pronta/inviata → accettata → checkout avviato / pagamento fallito → acquisto concluso; stati manuali: da recuperare, negoziazione, perso, non contattabile |
 
 `journeyStage()` (`lib/platform/commercial.ts`) combina i primi due per l'autore: stima → in valutazione → acquistabile/scaduta → accettata in attesa di pagamento → pagamento in elaborazione → acconto confermato → pagamento completato.
 
@@ -44,13 +46,13 @@ Plugin `magicLink` di Better Auth: link monouso, 15 minuti, 3 richieste al minut
 
 Mostra la proposta in ogni stato. Per una proposta acquistabile riunisce servizio e pacchetto, quantità dichiarate, prestazioni incluse ed escluse, revisioni, tempi e avvio, importi (imponibile, IVA e totale dalla policy fiscale congelata sulla proposta: nessun calcolo IVA nell'interfaccia), dati di fatturazione precompilati, condizioni consultabili con versione, accettazione esplicita e un pulsante con l'importo esatto dell'acconto.
 
-`POST quotes/:id/confirm` salva i dati di fatturazione (se inviati), accetta (idempotente) e apre il Checkout Stripe ospitato. Gestisce: proposta revisionata (`STALE_QUOTE` → ricarica), scaduta (`QUOTE_EXPIRED`), non acquistabile, sessione Stripe scaduta (`CHECKOUT_EXPIRED` → nuova sessione), doppio clic (ordine in attesa riusato, chiave di idempotenza Stripe), pagamento annullato (`?pagamento=annullato`), pagamenti asincroni (bonifico, SEPA: "in elaborazione" finché il webhook non conferma). La conferma dell'incasso arriva solo dal webhook firmato.
+`POST quotes/:id/confirm` salva i dati di fatturazione (se inviati), registra le quattro accettazioni separate (condizioni, scheda d'ordine, avvio anticipato facoltativo, comunicazioni facoltative), crea il contratto con copia stabile e conferma via email con allegato, poi apre il Checkout Stripe ospitato. L'accettazione (`POST quotes/:id/accept`) non crea più il progetto: lo crea il webhook con l'acconto verificato. Gestisce: proposta revisionata (`STALE_QUOTE` → ricarica), scaduta (`QUOTE_EXPIRED`), non acquistabile, sessione Stripe scaduta (`CHECKOUT_EXPIRED` → nuova sessione), doppio clic (ordine in attesa riusato, chiave di idempotenza Stripe), pagamento annullato (`?pagamento=annullato`), pagamenti asincroni (bonifico, SEPA: "in elaborazione" finché il webhook non conferma). La conferma dell'incasso arriva solo dal webhook firmato.
 
-Acconto e saldo sono rate del contratto; eventuali rate del finanziatore (Klarna, Scalapay) riguardano solo l'importo pagato in quel momento e dipendono dai metodi attivati nella Dashboard Stripe: l'interfaccia non li promette.
+Acconto e saldo sono rate del contratto. Il team può concedere, prima dell'accettazione, un piano di rate del saldo (`POST quotes/:id/plan`, entro `maxInstallments` della regola di acquistabilità; oltre serve l'approvazione): le rate entrano nella scheda d'ordine, il checkout propone sempre la prossima dovuta e il saldo risulta completo solo quando tutte sono confermate. Le rate del finanziatore (Klarna, Scalapay) riguardano solo l'importo pagato in quel momento e dipendono dai metodi attivati nella Dashboard Stripe: per la piattaforma restano un incasso unico.
 
 ## Area autore
 
-La panoramica calcola il prossimo passo dallo stato reale (`nextActions` in `components/author/real-workspace.tsx`): valuta la proposta, conferma, completa il pagamento, carica il materiale, leggi il messaggio, approva la versione N, paga il saldo, scarica i file finali. Senza azioni: "il lavoro è in carico al team". Mostra referente (primo membro del progetto), fase, data di consegna solo se confermata (`due_at`), caricamento con avanzamento (XHR), versioni con "attuale/superata", approvazioni riferite alla versione, messaggi per progetto con conteggio non letti, notifiche non lette, fatture.
+La panoramica calcola il prossimo passo dallo stato reale (`nextActions` in `components/author/real-workspace.tsx`): valuta la proposta, conferma, completa il pagamento, carica il materiale, leggi il messaggio, approva la versione N, paga il saldo, scarica i file finali. Senza azioni: "il lavoro è in carico al team". Mostra referente (`projects.referent_id`, il venditore della proposta, o il primo membro), fase, data di consegna solo se confermata (`due_at`), caricamento con avanzamento (XHR), versioni con "attuale/superata", approvazioni riferite alla versione, messaggi per progetto con conteggio non letti, notifiche non lette, fatture.
 
 ## Account del team
 
@@ -72,4 +74,4 @@ Eseguiti dal cron (`runReminders`): proposta non confermata (3 e 7 giorni), prop
 
 ## Variabili d'ambiente nuove
 
-Nessuna obbligatoria. Tutto il percorso funziona con quelle già documentate (`.env.example`, `docs/FATTURAZIONE_E_PAGAMENTI.md`). Migrazione `0007_commercial_states` da applicare con `npm run db:migrate`.
+Nessuna obbligatoria. Facoltative: `NEXT_PUBLIC_GA4_MEASUREMENT_ID`, `BREVO_API_KEY`, `BREVO_LIST_ID`, `BREVO_WEBHOOK_SECRET` (vedi `docs/INTEGRAZIONI.md`). Migrazioni `0008_contracts_and_plans`, `0009_crm_pipeline`, `0010_marketing_campaigns` da applicare con `npm run db:migrate` (additive; `0009` aggiunge due valori all'enum `lead_source`).

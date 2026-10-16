@@ -15,7 +15,7 @@ export const REALM_LOGIN: Record<Realm, string> = {
   staff: "/accesso-team",
   partner: "/accesso-partner",
 };
-const TEAM_ROLES = ["owner", "admin", "editor", "seller", "finance", "coordinator"];
+const TEAM_ROLES = ["owner", "admin", "editor", "seller", "finance", "coordinator", "marketing"];
 /** Team prima di tutto, poi partner, poi autore: chi ha più ruoli va dove lavora. */
 export function realmFor(roles: readonly string[]): Realm {
   if (roles.some((r) => TEAM_ROLES.includes(r))) return "staff";

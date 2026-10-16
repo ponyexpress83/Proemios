@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState, type ReactNode } from "react";
+import { PIPELINE_STATES, PIPELINE_LABELS, type PipelineState } from "@/lib/platform/pipeline";
 import Link from "next/link";
 import type { Route } from "next";
 import type { PricingInput } from "@/lib/pricing";
@@ -11,6 +12,7 @@ import {
   ROLES,
   ROLE_GRANTS,
   PERMISSIONS,
+  MARKETING_PERMISSIONS,
   type Role,
   type Grant,
   type Permission,
@@ -44,16 +46,32 @@ type StoredFile = {
 };
 type Task = { id: string; title: string; done: boolean; dueAt: string | null; internal: boolean };
 type Message = { id: string; body: string; internal: boolean; name: string; createdAt: string };
+type ContactPreferences = { email: boolean; phone: boolean; whatsapp: boolean; sms: boolean; note?: string | null };
 type Lead = {
   id: string;
   nome: string;
   email: string;
   telefono: string | null;
   stage: string;
+  pipeline?: PipelineState;
+  fonte?: string;
+  sourceDetail?: string | null;
+  externalRef?: string | null;
   leadScore: number;
   note: string | null;
   assignedTo: string | null;
+  assignedName?: string | null;
+  nextAction?: string | null;
+  nextActionAt?: string | null;
+  lastContactAt?: string | null;
+  lostReason?: string | null;
+  consensoPrivacy?: boolean;
+  consensoMarketing?: boolean;
+  marketingRevokedAt?: string | null;
+  contactPreferences?: ContactPreferences | null;
+  createdAt?: string;
 };
+type LeadActivity = { id: string; kind: string; channel: string | null; direction: string; purpose: string | null; body: string | null; outcome: string | null; createdAt: string; name: string | null };
 type Quote = {
   id: string;
   name?: string;
@@ -78,7 +96,8 @@ type Person = {
   twoFactorEnabled: boolean;
   memberships: Membership[];
 };
-type Order = { id: string; quoteId: string; kind: string; amountCents: number; status: string };
+type Order = { id: string; quoteId: string; kind: string; sequence?: number; plan?: string; amountCents: number; status: string; stripePaymentIntentId?: string | null };
+type RefundRequest = { id: string; orderId: string; amountCents: number; reason: string; preparedBy: string; authorizedBy: string | null; status: string; stripeRefundId: string | null; lastError: string | null; createdAt: string };
 type Ledger = {
   id: string;
   kind: string;
@@ -98,6 +117,7 @@ type Collection = {
   users?: Person[];
   commissions?: Payout[];
   orders?: Order[];
+  refunds?: RefundRequest[];
   ledger?: Ledger[];
   invoices?: Array<{ id: string; kind: string; grossCents: number; number: string | null; issuedOn: string | null; status: string; attempts?: number; error?: string | null; createdAt: string }>;
   invoicing?: { configured: boolean; sendsToSdi: boolean };
@@ -127,7 +147,8 @@ type ProjectDetail = {
 type QuoteDetail = {
   quote: Quote & { input: PricingInput };
   history: Array<{ version: number; createdAt: string }>;
-  record: { version: number; selectedTier: string | null; acceptedAt: string | null; commercialState: string; expiresAt: string | null; remindersPausedAt: string | null; reviewNote: string | null; reviewRequestedAt: string | null; preferredTier: string | null };
+  record: { version: number; selectedTier: string | null; acceptedAt: string | null; commercialState: string; expiresAt: string | null; remindersPausedAt: string | null; reviewNote: string | null; reviewRequestedAt: string | null; preferredTier: string | null; paymentPlan: { installments: number; grantedBy: string; approvedBy?: string | null; note?: string | null } | null };
+  contract: { id: string; version: number; termsVersion: string; acceptedAt: string; acceptances: { terms: true; orderSheet: true; earlyStart: boolean; marketing: boolean }; consumer: boolean; withdrawalDeadline: string | null; withdrawalRequestedAt: string | null; stableCopy: boolean; pdfUrl: string } | null;
   journey: string;
   attribution?: { responsible: { id: string; name: string } | null; source: { channel: string; attribution: Record<string, string> | null }; affiliate: { ruleVersion: string } | null; salesAssisted: boolean; offeredBy: { name: string } | null; commissionRule: { version: string; sellerBps: number; affiliateBps: number; assistedSalesOnly: boolean } | null };
   packages: Array<{
@@ -147,8 +168,15 @@ type QuoteDetail = {
 };
 type LeadDetail = {
   lead: Lead;
+  ownership: { assignedTo: string | null; assignedName: string | null; authorId: string | null } | null;
   notes: Array<{ id: string; body: string; name: string; createdAt: string }>;
-  quotes: Quote[];
+  activities: LeadActivity[];
+  tasks: Array<{ id: string; title: string; dueAt: string | null; done: boolean }>;
+  quotes: Array<Quote & { journey?: string | null; commercialState?: string | null }>;
+  orders: Array<{ id: string; quoteId: string; kind: string; sequence: number; status: string; amountCents: number }>;
+  contracts: Array<{ id: string; quoteId: string; acceptedAt: string; withdrawalRequestedAt: string | null }>;
+  states: PipelineState[];
+  manualStates: PipelineState[];
 };
 const money = (cents: number) =>
   new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(cents / 100);
@@ -250,6 +278,7 @@ const tabRules: Array<{ id: string; label: string; permission?: Permission }> = 
   { id: "affiliates", label: "Affiliazione", permission: "affiliate.read" },
   { id: "commissions", label: "Commissioni", permission: "commission.read" },
   { id: "finance", label: "Finance", permission: "finance.read" },
+  { id: "marketing", label: "Marketing", permission: "marketing.read" },
   { id: "team", label: "Persone e accessi", permission: "role.manage" },
   { id: "settings", label: "Regole economiche", permission: "settings.manage" },
   { id: "operations", label: "Operazioni", permission: "operations.read" },
@@ -274,9 +303,10 @@ export function PlatformWorkspace({ user }: { user: Profile }) {
     return () => { active = false; };
   }, []);
   useEffect(() => {
-    const params = new URLSearchParams(location.search), quote = params.get("preventivo"), project = params.get("progetto");
+    const params = new URLSearchParams(location.search), quote = params.get("preventivo"), project = params.get("progetto"), lead = params.get("lead");
     if (quote && hasPermission(user.grants, "quote.read")) { setTab("quotes"); setSelected(quote); }
     else if (project && hasPermission(user.grants, "project.read")) { setTab("projects"); setSelected(project); }
+    else if (lead && hasPermission(user.grants, "crm.read")) { setTab("leads"); setSelected(lead); }
   }, [user.grants]);
   useEffect(() => {
     let active = true;
@@ -391,7 +421,7 @@ export function PlatformWorkspace({ user }: { user: Profile }) {
             {tab === "projects" ? (
               <ProjectView id={selected} user={user} />
             ) : tab === "leads" ? (
-              <LeadView id={selected} />
+              <LeadView id={selected} user={user} />
             ) : (
               <QuoteView id={selected} user={user} />
             )}
@@ -483,14 +513,14 @@ export function PlatformWorkspace({ user }: { user: Profile }) {
                   {crmQuery ? <button className="platform-text-button" onClick={() => setCrmQuery("")}>Mostra tutti i contatti autorizzati</button> : null}
                 </section>
                 <div className="platform-grid">
-                  {["new", "contacted", "qualified", "proposal", "won", "lost"].map((stage) => (
-                    <section className="platform-card" key={stage}>
+                  {PIPELINE_STATES.map((state) => (
+                    <section className="platform-card" key={state}>
                       <h2>
-                        {stages[stage]}{" "}
-                        <small>{data.leads?.filter((l) => l.stage === stage).length ?? 0}</small>
+                        {PIPELINE_LABELS[state]}{" "}
+                        <small>{data.leads?.filter((l) => (l.pipeline ?? l.stage) === state).length ?? 0}</small>
                       </h2>
                       {data.leads
-                        ?.filter((l) => l.stage === stage)
+                        ?.filter((l) => (l.pipeline ?? l.stage) === state)
                         .map((l) => (
                           <button
                             className="platform-lead"
@@ -499,7 +529,8 @@ export function PlatformWorkspace({ user }: { user: Profile }) {
                           >
                             <strong>{l.nome}</strong>
                             <span>{l.email}</span>
-                            <small>Priorità {l.leadScore}/100</small>
+                            <small>{l.fonte ?? "sito"}{l.sourceDetail ? ` · ${l.sourceDetail}` : ""}{l.assignedName ? ` · ${l.assignedName}` : " · non assegnato"}</small>
+                            {l.nextActionAt ? <small>{l.nextAction ?? "Prossima azione"} · {new Date(l.nextActionAt).toLocaleString("it-IT", { dateStyle: "short", timeStyle: "short" })}</small> : null}
                           </button>
                         ))}
                     </section>
@@ -542,6 +573,19 @@ export function PlatformWorkspace({ user }: { user: Profile }) {
                     </form>
                   </details>
                 ) : null}
+                {can(user.grants, "crm.import") ? (
+                  <details className="platform-card">
+                    <summary>Importa contatti autorizzati (marketplace, file)</summary>
+                    <p>Solo contatti che hanno risposto a un’offerta o hanno chiesto di essere ricontattati: l’import non invia nulla, non fa scraping e ignora i doppioni (email o riferimento). Colonne CSV: nome, email, telefono, note, ref, consenso.</p>
+                    <form className="platform-form" onSubmit={async (e) => { e.preventDefault(); const f = new FormData(e.currentTarget); const file = f.get("file"); const origin = String(f.get("origine") || "file CSV"); const fonte = String(f.get("fonte") || "import"); await run(async () => { const text = file instanceof File ? await file.text() : String(f.get("testo") ?? ""); const response = await fetch(`/api/platform/leads/import?fonte=${encodeURIComponent(fonte)}&origine=${encodeURIComponent(origin)}`, { method: "POST", credentials: "same-origin", headers: { "Content-Type": "text/csv" }, body: text }); const result = await response.json(); if (!response.ok) throw new Error(result.errore ?? "Import non riuscito."); setNotice(`Importati ${result.imported}, doppioni ${result.duplicates}, righe non valide ${result.invalid}.`); }, "Import completato."); }}>
+                      <label>Origine<select name="fonte"><option value="marketplace">Marketplace (es. AddLance)</option><option value="import">Altra lista autorizzata</option></select></label>
+                      <Field label="Dettaglio origine (es. AddLance · offerta 1234)" name="origine" required />
+                      <label>File CSV<input name="file" type="file" accept=".csv,text/csv" /></label>
+                      <label>Oppure incolla il CSV<textarea name="testo" rows={4} placeholder={"nome,email,telefono,ref,consenso\nMario Rossi,mario@esempio.it,+39…,addlance-1,true"} /></label>
+                      <button className="platform-button" disabled={busy}>Importa</button>
+                    </form>
+                  </details>
+                ) : null}
                 {can(user.grants, "export") ? (
                   <a className="platform-text-button" href="/api/platform/leads/export" download>
                     Esporta CSV →
@@ -552,6 +596,7 @@ export function PlatformWorkspace({ user }: { user: Profile }) {
             {tab === "overview" ? (
               <TodayView data={data} />
             ) : null}
+            {tab === "marketing" ? <MarketingView user={user} /> : null}
             {tab === "quotes" ? (
               <div className="platform-card">
                 {data.quotes?.map((q) => (
@@ -665,7 +710,7 @@ export function PlatformWorkspace({ user }: { user: Profile }) {
                   {data.orders?.map((o) => (
                     <div className="platform-row" key={o.id}>
                       <span>
-                        {o.id.slice(0, 8)} · {o.kind === "deposit" ? "Acconto" : "Saldo"}
+                        {o.id.slice(0, 8)} · {o.kind === "deposit" ? "Acconto" : o.plan === "company_installment" ? `Rata ${o.sequence ?? 1} del saldo` : "Saldo"}
                       </span>
                       <State value={o.status} />
                       <strong>{money(o.amountCents)}</strong>
@@ -673,6 +718,7 @@ export function PlatformWorkspace({ user }: { user: Profile }) {
                   ))}
                   {!data.orders?.length ? <Empty>Nessun ordine registrato.</Empty> : null}
                 </div>
+                <RefundPanel refunds={data.refunds ?? []} orders={data.orders ?? []} user={user} run={run} />
                 <PayoutList
                   items={data.commissions ?? []}
                   onPay={
@@ -880,6 +926,39 @@ export function PlatformWorkspace({ user }: { user: Profile }) {
           <Link href="/privacy">Informativa privacy</Link>
         </footer>
       </main>
+    </div>
+  );
+}
+/**
+ * Rettifiche: chi ha «refund.prepare» le prepara (nessun movimento), chi ha
+ * «refund.authorize» le autorizza (quattro occhi: non la stessa persona). Il
+ * denaro si muove solo via Stripe e la contabilità si aggiorna all'evento verificato.
+ */
+function RefundPanel({ refunds, orders, user, run }: { refunds: RefundRequest[]; orders: Order[]; user: Profile; run: (work: () => Promise<unknown>, success?: string) => Promise<void> }) {
+  const refundable = orders.filter((o) => ["paid", "partially_refunded"].includes(o.status));
+  const labels: Record<string, string> = { prepared: "preparata", authorized: "autorizzata, in corso", executed: "eseguita", failed: "errore" };
+  return (
+    <div className="platform-card">
+      <h2>Rimborsi e rettifiche</h2>
+      {can(user.grants, "refund.prepare") && refundable.length ? (
+        <form className="platform-inline" onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); const form = e.currentTarget; run(() => platformApi("refunds", "POST", { orderId: String(f.get("order")), amountCents: Math.round(Number(f.get("amount")) * 100), reason: String(f.get("reason")) }).then(() => form.reset()), "Rettifica preparata: serve l'autorizzazione di un secondo utente."); }}>
+          <label>Ordine<select name="order" required>{refundable.map((o) => <option key={o.id} value={o.id}>{o.id.slice(0, 8)} · {money(o.amountCents)}</option>)}</select></label>
+          <label>Importo (€)<input name="amount" type="number" min={0.01} step={0.01} required /></label>
+          <label>Motivo<input name="reason" minLength={10} maxLength={2000} required /></label>
+          <button className="platform-button">Prepara la rettifica</button>
+        </form>
+      ) : null}
+      {refunds.map((r) => (
+        <div className="platform-row" key={r.id}>
+          <span>{r.orderId.slice(0, 8)} · {r.reason}{r.lastError ? ` · ${r.lastError}` : ""}</span>
+          <State value={labels[r.status] ?? r.status} />
+          <strong>{money(r.amountCents)}</strong>
+          {["prepared", "failed"].includes(r.status) && can(user.grants, "refund.authorize") && r.preparedBy !== user.id ? (
+            <button className="platform-text-button" onClick={() => { if (window.confirm(`Autorizzi il rimborso di ${money(r.amountCents)}? Stripe lo esegue subito.`)) run(() => platformApi(`refunds/${r.id}/authorize`, "POST"), "Rimborso richiesto a Stripe: la contabilità si aggiorna alla conferma."); }}>Autorizza</button>
+          ) : null}
+        </div>
+      ))}
+      {!refunds.length ? <Empty>Nessuna rettifica preparata.</Empty> : null}
     </div>
   );
 }
@@ -1221,11 +1300,12 @@ function ProjectView({ id, user }: { id: string; user: Profile }) {
     </>
   );
 }
-function LeadView({ id }: { id: string }) {
+function LeadView({ id, user }: { id: string; user: Profile }) {
   const [detail, setDetail] = useState<LeadDetail | null>(null),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
-    [refresh, setRefresh] = useState(0);
+    [refresh, setRefresh] = useState(0),
+    [team, setTeam] = useState<Person[]>([]);
   useEffect(() => {
     let active = true;
     platformApi<LeadDetail>(`leads/${id}`)
@@ -1235,10 +1315,11 @@ function LeadView({ id }: { id: string }) {
       .catch((e) => {
         if (active) setError(e.message);
       });
+    if (hasPermission(user.grants, "role.manage")) platformApi<{ users: Person[] }>("team").then((t) => { if (active) setTeam(t.users ?? []); }).catch(() => {});
     return () => {
       active = false;
     };
-  }, [id, refresh]);
+  }, [id, refresh, user.grants]);
   async function run(work: () => Promise<unknown>) {
     setError("");
     setBusy(true);
@@ -1252,46 +1333,108 @@ function LeadView({ id }: { id: string }) {
     }
   }
   if (!detail) return <p role={error ? "alert" : "status"}>{error || "Caricamento…"}</p>;
+  const lead = detail.lead, prefs = lead.contactPreferences, pipeline = lead.pipeline ?? "received";
+  const writable = hasPermission(user.grants, "crm.write");
+  const channelLabel: Record<string, string> = { call: "Telefonata", whatsapp: "WhatsApp", sms: "SMS", email: "Email", meeting: "Incontro", other: "Altro", automation: "Automazione", state: "Stato", assignment: "Assegnazione", import: "Import", created: "Creazione", consent: "Consenso", negotiation: "Negoziazione" };
+  const toLocal = (iso: string | null | undefined) => iso ? new Date(new Date(iso).getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16) : "";
   return (
     <>
       <section className="platform-card">
-        <h2>{detail.lead.nome}</h2>
+        <h2>{lead.nome} <State value={PIPELINE_LABELS[pipeline]} /></h2>
         <p>
-          {detail.lead.email} · {detail.lead.telefono || "Nessun telefono"}
+          {lead.email} · {lead.telefono || "Nessun telefono"} · origine {lead.fonte ?? "sito"}{lead.sourceDetail ? ` (${lead.sourceDetail})` : ""}{lead.externalRef ? ` · rif. ${lead.externalRef}` : ""}
         </p>
-        <p>{detail.lead.note}</p>
-        <form
-          className="platform-inline"
-          onSubmit={(e) => {
-            e.preventDefault();
-            const f = new FormData(e.currentTarget);
-            run(() =>
-              platformApi(`leads/${id}`, "PATCH", {
-                stage: f.get("stage"),
-                lostReason: f.get("reason"),
-              }),
-            );
-          }}
-        >
-          <label>
-            Fase
-            <select name="stage" defaultValue={detail.lead.stage}>
-              {["new", "contacted", "qualified", "proposal", "won", "lost"].map((s) => (
-                <option key={s} value={s}>
-                  {stages[s]}
-                </option>
-              ))}
-            </select>
-          </label>
-          <Field label="Motivo se chiuso" name="reason" />
-          <button disabled={busy}>Salva fase</button>
-        </form>
+        <p>Responsabile: {detail.ownership?.assignedName ?? "non assegnato"}{detail.ownership?.authorId ? " · account autore collegato" : ""}{lead.lastContactAt ? ` · ultimo contatto ${date(lead.lastContactAt)}` : ""}</p>
+        {lead.nextAction || lead.nextActionAt ? <p><strong>Prossima azione:</strong> {lead.nextAction ?? "—"}{lead.nextActionAt ? ` · entro ${new Date(lead.nextActionAt).toLocaleString("it-IT", { dateStyle: "short", timeStyle: "short" })}` : ""}</p> : null}
+        {lead.lostReason ? <p><strong>Motivo chiusura:</strong> {lead.lostReason}</p> : null}
+        <p>{lead.note}</p>
+        <p><small>Consensi: informativa {lead.consensoPrivacy ? "accettata" : "non registrata"} · comunicazioni facoltative {lead.consensoMarketing ? "sì" : lead.marketingRevokedAt ? "revocate" : "no"} · canali ammessi: {prefs ? (["email", "phone", "whatsapp", "sms"] as const).filter((c) => prefs[c]).map((c) => ({ email: "email", phone: "telefono", whatsapp: "WhatsApp", sms: "SMS" })[c]).join(", ") || "nessuno" : "da verificare con la persona"}. Nessun messaggio automatico parte su WhatsApp o SMS.</small></p>
+        {writable ? (
+          <form
+            className="platform-inline"
+            onSubmit={(e) => {
+              e.preventDefault();
+              const f = new FormData(e.currentTarget);
+              run(() =>
+                platformApi(`leads/${id}`, "PATCH", {
+                  stage: f.get("stage"),
+                  ...(f.get("reason") ? { lostReason: f.get("reason") } : {}),
+                }),
+              );
+            }}
+          >
+            <label>
+              Stato (solo quelli decisi dal team)
+              <select name="stage" defaultValue={detail.manualStates.includes(pipeline) ? pipeline : "received"}>
+                {detail.manualStates.map((s) => (
+                  <option key={s} value={s}>
+                    {PIPELINE_LABELS[s]}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <Field label="Motivo se perso o non contattabile" name="reason" />
+            <button disabled={busy}>Salva stato</button>
+            <small>Gli altri stati (proposta, accettata, checkout, pagamento) derivano dai fatti e non si impostano a mano. «Acquisto concluso» arriva solo da un incasso verificato.</small>
+          </form>
+        ) : null}
+        {writable ? (
+          <form className="platform-inline" onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); run(() => platformApi(`leads/${id}`, "PATCH", { nextAction: String(f.get("next") ?? "") || null, nextActionAt: f.get("due") ? new Date(String(f.get("due"))).toISOString() : null })); }}>
+            <Field label="Prossima azione" name="next" defaultValue={lead.nextAction ?? ""} />
+            <Field label="Entro" name="due" type="datetime-local" defaultValue={toLocal(lead.nextActionAt)} />
+            <button disabled={busy}>Aggiorna</button>
+          </form>
+        ) : null}
+        {writable ? (
+          <form className="platform-inline" onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); run(() => platformApi(`leads/${id}`, "PATCH", { contactPreferences: { email: f.get("email") === "on", phone: f.get("phone") === "on", whatsapp: f.get("whatsapp") === "on", sms: f.get("sms") === "on", note: String(f.get("prefnote") ?? "") || null } })); }}>
+            <span>Canali ammessi (come dichiarato dalla persona):</span>
+            {(["email", "phone", "whatsapp", "sms"] as const).map((c) => <label className="platform-check" key={c}><input type="checkbox" name={c} defaultChecked={prefs ? prefs[c] : c === "email"} />{({ email: "Email", phone: "Telefono", whatsapp: "WhatsApp", sms: "SMS" })[c]}</label>)}
+            <Field label="Nota (orari, lingua…)" name="prefnote" defaultValue={prefs?.note ?? ""} />
+            <button disabled={busy}>Salva canali</button>
+          </form>
+        ) : null}
+        {writable ? (
+          <form className="platform-inline" onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); const grant = f.get("consent") === "grant"; run(() => platformApi(`leads/${id}`, "PATCH", { marketingConsent: grant, ...(grant ? { consentEvidence: String(f.get("evidence") ?? "") } : {}) })); }}>
+            <label>Comunicazioni facoltative<select name="consent" defaultValue={lead.consensoMarketing ? "grant" : "revoke"}><option value="grant">Consenso registrato</option><option value="revoke">Revocato / non dato</option></select></label>
+            <Field label="Prova del consenso (data e testo della richiesta)" name="evidence" />
+            <button disabled={busy}>Registra</button>
+          </form>
+        ) : null}
+        {hasPermission(user.grants, "crm.assign") && team.length ? (
+          <form className="platform-inline" onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); run(() => platformApi(`leads/${id}`, "PATCH", { assignedTo: String(f.get("assignee")) })); }}>
+            <label>Responsabile<select name="assignee" defaultValue={detail.ownership?.assignedTo ?? ""}>{team.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select></label>
+            <button disabled={busy}>Assegna</button>
+          </form>
+        ) : null}
       </section>
       {error ? (
         <p className="platform-error" role="alert">
           {error}
         </p>
       ) : null}
+      <section className="platform-card">
+        <h2>Storia del contatto</h2>
+        {detail.activities.map((a) => (
+          <article key={a.id}>
+            <strong>{channelLabel[a.kind] ?? a.kind}{a.direction === "inbound" ? " · ricevuto" : ""}{a.purpose ? ` · ${a.purpose}` : ""}</strong>
+            <small> · {a.name ?? "automazione"} · {new Date(a.createdAt).toLocaleString("it-IT", { dateStyle: "short", timeStyle: "short" })}{a.outcome ? ` · ${a.outcome}` : ""}</small>
+            {a.body ? <p>{a.body}</p> : null}
+          </article>
+        ))}
+        {!detail.activities.length ? <Empty>Nessuna attività registrata.</Empty> : null}
+        {writable ? (
+          <form className="platform-form" onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); const form = e.currentTarget; run(() => platformApi(`leads/${id}/activities`, "POST", { kind: f.get("kind"), direction: f.get("direction"), body: f.get("body"), outcome: f.get("outcome"), ...(f.get("next") ? { nextAction: f.get("next") } : {}), ...(f.get("due") ? { nextActionAt: new Date(String(f.get("due"))).toISOString() } : {}) }).then(() => form.reset())); }}>
+            <label>Attività<select name="kind"><option value="call">Telefonata</option><option value="whatsapp">WhatsApp (manuale)</option><option value="sms">SMS (manuale)</option><option value="email">Email</option><option value="meeting">Incontro</option><option value="other">Altro</option></select></label>
+            <label>Direzione<select name="direction"><option value="outbound">Fatta da noi</option><option value="inbound">Ricevuta dalla persona</option></select></label>
+            <label>Cosa è successo<textarea name="body" required maxLength={5000} /></label>
+            <label>Esito<select name="outcome"><option value="reached">Raggiunto</option><option value="no-answer">Nessuna risposta</option><option value="callback">Richiamare</option><option value="replied">Ha risposto</option><option value="declined">Ha rifiutato</option><option value="other">Altro</option></select></label>
+            <Field label="Prossima azione (facoltativa)" name="next" />
+            <Field label="Entro" name="due" type="datetime-local" />
+            <button disabled={busy}>Registra attività</button>
+            <small>Qui si registra ciò che è stato fatto: WhatsApp e SMS si inviano dal telefono aziendale, solo sui canali ammessi.</small>
+          </form>
+        ) : null}
+      </section>
       <section className="platform-card">
         <h2>Note e follow-up</h2>
         {detail.notes.map((n) => (
@@ -1301,6 +1444,7 @@ function LeadView({ id }: { id: string }) {
             <p>{n.body}</p>
           </article>
         ))}
+        {detail.tasks.length ? <ul>{detail.tasks.map((t) => <li key={t.id}>{t.title}{t.dueAt ? ` · entro ${date(t.dueAt)}` : ""}</li>)}</ul> : null}
         <form
           className="platform-form"
           onSubmit={(e) => {
@@ -1405,8 +1549,8 @@ function LeadView({ id }: { id: string }) {
         <h2>Proposte</h2>
         {detail.quotes.map((q) => (
           <div className="platform-row" key={q.id}>
-            <span>{q.id.slice(0, 8)}</span>
-            <State value={q.stato} />
+            <span>{q.id.slice(0, 8)}{detail.contracts.some((c) => c.quoteId === q.id) ? " · contratto" : ""}</span>
+            <State value={q.journey ?? q.stato} />
             <strong>{money((q.prezzoTotale ?? 0) * 100)}</strong>
             <button
               disabled={busy}
@@ -1462,6 +1606,12 @@ function QuoteView({ id, user }: { id: string; user: Profile }) {
           <Field label="Validità concordata della proposta (facoltativa)" name="expiry" type="datetime-local" />
           <button className="platform-button" disabled={busy}>Salva nuova versione</button>
         </form>
+        <p><strong>Prima di uno sconto</strong>, proponi in ordine: pagamento dilazionato (rate del saldo, qui sotto), servizio a fasi, un pacchetto più essenziale, un confronto con il consulente. Lo sconto resta entro la soglia della regola «Cosa è acquistabile subito»; oltre serve l’approvazione e ogni variazione è una nuova versione, mai una sovrascrittura.</p>
+        <form className="platform-inline" onSubmit={event => { event.preventDefault(); const f = new FormData(event.currentTarget); run(() => platformApi(`quotes/${id}`, "PATCH", { version: detail.record.version, input: detail.quote.input, discountBps: Math.round(Number(f.get("discount") || 0) * 100), ...(f.get("why") ? { discountNote: String(f.get("why")) } : {}) })); }}>
+          <label>Sconto commerciale (%)<input name="discount" type="number" min={0} max={50} step={0.5} defaultValue={0} /></label>
+          <Field label="Motivo (visibile nella storia del contatto)" name="why" />
+          <button className="platform-button" disabled={busy}>Nuova versione con sconto</button>
+        </form>
       </details> : null}
       <section className="platform-card">
         <h2>Stato commerciale</h2>
@@ -1481,6 +1631,22 @@ function QuoteView({ id, user }: { id: string; user: Profile }) {
           <button className="platform-text-button" disabled={busy} onClick={() => run(() => platformApi(`quotes/${id}/reminders`, "POST", { paused: !detail.record.remindersPausedAt }))}>
             {detail.record.remindersPausedAt ? "Riattiva i promemoria automatici" : "Sospendi i promemoria automatici"}
           </button>
+        ) : null}
+        {hasPermission(user.grants, "quote.write") && !detail.record.acceptedAt ? (
+          <form className="platform-inline" onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); run(() => platformApi(`quotes/${id}/plan`, "POST", { installments: Number(f.get("installments") || 1), ...(f.get("note") ? { note: String(f.get("note")) } : {}) })); }}>
+            <label>Rate del saldo concesse da Proemios<input name="installments" type="number" min={1} max={12} defaultValue={detail.record.paymentPlan?.installments ?? 1} /></label>
+            <label>Nota interna (facoltativa)<input name="note" maxLength={500} /></label>
+            <button className="platform-button" disabled={busy}>Imposta il piano</button>
+            <small>1 = acconto e saldo unico. Oltre la soglia della regola «Cosa è acquistabile subito» serve chi gestisce le regole economiche. Le rate Klarna/Scalapay le offre Stripe sulla singola operazione e non c’entrano con questo piano.</small>
+          </form>
+        ) : null}
+        {detail.record.paymentPlan ? <p>Piano: saldo in {detail.record.paymentPlan.installments} rate{detail.record.paymentPlan.approvedBy ? " (eccezione approvata)" : ""}{detail.record.paymentPlan.note ? ` · ${detail.record.paymentPlan.note}` : ""}.</p> : null}
+        {detail.contract ? (
+          <div className="platform-notice">
+            <strong>Contratto v{detail.contract.version}</strong> · condizioni {detail.contract.termsVersion} · accettato il {date(detail.contract.acceptedAt)}{detail.contract.acceptances.earlyStart ? " · avvio immediato richiesto" : ""}{detail.contract.acceptances.marketing ? " · consenso informativo dato" : ""} · {detail.contract.consumer ? "consumatore" : "impresa/professionista"}.{" "}
+            <a href={detail.contract.pdfUrl}>Scarica il PDF</a>
+            {detail.contract.withdrawalRequestedAt ? <> · <strong>Recesso richiesto il {date(detail.contract.withdrawalRequestedAt)}</strong>{can(user.grants, "finance.record") ? <> · <button className="platform-text-button" disabled={busy} onClick={() => run(() => platformApi(`contracts/${detail.contract!.id}/withdrawal`, "POST", { outcome: "accepted" }))}>Chiudi la pratica (accolto)</button></> : null}</> : null}
+          </div>
         ) : null}
         {detail.attribution ? (
           <dl className="platform-attribution">
@@ -1612,6 +1778,136 @@ function QuoteView({ id, user }: { id: string; user: Profile }) {
   );
 }
 type Runner = (work: () => Promise<unknown>, message?: string) => Promise<void>;
+const MARKETING_LABELS: Partial<Record<Permission, string>> = { "marketing.read": "Dashboard marketing", "marketing.campaigns": "Campagne e link tracciati", "marketing.contacts": "Contatti autorizzati", "automation.draft": "Bozze delle automazioni", "automation.activate": "Attivazione delle automazioni", "crm.assign": "Assegnazione dei contatti", "revenue.aggregate": "Ricavi aggregati", "export": "Export", "integrations.manage": "Gestione dei collegamenti (solo amministratori)" };
+type Metric = { key: string; label: string; value: number | string | null; unit?: "count" | "cents" | "pct" | "text"; definition: string; source: string; updatedAt: string | null; status: "ok" | "to_connect" | "unavailable" | "unauthorized"; demo: boolean };
+type Campaign = { id: string; name: string; channel: string; status: string; startsAt: string | null; endsAt: string | null; destination: string; utmSource: string; utmMedium: string; utmCampaign: string; utmContent: string | null; utmTerm: string | null; partnerId: string | null; sellerId: string | null; budgetCents: number; notes: string | null; link: string; results: { leads: number; quotes: number; purchases: number; collectedCents: number | null; spendCents: number; spendDays: number; clicks: number; impressions: number; budgetUsedPct: number | null; costPerLeadCents: number | null; costPerPurchaseCents: number | null; roas: number | null } };
+type MarketingContact = { id: string; nome: string; email: string; fonte: string; sourceDetail: string | null; consentAt: string; stage: string; assignedName: string | null; campaign: string | null };
+/**
+ * Area marketing: dashboard con definizione, fonte e aggiornamento per ogni
+ * numero; registro campagne con link tracciati e spesa; contatti autorizzati;
+ * bozze di automazione. Tutto ciò che non è collegato lo dichiara.
+ */
+function MarketingView({ user }: { user: Profile }) {
+  const [metrics, setMetrics] = useState<{ days: number; demo: boolean; metrics: Metric[] } | null>(null), [campaigns, setCampaigns] = useState<Campaign[]>([]), [contacts, setContacts] = useState<MarketingContact[]>([]), [automation, setAutomation] = useState<{ draft: Record<string, unknown> | null; active: Record<string, unknown> | null; defaults: Record<string, unknown>; canActivate: boolean } | null>(null), [integrations, setIntegrations] = useState<Record<string, { label: string; configured: boolean; detail: string; mode: string }> | null>(null);
+  const [error, setError] = useState(""), [notice, setNotice] = useState(""), [busy, setBusy] = useState(false), [refresh, setRefresh] = useState(0), [days, setDays] = useState(30);
+  useEffect(() => {
+    let active = true;
+    platformApi<{ days: number; demo: boolean; metrics: Metric[] }>(`marketing?giorni=${days}`).then((m) => { if (active) setMetrics(m); }).catch((e) => { if (active) setError(e.message); });
+    platformApi<{ campaigns: Campaign[] }>("campaigns").then((c) => { if (active) setCampaigns(c.campaigns); }).catch(() => {});
+    if (hasPermission(user.grants, "marketing.contacts")) platformApi<{ contacts: MarketingContact[] }>("marketing/contacts").then((c) => { if (active) setContacts(c.contacts); }).catch(() => {});
+    if (hasPermission(user.grants, "automation.draft") || hasPermission(user.grants, "automation.activate")) platformApi<typeof automation>("automations").then((a) => { if (active) setAutomation(a); }).catch(() => {});
+    if (hasPermission(user.grants, "integrations.manage")) platformApi<{ integrations: NonNullable<typeof integrations> }>("integrations").then((i) => { if (active) setIntegrations(i.integrations); }).catch(() => {});
+    return () => { active = false; };
+  }, [user.grants, refresh, days]);
+  async function run(work: () => Promise<unknown>, message = "Salvato.") {
+    setError(""); setNotice(""); setBusy(true);
+    try { await work(); setNotice(message); setRefresh((r) => r + 1); } catch (e) { setError(e instanceof Error ? e.message : "Operazione non riuscita."); } finally { setBusy(false); }
+  }
+  const show = (m: Metric) => m.status === "to_connect" ? "Da collegare" : m.status === "unauthorized" ? "Non autorizzato" : m.value === null || m.status === "unavailable" ? "Non disponibile" : m.unit === "cents" ? money(Number(m.value)) : m.unit === "pct" ? `${m.value}%` : String(m.value);
+  const statusLabel: Record<string, string> = { draft: "bozza", active: "attiva", paused: "in pausa", ended: "conclusa" };
+  return (
+    <>
+      {error ? <p className="platform-error" role="alert">{error}</p> : null}
+      {notice ? <p className="platform-notice" role="status">{notice}</p> : null}
+      <section className="platform-card">
+        <h2>Dashboard marketing {metrics?.demo ? <small>· dati dimostrativi</small> : <small>· dati reali</small>}</h2>
+        <label>Periodo<select value={days} onChange={(e) => setDays(Number(e.target.value))}><option value={7}>7 giorni</option><option value={30}>30 giorni</option><option value={90}>90 giorni</option><option value={365}>12 mesi</option></select></label>
+        <div className="platform-metrics">
+          {metrics?.metrics.map((m) => (
+            <section className="platform-card" key={m.key}>
+              <small>{m.label}</small>
+              <h2>{show(m)}</h2>
+              <p><small>{m.definition}<br />Fonte: {m.source}{m.updatedAt ? ` · aggiornato ${new Date(m.updatedAt).toLocaleString("it-IT", { dateStyle: "short", timeStyle: "short" })}` : ""}</small></p>
+            </section>
+          ))}
+        </div>
+        {!metrics ? <p role="status">Caricamento…</p> : null}
+      </section>
+      <section className="platform-card">
+        <h2>Registro campagne</h2>
+        <p>Ogni campagna ha UTM propri e un link tracciato (senza dati personali). Risultati attribuiti per link o per UTM corrispondenti; spesa via import CSV o inserimento manuale, mai da collegamenti pubblicitari automatici.</p>
+        {campaigns.map((c) => (
+          <details key={c.id} className="platform-card">
+            <summary>{c.name} · {c.channel} · {statusLabel[c.status] ?? c.status}{c.startsAt ? ` · dal ${date(c.startsAt)}` : ""}{c.endsAt ? ` al ${date(c.endsAt)}` : ""}</summary>
+            <p>Budget {money(c.budgetCents)} · speso {money(c.results.spendCents)}{c.results.budgetUsedPct !== null ? ` (${c.results.budgetUsedPct}%)` : ""} · contatti {c.results.leads} · proposte {c.results.quotes} · acquisti {c.results.purchases}{c.results.collectedCents !== null ? ` · incassato ${money(c.results.collectedCents)}` : ""}{c.results.costPerLeadCents !== null ? ` · costo/contatto ${money(c.results.costPerLeadCents)}` : ""}{c.results.costPerPurchaseCents !== null ? ` · costo/acquisto ${money(c.results.costPerPurchaseCents)}` : ""}{c.results.roas !== null ? ` · ROAS ${c.results.roas}` : ""}</p>
+            <p><small>UTM: {c.utmSource} / {c.utmMedium} / {c.utmCampaign}{c.utmContent ? ` / ${c.utmContent}` : ""} · destinazione {c.destination}</small></p>
+            <div className="platform-actions">
+              <button className="platform-text-button" onClick={() => navigator.clipboard.writeText(c.link).then(() => setNotice("Link tracciato copiato."))}>Copia il link tracciato</button>
+              <code>{c.link}</code>
+            </div>
+            {hasPermission(user.grants, "marketing.campaigns") ? (
+              <>
+                <form className="platform-inline" onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); run(() => platformApi(`campaigns/${c.id}`, "PATCH", { status: f.get("status") })); }}>
+                  <label>Stato<select name="status" defaultValue={c.status}><option value="draft">bozza</option><option value="active">attiva</option><option value="paused">in pausa</option><option value="ended">conclusa</option></select></label>
+                  <button disabled={busy}>Aggiorna</button>
+                </form>
+                <form className="platform-inline" onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); run(() => platformApi(`campaigns/${c.id}/spend`, "POST", { source: "manual", rows: [{ day: f.get("day"), spend: Number(f.get("spend")), clicks: f.get("clicks") ? Number(f.get("clicks")) : undefined, impressions: f.get("impressions") ? Number(f.get("impressions")) : undefined }] }), "Spesa registrata (i giorni già presenti non vengono sovrascritti)."); }}>
+                  <Field label="Giorno" name="day" type="date" required />
+                  <label>Spesa (€)<input name="spend" type="number" min={0} step={0.01} required /></label>
+                  <label>Clic<input name="clicks" type="number" min={0} /></label>
+                  <label>Impressioni<input name="impressions" type="number" min={0} /></label>
+                  <button disabled={busy}>Aggiungi spesa</button>
+                </form>
+                <form className="platform-inline" onSubmit={async (e) => { e.preventDefault(); const f = new FormData(e.currentTarget); const file = f.get("file"); await run(async () => { const text = file instanceof File ? await file.text() : ""; if (!text) throw new Error("Scegli un file CSV."); const response = await fetch(`/api/platform/campaigns/${c.id}/spend?origine=${encodeURIComponent(String(f.get("origine") || "csv"))}`, { method: "POST", credentials: "same-origin", headers: { "Content-Type": "text/csv" }, body: text }); const result = await response.json(); if (!response.ok) throw new Error(result.errore ?? "Import non riuscito."); }, "Spesa importata: i giorni già presenti sono stati ignorati."); }}>
+                  <label>CSV spesa (colonne: day, spend, clicks, impressions)<input name="file" type="file" accept=".csv,text/csv" /></label>
+                  <Field label="Origine (es. google-ads)" name="origine" />
+                  <button disabled={busy}>Importa CSV</button>
+                </form>
+              </>
+            ) : null}
+          </details>
+        ))}
+        {!campaigns.length ? <Empty>Nessuna campagna nel registro.</Empty> : null}
+        {hasPermission(user.grants, "marketing.campaigns") ? (
+          <details className="platform-card">
+            <summary>Nuova campagna</summary>
+            <form className="platform-form" onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); const form = e.currentTarget; run(() => platformApi("campaigns", "POST", { name: f.get("name"), channel: f.get("channel"), status: "draft", destination: f.get("destination") || "/preventivo", utmSource: f.get("source"), utmMedium: f.get("medium"), utmCampaign: f.get("campaign"), ...(f.get("content") ? { utmContent: f.get("content") } : {}), budgetCents: Math.round(Number(f.get("budget") || 0) * 100), ...(f.get("starts") ? { startsAt: new Date(String(f.get("starts"))).toISOString() } : {}), ...(f.get("ends") ? { endsAt: new Date(String(f.get("ends"))).toISOString() } : {}), ...(f.get("notes") ? { notes: f.get("notes") } : {}) }).then(() => form.reset()), "Campagna creata in bozza."); }}>
+              <Field label="Nome" name="name" required />
+              <label>Canale<select name="channel"><option value="google_ads">Google Ads</option><option value="meta">Meta</option><option value="email">Email</option><option value="marketplace">Marketplace</option><option value="partner">Partner</option><option value="organic">Organico</option><option value="referral">Referral</option><option value="other">Altro</option></select></label>
+              <Field label="Destinazione (percorso interno)" name="destination" defaultValue="/preventivo" />
+              <Field label="utm_source" name="source" required />
+              <Field label="utm_medium" name="medium" required />
+              <Field label="utm_campaign" name="campaign" required />
+              <Field label="utm_content (facoltativo)" name="content" />
+              <label>Budget (€)<input name="budget" type="number" min={0} step={0.01} /></label>
+              <Field label="Inizio" name="starts" type="date" />
+              <Field label="Fine" name="ends" type="date" />
+              <label>Note<textarea name="notes" maxLength={2000} /></label>
+              <button className="platform-button" disabled={busy}>Crea la campagna</button>
+            </form>
+          </details>
+        ) : null}
+      </section>
+      {hasPermission(user.grants, "marketing.contacts") ? (
+        <section className="platform-card">
+          <h2>Contatti autorizzati alle comunicazioni facoltative</h2>
+          <p>Solo chi ha dato il consenso e non lo ha revocato: nome, email, origine, data del consenso. Nessuna nota, telefono o documento.</p>
+          {contacts.map((c) => <div className="platform-row" key={c.id}><span><strong>{c.nome}</strong><small>{c.email} · {c.fonte}{c.campaign ? ` · ${c.campaign}` : ""} · consenso {date(c.consentAt)}</small></span><State value={c.stage} /><span>{c.assignedName ?? "non assegnato"}</span></div>)}
+          {!contacts.length ? <Empty>Nessun contatto con consenso attivo.</Empty> : null}
+          {can(user.grants, "export") ? <a className="platform-text-button" href="/api/platform/leads/export" download>Esporta CSV →</a> : null}
+        </section>
+      ) : null}
+      {automation ? (
+        <section className="platform-card">
+          <h2>Automazioni di recupero</h2>
+          <p>La bozza non invia nulla. Attiva: {automation.active ? `versione ${(automation.active as { version?: string }).version ?? "?"}` : "regole predefinite"}. {automation.canActivate ? "Puoi attivare la bozza." : "L’attivazione richiede la delega «automation.activate»."}</p>
+          <form className="platform-form" onSubmit={(e) => { e.preventDefault(); const raw = String(new FormData(e.currentTarget).get("draft")); run(async () => { let value: unknown; try { value = JSON.parse(raw); } catch { throw new Error("La bozza deve essere JSON valido."); } return platformApi("automations", "PUT", { value }); }, "Bozza salvata (non attiva)."); }}>
+            <label>Bozza (JSON)<textarea name="draft" rows={12} defaultValue={JSON.stringify(automation.draft ?? automation.active ?? automation.defaults, null, 2)} /></label>
+            <button disabled={busy || !hasPermission(user.grants, "automation.draft")}>Salva la bozza</button>
+          </form>
+          {automation.canActivate && automation.draft ? <button className="platform-button" disabled={busy} onClick={() => { if (window.confirm("Attivi la bozza? Da questo momento i recuperi seguono queste regole.")) run(() => platformApi("automations/activate", "POST"), "Automazione attivata."); }}>Attiva la bozza</button> : null}
+        </section>
+      ) : null}
+      {integrations ? (
+        <section className="platform-card">
+          <h2>Collegamenti esterni</h2>
+          {Object.entries(integrations).map(([key, i]) => <div className="platform-row" key={key}><span>{i.label}</span><State value={i.configured ? "ready" : i.mode === "prepared" ? "pending" : "attention"} /><small>{i.detail}</small></div>)}
+          <p><small>Le credenziali si impostano nelle variabili d’ambiente del progetto (vedi docs/INTEGRAZIONI.md), mai da qui.</small></p>
+        </section>
+      ) : null}
+    </>
+  );
+}
 function TeamView({
   users,
   run,
@@ -1682,6 +1978,13 @@ function TeamView({
                   </label>
                   <button disabled={busy}>Salva e revoca le sessioni</button>
                 </form>
+                {m.role === "admin" || m.role === "marketing" ? (
+                  <form className="platform-form" onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); const chosen = f.getAll("mkt").map(String) as Permission[]; const base = (m.grants ?? ROLE_GRANTS[m.role]).filter((g) => !(MARKETING_PERMISSIONS as string[]).includes(g.permission)); run(() => platformApi(`memberships/${m.id}`, "PATCH", { active: m.active, grants: [...base, ...chosen.map((permission) => ({ permission, scope: "organization" as const }))] }), "Permessi marketing aggiornati."); }}>
+                    <p><strong>Permessi marketing per questo profilo</strong> (uno per uno; l’attivazione delle automazioni, i ricavi aggregati, l’export e i collegamenti sono deleghe separate):</p>
+                    {MARKETING_PERMISSIONS.map((perm) => <label className="platform-check" key={perm}><input type="checkbox" name="mkt" value={perm} defaultChecked={(m.grants ?? ROLE_GRANTS[m.role]).some((g) => g.permission === perm)} />{MARKETING_LABELS[perm] ?? perm}</label>)}
+                    <button disabled={busy}>Salva permessi marketing</button>
+                  </form>
+                ) : null}
               </details>
             ))}
           </article>
@@ -1953,10 +2256,10 @@ function SettingsView({
           versione precedente. Il salvataggio registra il responsabile e la data di approvazione.
         </p>
       </section>
-      {["payment-policy", "commission-rule", "purchase-rule", "reminder-rules"].map((key) => (
+      {["payment-policy", "commission-rule", "purchase-rule", "reminder-rules", "recovery-rules"].map((key) => (
         <details className="platform-card" key={key}>
           <summary>
-            {{ "payment-policy": "IVA e termini", "commission-rule": "Commissioni e attribuzione", "purchase-rule": "Cosa è acquistabile subito", "reminder-rules": "Promemoria automatici" }[key]}
+            {{ "payment-policy": "IVA e termini", "commission-rule": "Commissioni e attribuzione", "purchase-rule": "Cosa è acquistabile subito", "reminder-rules": "Promemoria automatici", "recovery-rules": "Recupero dei pagamenti non conclusi" }[key]}
           </summary>
           <form
             className="platform-form"
@@ -1978,8 +2281,9 @@ function SettingsView({
               {{
                 "payment-policy": "Valori richiesti: version, vatMode (included, excluded o exempt), vatRateBps (100 = 1%), termsVersion. Senza una policy salvata vale quella predefinita mostrata qui sotto.",
                 "commission-rule": 'Valori richiesti: version, sellerBps, affiliateBps (100 = 1%), base "collected-excluding-tax", attributionDays (1–365), attribution "code-on-quote". Facoltativo: assistedSalesOnly (true = provvigione al venditore solo con un intervento tracciato: revisione, invio o offerta; la sola assegnazione del contatto non basta).',
-                "purchase-rule": "Quali richieste pubbliche nascono già acquistabili: autoOfferSingleServices (elenco di servizi singoli a prezzo fisso), autoOfferFullPath (percorsi completi), validityDays. Tutto il resto resta una stima finché il team non la rende acquistabile. Predefinito prudente: solo copertina, EPUB, KDP, ISBN e scheda Amazon.",
+                "purchase-rule": "Quali richieste pubbliche nascono già acquistabili: autoOfferSingleServices (elenco di servizi singoli a prezzo fisso), autoOfferFullPath (percorsi completi), validityDays. maxInstallments: rate del saldo che un venditore può concedere da solo (1 = nessuna). startAfter: per servizio, se la lavorazione parte dopo l'acconto (predefinito) o dopo il saldo, es. {\"cover\":\"balance\"}. balanceBeforeDelivery: la consegna finale richiede il saldo. Tutto il resto resta una stima finché il team non la rende acquistabile. Predefinito prudente: solo copertina, EPUB, KDP, ISBN e scheda Amazon.",
                 "reminder-rules": "enabled, unconfirmedDays, expiryDays, unpaidDays, materialsDays, approvalDays. I promemoria si fermano al cambio di stato, non si ripetono e si possono sospendere sulla singola proposta o progetto.",
+                "recovery-rules": "enabled, triggers (checkout_started, payment_failed), steps [{key, afterHours, channel: email|task, purpose: assistance|contractual|cart|marketing, subject, body}], maxPerWeek, stopOnSellerActivity. Prima di ogni passo si rilegge lo stato: pagamento, risposta, presa in carico, chiusura o revoca fermano tutto. Lo scopo «marketing» richiede il consenso esplicito; «task» crea un'attività manuale per il venditore (telefonata, WhatsApp, SMS) e non invia nulla.",
               }[key]}
             </p>
             <label>

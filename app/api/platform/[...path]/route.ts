@@ -8,6 +8,9 @@ import { invoiceCollection, invoicePdf, invoiceRetry, invoiceStatus } from "@/li
 import { route, json, notFound, checkMutationOrigin } from "@/lib/platform/http";
 import { getActor } from "@/lib/platform/access";
 import { quotePdf } from "@/lib/platform/quote-pdf";
+import { contractDetail, contractCollection, contractPdf, contractWithdraw, contractWithdrawalHandle } from "@/lib/platform/contracts";
+import { campaignCollection, campaignDetail, campaignSpendImport, marketingContacts, marketingDashboard, automationDrafts } from "@/lib/platform/marketing";
+import { integrationCollection } from "@/lib/platform/integrations";
 import {
   projectCollection,
   projectDetail,
@@ -31,6 +34,8 @@ import {
   quoteSend,
   quoteClaim,
   crmExport,
+  leadImport,
+  leadActivity,
 } from "@/lib/platform/crm";
 import {
   teamCollection,
@@ -51,6 +56,8 @@ import {
   commissionPaid,
   reconcile,
   refundPrepare,
+  refundAuthorize,
+  quotePlan,
 } from "@/lib/platform/payments";
 import {
   notificationCollection,
@@ -92,7 +99,7 @@ const handler = route(async (request) => {
   if (area === "me" && id === "billing" && !action) return billingProfile(request, actor);
   if (
     id &&
-    !["export", "reconcile", "run", "status"].includes(id) &&
+    !["export", "reconcile", "run", "status", "import", "contacts", "activate"].includes(id) &&
     !z.string().uuid().safeParse(id).success
   )
     throw notFound();
@@ -114,8 +121,10 @@ const handler = route(async (request) => {
     case "leads":
       if (!id) return leadCollection(request, actor);
       if (id === "export" && request.method === "GET") return crmExport(actor);
+      if (id === "import" && !action) return leadImport(request, actor);
       if (!action) return leadDetail(request, actor, id);
       if (action === "notes") return leadNote(request, actor, id);
+      if (action === "activities") return leadActivity(request, actor, id);
       if (action === "quotes") return createQuoteForLead(request, actor, id);
       break;
     case "quotes":
@@ -130,6 +139,14 @@ const handler = route(async (request) => {
       if (action === "review") return quoteReview(request, actor, id);
       if (action === "offer") return quoteOffer(request, actor, id);
       if (action === "reminders") return quoteReminders(request, actor, id);
+      if (action === "plan") return quotePlan(request, actor, id);
+      break;
+    case "contracts":
+      if (!id) return contractCollection(request, actor);
+      if (!action) return contractDetail(request, actor, id);
+      if (action === "pdf" && request.method === "GET") return contractPdf(actor, id);
+      if (action === "withdraw") return contractWithdraw(request, actor, id);
+      if (action === "withdrawal") return contractWithdrawalHandle(request, actor, id);
       break;
     case "quote-claim":
       if (!id) return quoteClaim(request, actor);
@@ -181,8 +198,25 @@ const handler = route(async (request) => {
       if (id === "export" && request.method === "GET") return financeExport(actor);
       if (id === "reconcile") return reconcile(request, actor);
       break;
+    case "marketing":
+      if (!id) return marketingDashboard(request, actor);
+      if (id === "contacts") return marketingContacts(request, actor, action && z.string().uuid().safeParse(action).success ? action : undefined);
+      break;
+    case "campaigns":
+      if (!id) return campaignCollection(request, actor);
+      if (!action) return campaignDetail(request, actor, id);
+      if (action === "spend") return campaignSpendImport(request, actor, id);
+      break;
+    case "automations":
+      if (!id) return automationDrafts(request, actor);
+      if (id === "activate" && !action) return automationDrafts(request, actor, "activate");
+      break;
+    case "integrations":
+      if (!id) return integrationCollection(request, actor);
+      break;
     case "refunds":
       if (!id) return refundPrepare(request, actor);
+      if (action === "authorize") return refundAuthorize(request, actor, id);
       break;
     case "operations":
       if (!id) return operationsCollection(request, actor);

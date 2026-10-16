@@ -1,6 +1,8 @@
 import { randomBytes, createHash } from "node:crypto";
 import { eq, and, sql } from "drizzle-orm";
 import { z } from "zod";
+import { sanitizeAttribution, scoreLead } from "@/lib/attribution";
+import { syncBrevoContact } from "./brevo";
 import { getDb } from "@/db";
 import { leads, quotes, agencyLeads } from "@/db/schema";
 import {
@@ -17,7 +19,7 @@ import { user } from "@/db/auth-schema";
 import { preventivoSchema, contattoSchema, agenziaSchema, waitlistSchema } from "@/lib/validation";
 import { computeQuote } from "@/lib/pricing";
 import { impaginaEmail, esc, destinatarioInterno } from "@/lib/email";
-import { json, readBody, checkMutationOrigin, hashToken, unavailable, PlatformError } from "./http";
+import { json, readBody, checkMutationOrigin, hashToken, unavailable, PlatformError, afterResponse } from "./http";
 import { limitRequest, requestIdentity } from "./rate-limit";
 import {
   mailConfigured,
@@ -98,6 +100,7 @@ export async function publicQuote(request: Request) {
       return previous.result;
     }
     const { ricontatto, ...contatto } = body.contatto;
+    const attribution = sanitizeAttribution(body.attribution);
     const [lead] = await tx
       .insert(leads)
       .values({
@@ -106,6 +109,11 @@ export async function publicQuote(request: Request) {
         email: body.contatto.email.toLowerCase(),
         fonte: "preventivo",
         stage: "new",
+        attribution,
+        sourceDetail: attribution?.utmCampaign ?? attribution?.utmSource ?? null,
+        marketingConsentAt: contatto.consensoMarketing ? new Date() : null,
+        contactPreferences: { email: true, phone: ricontatto && Boolean(contatto.telefono), whatsapp: false, sms: false },
+        leadScore: scoreLead({ hasPhone: Boolean(contatto.telefono), wordCount: body.input.wordCount, projectType: body.input.projectType, urgency: body.input.urgency, requestedServices: body.input.requestedServices.length, noteLength: contatto.note?.length }),
       })
       .returning();
     const seller = await assignInboundLead(tx, lead!.id);
@@ -184,6 +192,7 @@ export async function publicQuote(request: Request) {
       });
     return saved;
   });
+  if (body.contatto.consensoMarketing) afterResponse(() => getDb().select({ id: leads.id }).from(leads).where(eq(leads.email, body.contatto.email.toLowerCase())).then((rows) => Promise.all(rows.map((r) => syncBrevoContact(r.id)))).catch(() => undefined));
   return json(response, 201);
 }
 export async function publicContact(request: Request, agency = false) {
@@ -230,6 +239,9 @@ export async function publicContact(request: Request, agency = false) {
         fonte: agency ? "agenzie" : "contatto",
         consensoPrivacy: true,
         consensoMarketing: contact.success ? contact.data.consensoMarketing : false,
+        marketingConsentAt: contact.success && contact.data.consensoMarketing ? new Date() : null,
+        attribution: contact.success ? sanitizeAttribution(contact.data.attribution) : null,
+        sourceDetail: contact.success ? sanitizeAttribution(contact.data.attribution)?.utmCampaign ?? null : null,
         note: message,
       })
       .returning();

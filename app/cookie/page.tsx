@@ -3,6 +3,7 @@ import { DocumentoLegale, Dato } from "@/components/sezioni/documento-legale";
 import { BRAND } from "@/config/brand";
 import { TITOLARE, AGGIORNAMENTO_DOCUMENTI, CONSERVAZIONE } from "@/config/legal";
 import { publicEnv } from "@/lib/env";
+import { ConsentControls } from "@/components/marketing/analytics";
 import { metadatiPagina } from "@/lib/seo";
 
 export const metadata: Metadata = metadatiPagina({
@@ -13,6 +14,10 @@ export const metadata: Metadata = metadatiPagina({
 
 export default function CookiePage() {
   const analytics = Boolean(publicEnv.NEXT_PUBLIC_ANALYTICS_DOMAIN);
+  // Google Analytics si attiva solo con l'ID di misurazione e con un consenso
+  // esplicito; il testo di questa sezione va aggiornato prima dell'attivazione
+  // (bozza in docs/INTEGRAZIONI.md). Qui compare solo il controllo di revoca.
+  const ga4 = Boolean(publicEnv.NEXT_PUBLIC_GA4_MEASUREMENT_ID);
 
   return (
     <DocumentoLegale
@@ -74,7 +79,9 @@ export default function CookiePage() {
         },
         {
           titolo: "Statistiche di traffico",
-          contenuto: analytics ? (
+          contenuto: ga4 ? (
+            <ConsentControls />
+          ) : analytics ? (
             <p>
               Raccogliamo statistiche aggregate sul traffico con una soluzione che{" "}
               <strong>non utilizza cookie</strong> e non impiega identificatori persistenti: i dati

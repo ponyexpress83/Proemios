@@ -2,6 +2,7 @@ import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import { createHash } from "node:crypto";
 import { getDb } from "@/db";
+import { quotes } from "@/db/schema";
 import { user } from "@/db/auth-schema";
 import {
   projects,
@@ -98,6 +99,7 @@ async function notifyProject(
 }
 export async function projectCollection(request: Request, actor: Actor) {
   if (request.method === "GET") {
+    demandAvailable(actor, "project.read");
     const rows = await getDb()
       .select()
       .from(projects)
@@ -106,6 +108,8 @@ export async function projectCollection(request: Request, actor: Actor) {
       .limit(100);
     // Per ogni progetto: chi lo segue, cosa aspetta l'autore e cosa aspetta il team.
     const ids = rows.map((p) => p.id);
+    const referentIds = [...new Set(rows.map((p) => p.referentId).filter((v): v is string => Boolean(v)))];
+    const referents = referentIds.length ? await getDb().select({ id: user.id, name: user.name }).from(user).where(inArray(user.id, referentIds)) : [];
     const [members, files, decided] = ids.length
       ? await Promise.all([
           getDb().select({ projectId: projectMembers.projectId, id: user.id, name: user.name }).from(projectMembers).innerJoin(user, eq(user.id, projectMembers.userId)).where(sql`${projectMembers.projectId} in ${ids}`),
@@ -130,6 +134,7 @@ export async function projectCollection(request: Request, actor: Actor) {
         return {
           ...p,
           members: members.filter((m) => m.projectId === p.id).map((m) => ({ id: m.id, name: m.name })),
+          referent: referents.find((r) => r.id === p.referentId) ?? members.find((m) => m.projectId === p.id) ?? null,
           materialsCount: own.filter((f) => f.kind === "manuscript").length,
           materialsPending: own.filter((f) => f.kind === "manuscript" && f.status === "quarantine").length,
           deliveriesAwaiting: awaiting.map((f) => ({ id: f.id, name: f.name, version: f.version })),
@@ -207,8 +212,10 @@ export async function projectDetail(request: Request, actor: Actor, id: string) 
         .innerJoin(user, eq(user.id, projectMembers.userId))
         .where(eq(projectMembers.projectId, id)),
     ]);
+    const [referent] = access.project.referentId ? await getDb().select({ id: user.id, name: user.name }).from(user).where(eq(user.id, access.project.referentId)) : [];
     return json({
       project: access.project,
+      referent: referent ?? members[0] ?? null,
       files,
       approvals: projectApprovals,
       tasks: projectTasks,
@@ -226,6 +233,18 @@ export async function projectDetail(request: Request, actor: Actor, id: string) 
         "INVALID_TRANSITION",
         "Questo passaggio non è disponibile nello stato attuale.",
       );
+    // La lavorazione parte solo con l'incasso previsto per il servizio (acconto
+    // o saldo); i materiali e le consegne di revisione non sono mai bloccati.
+    if (body.stage === "editing" && access.project.quoteId && !access.project.startedAt)
+      throw new PlatformError(409, "PAYMENT_REQUIRED", access.project.startCondition === "balance" ? "Per questo servizio la lavorazione parte dopo il saldo confermato." : "La lavorazione parte dopo l'acconto confermato dal servizio di pagamento.");
+    if (body.stage === "delivered" && access.project.quoteId) {
+      const { resolvePurchaseRule } = await import("./crm");
+      const rule = await resolvePurchaseRule();
+      if (rule.balanceBeforeDelivery) {
+        const [quoteRow] = await getDb().select({ stato: quotes.stato }).from(quotes).where(eq(quotes.id, access.project.quoteId));
+        if (quoteRow?.stato !== "won") throw new PlatformError(409, "BALANCE_REQUIRED", "La consegna finale avviene dopo il saldo confermato. Il cliente trova il pagamento nella sua area.");
+      }
+    }
     if (body.stage === "delivered") {
       const files = await getDb()
         .select({ id: projectFiles.id })
