@@ -12,13 +12,13 @@ import { hasPermission, ROLE_NAMES, type Grant, type Role } from "@/lib/platform
 import { PIPELINE_LABELS } from "@/lib/platform/pipeline";
 
 type Profile = { id: string; name: string; roles: Role[]; grants: Grant[]; staff: boolean };
-async function api<T>(path: string, method = "GET", body?: unknown): Promise<T> {
+export async function api<T>(path: string, method = "GET", body?: unknown): Promise<T> {
   const response = await fetch(`/api/platform/${path}`, { method, credentials: "same-origin", cache: "no-store", headers: body === undefined ? undefined : { "Content-Type": "application/json" }, body: body === undefined ? undefined : JSON.stringify(body) });
   const result = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error([result.errore ?? "Operazione non riuscita.", ...Object.values(result.fields ?? {})].filter(Boolean).join(" "));
   return result as T;
 }
-function useLoad<T>(path: string | null) {
+export function useLoad<T>(path: string | null) {
   const [data, setData] = useState<T | null>(null), [error, setError] = useState(""), [tick, setTick] = useState(0);
   useEffect(() => {
     if (!path) return;
@@ -29,7 +29,7 @@ function useLoad<T>(path: string | null) {
   }, [path, tick]);
   return { data, error, reload: useCallback(() => setTick((t) => t + 1), []) };
 }
-function useRun(after?: () => void) {
+export function useRun(after?: () => void) {
   const [busy, setBusy] = useState(false), [message, setMessage] = useState(""), [error, setError] = useState("");
   const run = async (work: () => Promise<unknown>, ok = "Fatto.") => {
     setBusy(true); setError(""); setMessage("");
@@ -50,10 +50,10 @@ const PRIORITY: Record<string, string> = { low: "bassa", normal: "normale", high
 const TYPE: Record<string, string> = { lead: "Contatto", deal: "Trattativa", task: "Compito", project: "Progetto", approval: "Eccezione", question: "Domanda", support: "Assistenza" };
 const TASK_STATUS: Record<string, string> = { todo: "Da fare", in_progress: "In corso", blocked: "Bloccato", done: "Fatto" };
 const MISSING: Record<string, string> = { materials: "Materiali del cliente", billing_profile: "Dati di fatturazione", client_phone: "Telefono del cliente", contractual_due_date: "Data contrattuale" };
-function Tag({ children, tone }: { children: ReactNode; tone?: "warn" | "ok" }) {
+export function Tag({ children, tone }: { children: ReactNode; tone?: "warn" | "ok" }) {
   return <span className={`crm-tag${tone ? ` crm-tag-${tone}` : ""}`}>{children}</span>;
 }
-function Card({ title, children, action }: { title: string; children: ReactNode; action?: ReactNode }) {
+export function Card({ title, children, action }: { title: string; children: ReactNode; action?: ReactNode }) {
   return <section className="platform-card"><div className="crm-card-head"><h2>{title}</h2>{action}</div>{children}</section>;
 }
 const go = (href: string) => href as Route;
@@ -363,9 +363,12 @@ export function ApprovalsView() {
 }
 
 // ── Persone, profili e carichi ──────────────────────────────────────────────
-type Person = { id: string; name: string; email?: string; roles: Array<{ role: Role; active: boolean }>; active: boolean; profile: { team: string | null; skills: string[]; languages: string[]; capacity: number | null; participates: boolean; maxDiscountBps: number | null; absences: Array<{ from: string; to: string; reason?: string | null }>; external: boolean } | null; load: { openDeals: number; openTasks: number }; now: { inHours: boolean; absent: boolean } };
+type Person = { id: string; name: string; email?: string; roles: Array<{ role: Role; active: boolean }>; active: boolean; profile: { team: string | null; skills: string[]; languages: string[]; capacity: number | null; participates: boolean; maxDiscountBps: number | null; absences: Array<{ from: string; to: string; reason?: string | null }>; external: boolean } | null; load: { openDeals: number; openTasks: number }; now: { inHours: boolean; absent: boolean }; gaps: string[]; assignment: { eligible: boolean; why: string; load?: number; capacity?: number } };
+type Invitation = { id: string; email: string; role: Role; template: string | null; status: "pending" | "expired" | "accepted" | "revoked"; expiresAt: string; createdAt: string; mail: { status: string; error: string | null } | null };
+const INVITE: Record<Invitation["status"], [string, "ok" | "warn" | undefined]> = { pending: ["In attesa", undefined], expired: ["Scaduto", "warn"], accepted: ["Accettato", "ok"], revoked: ["Revocato", undefined] };
+const MAIL: Record<string, string> = { pending: "email in coda", retry: "invio da ritentare", accepted: "email consegnata al servizio", failed: "invio non riuscito", sent: "email inviata" };
 export function PeopleView({ user }: { user: Profile }) {
-  const people = useLoad<{ people: Person[]; templates: Array<{ key: string; label: string }> }>("crm/team");
+  const people = useLoad<{ people: Person[]; templates: Array<{ key: string; label: string }>; invitations: Invitation[] }>("crm/team");
   const { run, busy, feedback } = useRun(people.reload);
   const [edit, setEdit] = useState<string | null>(null);
   const manage = hasPermission(user.grants, "role.manage");
@@ -386,13 +389,25 @@ export function PeopleView({ user }: { user: Profile }) {
           </form>
         </Card>
       ) : null}
+      {people.data?.invitations.length ? (
+        <Card title="Inviti">
+          <p>Un invito vale 48 ore e si accetta solo con l&apos;email verificata e la verifica in due passaggi. Per le prove usa solo indirizzi di test.</p>
+          {people.data.invitations.map((i) => (
+            <div className="platform-row" key={i.id}>
+              <span><strong>{i.email}</strong><small>{i.template ?? ROLE_NAMES[i.role]} · inviato {when(i.createdAt)} · scade {when(i.expiresAt)}{i.mail ? ` · ${MAIL[i.mail.status] ?? i.mail.status}` : ""}</small>{i.mail?.error ? <small className="platform-error">Errore di invio: {i.mail.error}</small> : null}</span>
+              <Tag tone={INVITE[i.status][1]}>{INVITE[i.status][0]}</Tag>
+              {i.status === "pending" ? <button className="platform-text-button" disabled={busy} onClick={() => { if (confirm(`Revocare l'invito a ${i.email}?`)) run(() => api(`invitations/${i.id}`, "DELETE"), "Invito revocato."); }}>Revoca</button> : null}
+            </div>
+          ))}
+        </Card>
+      ) : null}
       <Card title="Team, disponibilità e carico">
         <p>La disponibilità viene da orari e assenze dichiarati, non dalla presenza online.</p>
         {people.data?.people.map((p) => (
           <div key={p.id} className="crm-person">
             <div className="platform-row">
               <span><strong>{p.name}</strong><small>{p.roles.map((r) => `${ROLE_NAMES[r.role]}${r.active ? "" : " (disattivato)"}`).join(" · ")}{p.profile?.team ? ` · ${p.profile.team}` : ""}{p.profile?.external ? " · esterno" : ""}</small><small>Competenze: {p.profile?.skills.join(", ") || "—"} · lingue: {p.profile?.languages.join(", ") || "it"} · capacità {p.profile?.capacity ?? "predefinita"}</small></span>
-              <span><small>{p.load.openDeals} trattative · {p.load.openTasks} compiti</small> {!p.active ? <Tag>Disattivato</Tag> : p.now.absent ? <Tag tone="warn">Assente</Tag> : p.now.inHours ? <Tag tone="ok">In orario</Tag> : <Tag>Fuori orario</Tag>} {p.profile?.participates === false ? <Tag>Non riceve contatti</Tag> : null}</span>
+              <span><small>{p.load.openDeals} trattative · {p.load.openTasks} compiti</small> {!p.active ? <Tag>Disattivato</Tag> : p.now.absent ? <Tag tone="warn">Assente</Tag> : p.now.inHours ? <Tag tone="ok">In orario</Tag> : <Tag>Fuori orario</Tag>} {p.profile?.participates === false ? <Tag>Non riceve contatti</Tag> : null} {p.gaps.length ? <Tag tone="warn">Profilo incompleto: {p.gaps.join(", ")}</Tag> : null}<small>Assegnazione: {p.assignment.eligible ? "idoneo" : "escluso"} · {p.assignment.why}{p.assignment.capacity != null ? ` · carico ${p.assignment.load}/${p.assignment.capacity}` : ""}</small></span>
               {manage || p.id === user.id ? <button className="platform-text-button" onClick={() => setEdit(edit === p.id ? null : p.id)}>{edit === p.id ? "Chiudi" : "Modifica"}</button> : null}
             </div>
             {edit === p.id ? (
@@ -425,52 +440,8 @@ export function PeopleView({ user }: { user: Profile }) {
   );
 }
 
-// ── Regole, integrazioni e report ───────────────────────────────────────────
-type Settings = { settings: Record<string, Record<string, unknown>>; history: Array<{ key: string; version: string; createdAt: string }> };
-export function CrmRulesView({ user }: { user: Profile }) {
-  const settings = useLoad<Settings>("crm/settings");
-  const { run, busy, feedback } = useRun(settings.reload);
-  const a = settings.data?.settings["assignment-rules"] as { version: string; mode: string; defaultCapacity: number; sla: { responseMinutes: Record<string, number>; escalateAfterMinutes: number }; pool: { maxReservations: number; reservationMinutes: number }; hours: Record<string, unknown> } | undefined;
-  const at = settings.data?.settings["attribution-rules"] as { version: string; relationshipWindowDays: number; laterPurchase: string; affiliateAndSeller: string } | undefined;
-  const can = hasPermission(user.grants, "settings.manage");
-  const next = (v: string) => { const m = /(.*-v)(\d+)$/.exec(v); return m ? `${m[1]}${Number(m[2]) + 1}` : `${v}-v2`; };
-  return (
-    <>
-      {feedback}
-      {a ? (
-        <Card title={`Assegnazione · ${a.version}`}>
-          <form className="platform-form" onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); run(() => api("crm/settings", "PUT", { key: "assignment-rules", value: { ...a, version: String(f.get("version")), mode: String(f.get("mode")), defaultCapacity: Number(f.get("capacity")), sla: { responseMinutes: { low: Number(f.get("low")), normal: Number(f.get("normal")), high: Number(f.get("high")), urgent: Number(f.get("urgent")) }, escalateAfterMinutes: Number(f.get("escalate")) }, pool: { maxReservations: Number(f.get("maxRes")), reservationMinutes: Number(f.get("resMin")) } } }), "Regola approvata e versionata."); }}>
-            <label>Modalità<select name="mode" defaultValue={a.mode} disabled={!can}><option value="automatic">Automatica (predefinita)</option><option value="manual">Manuale</option><option value="pool">Coda a scelta libera</option></select></label>
-            <label>Capacità predefinita (trattative aperte)<input name="capacity" type="number" min={1} defaultValue={a.defaultCapacity} disabled={!can} /></label>
-            <fieldset><legend>Prima risposta entro (minuti di servizio)</legend>{(["urgent", "high", "normal", "low"] as const).map((k) => <label key={k}>{PRIORITY[k]}<input name={k} type="number" min={5} defaultValue={a.sla.responseMinutes[k]} disabled={!can} /></label>)}</fieldset>
-            <label>Escalation dopo la scadenza (minuti)<input name="escalate" type="number" min={0} defaultValue={a.sla.escalateAfterMinutes} disabled={!can} /></label>
-            <label>Prenotazioni per persona nella coda libera<input name="maxRes" type="number" min={1} defaultValue={a.pool.maxReservations} disabled={!can} /></label>
-            <label>Durata della prenotazione (minuti)<input name="resMin" type="number" min={5} defaultValue={a.pool.reservationMinutes} disabled={!can} /></label>
-            <label>Nuova versione<input name="version" required defaultValue={next(a.version)} disabled={!can} /></label>
-            {can ? <button className="platform-button" disabled={busy}>Approva la nuova versione</button> : <p>Solo chi gestisce le regole può cambiarle.</p>}
-          </form>
-          <p>Ordine fisso delle regole: responsabile della trattativa aperta → competenze e lingua → orari, assenze e capacità → carico. Nessuno idoneo: coda monitorata con avviso. Una trattativa in corso non viene mai spostata da sola.</p>
-        </Card>
-      ) : null}
-      {at ? (
-        <Card title={`Attribuzione · ${at.version}`}>
-          <form className="platform-form" onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); run(() => api("crm/settings", "PUT", { key: "attribution-rules", value: { ...at, version: String(f.get("version")), relationshipWindowDays: Number(f.get("days")), laterPurchase: String(f.get("later")), affiliateAndSeller: String(f.get("stack")) } }), "Regola approvata e versionata."); }}>
-            <label>Finestra di relazione (giorni)<input name="days" type="number" min={0} max={730} defaultValue={at.relationshipWindowDays} disabled={!can} /></label>
-            <label>Acquisto successivo senza link<select name="later" defaultValue={at.laterPurchase} disabled={!can}><option value="credit_recent_owner">Accredita il venditore che lo segue (identità verificata)</option><option value="autonomous">Acquisto autonomo</option></select></label>
-            <label>Venditore e affiliato sulla stessa vendita<select name="stack" defaultValue={at.affiliateAndSeller} disabled={!can}><option value="both">Entrambi</option><option value="seller_only">Solo il venditore</option><option value="affiliate_only">Solo l’affiliato</option></select></label>
-            <label>Nuova versione<input name="version" required defaultValue={next(at.version)} disabled={!can} /></label>
-            {can ? <button className="platform-button" disabled={busy}>Approva la nuova versione</button> : null}
-          </form>
-          <p>Trattative aperte con responsabili diversi: sempre segnalate, mai decise in silenzio. Le correzioni richiedono autorizzazione e motivo e non cancellano la versione precedente.</p>
-        </Card>
-      ) : null}
-      <Card title="Storia delle regole">{settings.data?.history.map((h, i) => <p key={i}><small>{when(h.createdAt)}</small> {h.key} · {h.version}</p>)}</Card>
-      {hasPermission(user.grants, "integrations.manage") ? <IntegrationKeys /> : null}
-      {hasPermission(user.grants, "report.read") ? <ReportsCard /> : null}
-    </>
-  );
-}
-function IntegrationKeys() {
+// ── Integrazioni e report ───────────────────────────────────────────────────
+export function IntegrationKeys() {
   const keys = useLoad<{ keys: Array<{ id: string; name: string; kind: string; prefix: string; scopes: string[]; allowedOrigins: string[]; lastUsedAt: string | null; revokedAt: string | null }> }>("crm/api-keys");
   const hooks = useLoad<{ endpoints: Array<{ id: string; url: string; events: string[]; active: boolean }>; events: string[] }>("crm/webhooks");
   const [secret, setSecret] = useState("");
@@ -496,7 +467,7 @@ function IntegrationKeys() {
     </Card>
   );
 }
-function ReportsCard() {
+export function ReportsCard() {
   const report = useLoad<{ responseTimes: { requests: number; responded: number; medianMinutes: number | null; withinSlaShare: number | null; escalated: number; unassigned: number }; conversion: { deals: number; won: number; rate: number | null; bySource: Record<string, { leads: number; won: number; lost: number; open: number }> }; load: { sales: Array<{ name: string | null; openDeals: number; capacity: number | null }>; operations: Array<{ name: string | null; openTasks: number; capacity: number | null }> }; delays: Record<string, number>; lossReasons: Array<{ label: string; count: number }> }>("crm/reports");
   const r = report.data;
   if (!r) return null;

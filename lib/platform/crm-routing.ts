@@ -96,7 +96,11 @@ export async function setOwner(tx: Tx, input: { leadId: string; dealId: string |
 export type RouteResult = { assignee: string | null; status: "assigned" | "queued" | "pool" | "manual"; reason: string; dealId: string; contactId: string; slaDueAt: Date };
 
 /** Collega la richiesta a contatto e trattativa e la instrada secondo le regole. */
-export async function routeLead(tx: Tx, leadId: string, options: { now?: Date; notifyAssignee?: boolean; actorId?: string | null } = {}): Promise<RouteResult> {
+/**
+ * preferredAssignee: chi ha portato il contatto (es. il venditore del link). Vale
+ * solo per un cliente senza trattativa aperta e solo se la persona è attiva.
+ */
+export async function routeLead(tx: Tx, leadId: string, options: { now?: Date; notifyAssignee?: boolean; actorId?: string | null; preferredAssignee?: string | null } = {}): Promise<RouteResult> {
   await tx.execute(sql`select pg_advisory_xact_lock(617821321)`);
   const now = options.now ?? new Date();
   const rules = await assignmentRules(tx);
@@ -108,6 +112,9 @@ export async function routeLead(tx: Tx, leadId: string, options: { now?: Date; n
   let result: RouteResult;
   if (reused && deal.ownerId && owner?.active) {
     result = { assignee: deal.ownerId, status: "assigned", reason: "open_deal_owner", dealId: deal.id, contactId: contact.id, slaDueAt: addBusinessMinutes(now, respond, owner.hours ?? rules.hours) };
+  } else if (!(reused && deal.ownerId) && options.preferredAssignee && candidates.some((c) => c.userId === options.preferredAssignee && c.active)) {
+    const brought = candidates.find((c) => c.userId === options.preferredAssignee)!;
+    result = { assignee: brought.userId, status: "assigned", reason: "brought_by_seller", dealId: deal.id, contactId: contact.id, slaDueAt: addBusinessMinutes(now, respond, brought.hours ?? rules.hours) };
   } else if (mode === "pool" || mode === "manual") {
     result = { assignee: null, status: mode, reason: mode === "pool" ? "free_pick_queue" : "manual_mode", dealId: deal.id, contactId: contact.id, slaDueAt: addBusinessMinutes(now, respond, rules.hours) };
   } else {

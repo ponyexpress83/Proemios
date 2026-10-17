@@ -52,9 +52,13 @@ export function decideAttribution(input: AttributionInput, rules: AttributionRul
     closing = "assisted";
     reasons.push({ code: "custom_quote", detail: "Proposta personalizzata preparata dal team sulla trattativa: accredito al responsabile della trattativa all'accettazione." });
   } else if (input.path === "package_link" && input.link) {
-    credited = input.link.dealId && input.link.dealId === input.dealId ? input.dealOwnerId ?? input.link.createdBy : input.link.createdBy;
+    const sameDeal = Boolean(input.link.dealId && input.link.dealId === input.dealId);
+    credited = sameDeal ? input.dealOwnerId ?? input.link.createdBy : input.link.createdBy;
     closing = "assisted";
     reasons.push({ code: "package_link", detail: "Acquisto da link di pacchetto standard generato dalla trattativa." });
+    // Un link non sposta un cliente già seguito da un collega: si segnala e decide chi è autorizzato.
+    if (!sameDeal && input.dealOwnerId && input.dealOwnerId !== input.link.createdBy)
+      conflicts.push({ code: "link_other_owner", detail: "Chi ha acquistato dal link è già seguito da un altro venditore: il link da solo non attribuisce la vendita.", candidates: [input.link.createdBy, input.dealOwnerId] });
     if (!input.link.buyerEmailMatchesContact) reasons.push({ code: "email_differs", detail: "L'email verificata dell'acquirente è diversa da quella del contatto della trattativa: vale il link, non l'email." });
   } else {
     if (input.salesAssisted && input.dealOwnerId) {

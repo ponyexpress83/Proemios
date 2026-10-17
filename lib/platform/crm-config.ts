@@ -33,7 +33,7 @@ const SCHEMAS = {
   "loss-reasons": lossReasonsSchema,
   pipelines: z.object({ version: z.string().min(1).max(60), pipelines: z.array(pipelineSchema).max(20), approvedAt: z.string().optional(), approvedBy: z.string().optional() }).strict(),
   brand: brandSchema.extend({ approvedAt: z.string().optional(), approvedBy: z.string().optional() }),
-  catalog: z.object({ version: z.string().min(1).max(60), items: z.array(z.object({ key: z.string().regex(/^[a-z0-9_-]{2,40}$/), name: z.string().min(2).max(120), input: pricingInputSchema, active: z.boolean().default(true) }).strict()).max(100), approvedAt: z.string().optional(), approvedBy: z.string().optional() }).strict(),
+  catalog: z.object({ version: z.string().min(1).max(60), items: z.array(z.object({ key: z.string().regex(/^[A-Za-z0-9_-]{2,40}$/), name: z.string().min(2).max(120), input: pricingInputSchema, active: z.boolean().default(true) }).strict()).max(100), approvedAt: z.string().optional(), approvedBy: z.string().optional() }).strict(),
 } as const;
 type Key = keyof typeof SCHEMAS;
 const DEFAULTS: Record<Key, unknown> = {
@@ -217,7 +217,10 @@ export function renderTemplate(text: string, values: Partial<Record<(typeof VARI
 export async function templateCollection(request: Request, actor: Actor, id?: string, action?: string) {
   if (request.method === "GET" && !id) {
     demandAvailable(actor, "crm.read");
-    return json({ templates: await getDb().select().from(crmTemplates).where(eq(crmTemplates.active, true)).orderBy(crmTemplates.kind, crmTemplates.name), variables: VARIABLES });
+    // Con ?all=1 chi gestisce le impostazioni vede anche i modelli archiviati.
+    const all = new URL(request.url).searchParams.get("all") === "1" && can(actor.grants, "settings.manage");
+    const rows = await getDb().select().from(crmTemplates).where(all ? undefined : eq(crmTemplates.active, true)).orderBy(crmTemplates.kind, crmTemplates.name);
+    return json({ templates: rows, variables: VARIABLES });
   }
   if (request.method === "POST" && id && action === "render") {
     demandAvailable(actor, "crm.read");

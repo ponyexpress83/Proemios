@@ -30,7 +30,7 @@ import { PAID_STATUSES } from "./pipeline";
 /** Catalogo dei pacchetti standard: riferimenti al listino, non copie del prodotto. */
 const catalogSchema = z.object({
   version: z.string().min(1).max(60),
-  items: z.array(z.object({ key: z.string().regex(/^[a-z0-9_-]{2,40}$/), name: z.string().min(2).max(120), input: pricingInputSchema, active: z.boolean().default(true) }).strict()).max(100),
+  items: z.array(z.object({ key: z.string().regex(/^[A-Za-z0-9_-]{2,40}$/), name: z.string().min(2).max(120), input: pricingInputSchema, active: z.boolean().default(true) }).strict()).max(100),
 }).strict();
 export type Catalog = z.infer<typeof catalogSchema>;
 const standard = (service: "cover" | "epub" | "kdp" | "isbn" | "amazonListing", name: string) => ({ key: service, name, active: true, input: { projectType: "romanzo" as const, textState: "finito-revisionato" as const, wordCount: 60000, requestedServices: [service], singleService: service, urgency: "standard" as const } });
@@ -327,7 +327,7 @@ export async function linkPurchase(request: Request, actor: Actor) {
       await tx.insert(leadOwnership).values({ leadId: lead!.id, authorId: actor.id, assignedTo: deal!.ownerId }).onConflictDoNothing();
     } else {
       // Persona diversa: la richiesta segue le regole (il cliente già seguito resta al suo responsabile).
-      const routed = await routeLead(tx, lead!.id, { notifyAssignee: true });
+      const routed = await routeLead(tx, lead!.id, { notifyAssignee: true, preferredAssignee: link.createdBy });
       dealId = routed.dealId;
       await tx.update(leadOwnership).set({ authorId: actor.id }).where(eq(leadOwnership.leadId, lead!.id));
     }

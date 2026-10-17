@@ -86,6 +86,14 @@ describe("attribution decisions", () => {
     expect(d.beneficiaries.seller).toBeNull();
     expect(d.conflicts[0]!.candidates.sort()).toEqual(["s1", "s2"]);
   });
+  it("a package link does not take a client already followed by another seller", () => {
+    const link = { createdBy: "s1", dealId: "other-deal", buyerEmailMatchesContact: false };
+    const taken = decideAttribution({ ...base, path: "package_link", dealOwnerId: "s2", link }, defaultAttributionRules);
+    expect(taken).toMatchObject({ status: "conflict", creditedSellerId: null, beneficiaries: { seller: null } });
+    expect(taken.conflicts[0]).toMatchObject({ code: "link_other_owner", candidates: ["s1", "s2"] });
+    expect(decideAttribution({ ...base, path: "package_link", dealOwnerId: "s1", link }, defaultAttributionRules)).toMatchObject({ status: "final", creditedSellerId: "s1" });
+    expect(decideAttribution({ ...base, path: "package_link", dealId: "d1", dealOwnerId: "s1", link: { ...link, dealId: "d1", buyerEmailMatchesContact: true } }, defaultAttributionRules)).toMatchObject({ status: "final", creditedSellerId: "s1" });
+  });
   it("keeps seller and affiliate separate and avoids double commissions", () => {
     const both = decideAttribution({ ...base, path: "custom_quote", dealOwnerId: "s1", salesAssisted: true, affiliateId: "aff" }, defaultAttributionRules);
     expect(both.beneficiaries).toEqual({ seller: "s1", affiliate: "aff" });

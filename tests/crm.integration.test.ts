@@ -8,7 +8,7 @@
 import { beforeAll, afterAll, describe, it, expect, vi } from "vitest";
 import { PGlite } from "@electric-sql/pglite";
 import { drizzle } from "drizzle-orm/pglite";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { randomUUID, randomBytes, createHash } from "node:crypto";
 import { mkdtemp, readFile, readdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -98,6 +98,13 @@ async function upload(actor: string, projectId: string, name: string) {
 async function mailLink(eventPrefix: string) {
   const { compactDecrypt } = await import("jose");
   const item = (await db.select().from(platform.emailOutbox)).find((r) => r.eventKey.startsWith(eventPrefix))!;
+  const html = new TextDecoder().decode((await compactDecrypt(item.html.slice(4), createHash("sha256").update(process.env.BETTER_AUTH_SECRET!).digest())).plaintext);
+  return [...html.matchAll(/href="([^"]+)"/g)].map((m) => m[1]!.replaceAll("&amp;", "&")).find((v) => v.includes("token="))!;
+}
+
+async function linkFor(eventPrefix: string, recipient: string) {
+  const { compactDecrypt } = await import("jose");
+  const item = (await db.select().from(platform.emailOutbox)).filter((r) => r.eventKey.startsWith(eventPrefix) && r.recipient === recipient).at(-1)!;
   const html = new TextDecoder().decode((await compactDecrypt(item.html.slice(4), createHash("sha256").update(process.env.BETTER_AUTH_SECRET!).digest())).plaintext);
   return [...html.matchAll(/href="([^"]+)"/g)].map((m) => m[1]!.replaceAll("&amp;", "&")).find((v) => v.includes("token="))!;
 }
@@ -575,5 +582,259 @@ describe("configuration, integrations and boundaries", () => {
     expect(report.conversion.bySource.campaign.leads).toBeGreaterThan(0);
     expect(report.load.sales.length).toBeGreaterThan(0);
     expect((await call("sellerA", "crm/reports")).status).toBe(403);
+  });
+});
+
+describe("putting the CRM into use: invitations, configuration, simulator and scheduled work", () => {
+  const TEMPLATE_CHECKS: Array<[string, string, Array<[string, string, number]>]> = [
+    // modello, nome di prova, [percorso, metodo, stato atteso]
+    ["seller", "inviteseller", [["crm/deals", "GET", 200], ["crm/settings", "PUT", 403], ["crm/api-keys", "GET", 403], ["finance", "GET", 403], ["marketing", "GET", 403]]],
+    ["marketing", "invitemarketing", [["marketing", "GET", 200], ["crm/contacts", "GET", 403], ["crm/settings", "PUT", 403], ["crm/api-keys", "GET", 403], ["settings", "PUT", 403]]],
+    ["admin_marketing", "inviteadminmkt", [["marketing", "GET", 200], ["crm/deals", "GET", 200], ["crm/settings", "PUT", 403], ["crm/api-keys", "GET", 403], ["settings", "PUT", 403], ["crm/team/invite", "POST", 403], ["finance", "GET", 403]]],
+    ["admin_team", "inviteadminteam", [["crm/team", "GET", 200], ["crm/setup", "GET", 200], ["crm/settings", "PUT", 403], ["crm/api-keys", "GET", 403], ["settings", "PUT", 403], ["finance", "GET", 403]]],
+    ["operator", "inviteoperator", [["projects", "GET", 200], ["crm/deals", "GET", 403], ["crm/contacts", "GET", 403], ["crm/settings", "PUT", 403]]],
+    ["collaborator", "invitecollab", [["projects", "GET", 200], ["crm/deals", "GET", 403], ["crm/team", "GET", 403], ["crm/settings", "PUT", 403]]],
+    ["ops_lead", "inviteopslead", [["projects", "GET", 200], ["crm/settings", "PUT", 403], ["crm/api-keys", "GET", 403], ["finance", "GET", 403]]],
+  ];
+  it("takes every role template from invitation to verified, MFA-protected access with the expected permissions", async () => {
+    for (const [template, name, checks] of TEMPLATE_CHECKS) {
+      // Il limite di 20 inviti l'ora per persona vale in produzione; qui si azzera tra un modello e l'altro.
+      await db.delete(platform.requestLimits);
+      const email = `${name}@example.test`;
+      const invitation = await data(await call("owner", "crm/team/invite", "POST", { template, email, profile: template === "seller" ? { languages: ["it"] } : {} }), 201);
+      // Lo stesso invito non si duplica.
+      expect((await call("owner", "crm/team/invite", "POST", { template, email })).status).toBe(409);
+      const pending = (await data(await call("owner", "crm/team"))).invitations.find((i: { id: string }) => i.id === invitation.id);
+      expect(pending).toMatchObject({ status: "pending", email });
+      expect(pending.mail.status).toBeTruthy();
+      const token = new URL(await mailLink(`invitation:${invitation.id}`)).searchParams.get("token");
+      // Registrazione: senza email verificata non si entra.
+      await data(await authRequest("sign-up/email", { name, email, password, privacyAccepted: true }));
+      expect((await authRequest("sign-in/email", { email, password })).status).toBe(403);
+      const verifyUrl = await linkFor("email-verification:", email);
+      const verified = await auth.handler(new Request(verifyUrl, { headers: { origin } }));
+      expect(verified.status).toBeLessThan(400);
+      const login = await authRequest("sign-in/email", { email, password });
+      expect(login.status).toBe(200);
+      const userId = (await login.clone().json()).user.id as string;
+      actors[name] = { id: userId, email, cookie: cookies(login) };
+      // Un altro account verificato non può usare l'invito.
+      expect((await call("intruder", "invite-accept", "POST", { token })).status).toBe(403);
+      await data(await call(name, "invite-accept", "POST", { token }));
+      // L'accettazione chiude le sessioni: si rientra, e lo spazio del team chiede la verifica in due passaggi.
+      expect((await call(name, "me")).status).toBe(401);
+      const relogin = await authRequest("sign-in/email", { email, password });
+      actors[name]!.cookie = cookies(relogin);
+      expect((await call(name, "crm/settings")).status).toBe(428);
+      const enable = await data(await authRequest("two-factor/enable", { password, method: "totp" }, actors[name]!.cookie));
+      const totp = await authRequest("two-factor/verify-totp", { code: URI.parse(enable.totpURI).generate(), trustDevice: false }, actors[name]!.cookie);
+      await data(totp); actors[name]!.cookie = cookies(totp, actors[name]!.cookie);
+      for (const [path, method, expected] of checks) {
+        const body = method === "PUT" ? (path === "crm/settings" ? { key: "assignment-rules", value: rules() } : { key: "commission-rule", value: commissionRule }) : method === "POST" ? { template: "seller", email: `x-${name}@example.test` } : undefined;
+        expect((await call(name, path, method, body)).status, `${template} ${method} ${path}`).toBe(expected);
+      }
+      const accepted = (await data(await call("owner", "crm/team"))).invitations.find((i: { id: string }) => i.id === invitation.id);
+      expect(accepted.status).toBe("accepted");
+      // Un secondo invito per lo stesso ruolo già attivo è rifiutato.
+      expect((await call("owner", "crm/team/invite", "POST", { template, email })).status).toBe(409);
+    }
+    // Più persone con lo stesso ruolo: righe distinte, nessuna credenziale condivisa.
+    const sellers = (await db.select().from(platform.memberships)).filter((m) => m.role === "seller" && m.active);
+    expect(new Set(sellers.map((m) => m.userId)).size).toBe(sellers.length);
+    const collab = (await db.select().from(crm.teamProfiles).where(eq(crm.teamProfiles.userId, actors.invitecollab!.id)))[0]!;
+    expect(collab.external).toBe(true);
+    // Profilo incompleto e idoneità visibili nella directory.
+    const people = (await data(await call("owner", "crm/team"))).people;
+    const seller = people.find((p: { id: string }) => p.id === actors.inviteseller!.id);
+    expect(seller.gaps).toContain("capacità");
+    expect(seller.assignment).toHaveProperty("why");
+  }, 240000);
+  it("marks expired invitations and shows send errors without exposing more than a short message", async () => {
+    await db.delete(platform.requestLimits);
+    const invitation = await data(await call("owner", "crm/team/invite", "POST", { template: "seller", email: "expiring@example.test" }), 201);
+    await db.update(platform.staffInvitations).set({ expiresAt: new Date(Date.now() - 1000) }).where(eq(platform.staffInvitations.id, invitation.id));
+    await db.update(platform.emailOutbox).set({ status: "failed", lastError: "Destinatario rifiutato dal servizio di prova" }).where(sql`${platform.emailOutbox.eventKey} like ${`invitation:${invitation.id}%`}`);
+    const row = (await data(await call("owner", "crm/team"))).invitations.find((i: { id: string }) => i.id === invitation.id);
+    expect(row.status).toBe("expired");
+    expect(row.mail).toMatchObject({ status: "failed", error: "Destinatario rifiutato dal servizio di prova" });
+    // Scaduto: si può invitare di nuovo.
+    await data(await call("owner", "crm/team/invite", "POST", { template: "seller", email: "expiring@example.test" }), 201);
+  });
+  it("simulates assignment with the real engine, explains exclusions and writes nothing", async () => {
+    const count = async () => [(await db.select().from(schema.leads)).length, (await db.select().from(platform.notifications)).length, (await db.select().from(schema.leadActivities)).length, (await db.select().from(crm.crmAssignments)).length, (await db.select().from(platform.auditEvents)).length];
+    const before = await count();
+    const sim = await data(await call("owner", "crm/assignment/simulate", "POST", { source: "campaign", service: "cover", language: "en", priority: "high", at: "2026-10-19T08:00:00.000Z" }));
+    expect(sim.simulation.ruleVersion).toMatch(/assegnazione-test-/);
+    expect(sim.simulation.firstResponseDue).toBeTruthy();
+    expect(sim.simulation.considered.some((c: { excluded: string | null; why: string }) => c.excluded && c.why)).toBe(true);
+    expect(sim.writes).toMatch(/^nessuna/);
+    // Nessuno idoneo: lingua che nessuno parla.
+    const none = await data(await call("owner", "crm/assignment/simulate", "POST", { source: "form", language: "ja", priority: "normal" }));
+    expect(none.simulation.proposed).toBeNull();
+    expect(none.simulation.reason).toBe("no_eligible");
+    // Bozza: orari diversi e conseguenze, senza applicarla.
+    const draft = await data(await call("owner", "crm/assignment/simulate", "POST", { source: "form", language: "it", priority: "normal", at: "2026-10-18T20:00:00.000Z", draft: rules({ hours: { timezone: "Europe/Rome", days: [1, 2, 3, 4, 5], start: "09:00", end: "18:00", holidays: [] } }) }));
+    expect(draft.draft.reason === "next_shift" || draft.draft.proposed === null || draft.draft.availableAt !== draft.simulation.availableAt).toBe(true);
+    expect(draft.impact.openDeals.note).toContain("non vengono riassegnate");
+    // Cliente con trattativa aperta: resta al suo responsabile.
+    const open = await data(await call("owner", "crm/assignment/simulate", "POST", { source: "form", language: "it", priority: "normal", contactEmail: "walter@example.test" }));
+    expect(open.simulation.reason).toBe("open_deal_owner"); expect(open.simulation.proposed.id).toBe(actors.sellerA!.id);
+    expect(await count()).toEqual(before);
+    expect((await call("marketing", "crm/assignment/simulate", "POST", { source: "form", language: "it", priority: "normal" })).status).toBe(403);
+  });
+  it("previews settings changes, refuses empty saves and blocks removals that existing records depend on", async () => {
+    const settings = await data(await call("owner", "crm/settings"));
+    expect(settings.canEdit).toBe(true);
+    const brand = { name: "Proemios Test", supportEmail: "assistenza@example.test", version: "brand-test-v1" };
+    const preview = await data(await call("owner", "crm/settings", "PUT", { key: "brand", value: brand, preview: true }));
+    expect(preview.changes.some((c: { path: string }) => c.path === "name")).toBe(true);
+    expect(preview.effect).toBeTruthy();
+    expect((await db.select().from(crm.settingVersions).where(eq(crm.settingVersions.key, "brand")))).toHaveLength(0);
+    await data(await call("owner", "crm/settings", "PUT", { key: "brand", value: brand }));
+    expect((await call("owner", "crm/settings", "PUT", { key: "brand", value: { ...brand, version: "brand-test-v2" } })).status).toBe(409);
+    const history = await data(await call("owner", "crm/settings/history?key=brand"));
+    expect(history.history[0].version).toBe("brand-test-v1");
+    // Pipeline: la predefinita è riservata; una fase usata non si toglie; archiviata non accetta nuove trattative.
+    const agency = { key: "agenzie", name: "Agenzie", archived: false, stages: [{ key: "nuovo", label: "Nuovo", kind: "open", manual: true }, { key: "proposta", label: "Proposta", kind: "open", manual: true }, { key: "vinta", label: "Vinta", kind: "won", manual: true }, { key: "persa", label: "Persa", kind: "lost", manual: true }] };
+    expect((await call("owner", "crm/settings", "PUT", { key: "pipelines", value: { version: "pipe-test-v0", pipelines: [{ ...agency, key: "vendite" }] } })).status).toBe(422);
+    await data(await call("owner", "crm/settings", "PUT", { key: "pipelines", value: { version: "pipe-test-v1", pipelines: [agency] } }));
+    await data(await call("admin", "crm/deals", "POST", { contact: { name: "Agenzia Alfa", email: "alfa.agency@example.test" }, title: "Collana agenzia", pipelineKey: "agenzie", ownerId: actors.sellerA!.id, nextAction: "Call", nextActionAt: new Date(Date.now() + 86400_000).toISOString() }), 201);
+    expect((await call("owner", "crm/settings", "PUT", { key: "pipelines", value: { version: "pipe-test-v2", pipelines: [{ ...agency, stages: agency.stages.slice(1) }] } })).status).toBe(409);
+    expect((await call("owner", "crm/settings", "PUT", { key: "pipelines", value: { version: "pipe-test-v2", pipelines: [] } })).status).toBe(409);
+    await data(await call("owner", "crm/settings", "PUT", { key: "pipelines", value: { version: "pipe-test-v3", pipelines: [{ ...agency, archived: true }] } }));
+    expect((await call("admin", "crm/deals", "POST", { contact: { name: "Agenzia Beta", email: "beta.agency@example.test" }, title: "Altra", pipelineKey: "agenzie", ownerId: actors.sellerA!.id, nextAction: "Call", nextActionAt: new Date(Date.now() + 86400_000).toISOString() })).status).toBe(409);
+    // Catalogo: un pacchetto usato da un link si archivia; un lavoro da valutare non diventa pacchetto standard.
+    const catalog = (await data(await call("owner", "crm/settings"))).settings.catalog as { version: string; items: Array<{ key: string; active: boolean; input: Record<string, unknown> }> };
+    const removed = await call("owner", "crm/settings", "PUT", { key: "catalog", value: { ...catalog, version: "cat-test-v1", items: catalog.items.filter((i) => i.key !== "cover") } });
+    expect(removed.status, await removed.clone().text()).toBe(409);
+    const notStandard = await call("owner", "crm/settings", "PUT", { key: "catalog", value: { ...catalog, version: "cat-test-v1", items: [...catalog.items, { key: "editing_pack", name: "Editing", active: true, input: { ...fullPath, requestedServices: ["editing"], singleService: "editing" } }] } });
+    expect(notStandard.status).toBe(422);
+    await data(await call("owner", "crm/settings", "PUT", { key: "catalog", value: { ...catalog, version: "cat-test-v2", items: catalog.items.map((i) => (i.key === "cover" ? { ...i, active: false } : i)) } }));
+    const view = await data(await call("owner", "crm/catalog"));
+    expect(view.items.find((i: { key: string }) => i.key === "cover")).toMatchObject({ active: false });
+    expect(view.items.every((i: { price: { grossCents: number } }) => i.price.grossCents > 0)).toBe(true);
+    await data(await call("owner", "crm/settings", "PUT", { key: "catalog", value: { ...catalog, version: "cat-test-v3" } }));
+    // Motivi di perdita: quello usato da una trattativa chiusa resta.
+    const lr = (await data(await call("owner", "crm/settings"))).settings["loss-reasons"] as { version: string; reasons: Array<{ key: string; label: string; active: boolean }> };
+    const lostDeal = await data(await call("admin", "crm/deals", "POST", { contact: { name: "Persa Prova", email: "persa.prova@example.test" }, title: "Persa", ownerId: actors.sellerA!.id, nextAction: "Call", nextActionAt: new Date(Date.now() + 86400_000).toISOString() }), 201);
+    await data(await call("sellerA", `crm/deals/${lostDeal.deal.id}`, "PATCH", { stage: "lost", lostReasonKey: lr.reasons[0]!.key, lostNote: "Prova" }));
+    expect((await call("owner", "crm/settings", "PUT", { key: "loss-reasons", value: { version: "loss-test-v1", reasons: lr.reasons.slice(1) } })).status).toBe(409);
+    await data(await call("owner", "crm/settings", "PUT", { key: "loss-reasons", value: { version: "loss-test-v1", reasons: lr.reasons.map((r, i) => (i === 0 ? { ...r, active: false } : r)) } }));
+    // Chi non ha le regole economiche o le integrazioni non le cambia.
+    for (const who of ["marketing", "inviteadminmkt", "sellerA"]) {
+      expect((await call(who, "crm/settings", "PUT", { key: "brand", value: { ...brand, version: `brand-${who}` } })).status, who).toBe(403);
+      expect((await call(who, "crm/api-keys", "POST", { name: "prova", scopes: ["leads:write"] })).status, who).toBe(403);
+    }
+  });
+  it("keeps template versions, refuses removing select options in use and records field changes", async () => {
+    const list = await data(await call("owner", "crm/templates?all=1"));
+    const template = list.templates.find((t: { key: string }) => t.key === "primo-contatto");
+    await data(await call("owner", `crm/templates/${template.id}`, "PATCH", { subject: "Buongiorno {{nome}}" }));
+    await data(await call("owner", `crm/templates/${template.id}`, "PATCH", { active: false }));
+    expect((await data(await call("owner", "crm/templates"))).templates.some((t: { id: string }) => t.id === template.id)).toBe(false);
+    expect((await data(await call("owner", "crm/templates?all=1"))).templates.some((t: { id: string }) => t.id === template.id)).toBe(true);
+    expect((await db.select().from(crm.settingVersions).where(eq(crm.settingVersions.key, "template:primo-contatto"))).length).toBeGreaterThanOrEqual(1);
+    const fields = await data(await call("owner", "crm/fields"));
+    const genere = fields.fields.find((f: { key: string }) => f.key === "genere");
+    expect((await call("owner", `crm/fields/${genere.id}`, "PATCH", { options: ["saggio"] })).status).toBe(409);
+    await data(await call("owner", `crm/fields/${genere.id}`, "PATCH", { options: ["giallo", "saggio", "memoir"] }));
+    expect((await call("owner", "crm/fields", "POST", { entity: "deal", key: "vuoto", label: "Vuoto", type: "select", options: [] })).status).toBe(422);
+    expect((await data(await call("owner", "crm/fields"))).history.length).toBeGreaterThan(0);
+  });
+  it("a package link cannot be used to take over another seller's client or read other clients' data", async () => {
+    // Olga è già seguita da sellerB; compra dal link che sellerA ha preparato per un'altra persona.
+    await data(await call("admin", "crm/deals", "POST", { contact: { name: "Olga Owned", email: "olga@example.test" }, title: "Olga", ownerId: actors.sellerB!.id, nextAction: "Call", nextActionAt: new Date(Date.now() + 86400_000).toISOString() }), 201);
+    const other = await data(await call("sellerA", "crm/deals", "POST", { contact: { name: "Pia Privata", email: "pia.privata@example.test", phone: "333 1112223" }, title: "Pia", nextAction: "Call", nextActionAt: new Date(Date.now() + 86400_000).toISOString() }), 201);
+    const link = await data(await call("sellerA", `crm/deals/${other.deal.id}/package-link`, "POST", { catalogKey: "epub", validityDays: 5 }), 201);
+    const token = link.url.split("/proposta/")[1];
+    await createActor("olga", "author");
+    const bought = await data(await call("olga", "crm/links/purchase", "POST", { token }), 201);
+    const detail = await data(await call("olga", `quotes/${bought.quoteId}`));
+    const text = JSON.stringify(detail);
+    expect(text).not.toContain("pia.privata"); expect(text).not.toContain("333 1112223"); expect(text).not.toContain("Pia Privata");
+    const [record] = await db.select().from(platform.quoteRecords).where(eq(platform.quoteRecords.quoteId, bought.quoteId));
+    expect(record!.dealId).not.toBe(other.deal.id);
+    expect((await call("olga", `crm/deals/${other.deal.id}`)).status).toBe(403);
+    await accept("olga", bought.quoteId);
+    const [attribution] = await db.select().from(crm.crmAttributions).where(and(eq(crm.crmAttributions.quoteId, bought.quoteId), eq(crm.crmAttributions.current, true)));
+    // Il link non basta a togliere il cliente a chi lo segue: la vendita resta da decidere, nessuna provvigione automatica.
+    expect(attribution).toMatchObject({ status: "conflict", creditedSellerId: null });
+    expect(attribution!.conflicts[0]).toMatchObject({ code: "link_other_owner" });
+    expect(attribution!.conflicts[0]!.candidates.sort()).toEqual([actors.sellerA!.id, actors.sellerB!.id].sort());
+    // Un cliente nuovo arrivato dal link resta invece a chi l'ha portato.
+    await createActor("nuovaclient", "author");
+    const fresh = await data(await call("nuovaclient", "crm/links/purchase", "POST", { token }), 201);
+    await accept("nuovaclient", fresh.quoteId);
+    const [own] = await db.select().from(crm.crmAttributions).where(and(eq(crm.crmAttributions.quoteId, fresh.quoteId), eq(crm.crmAttributions.current, true)));
+    expect(own).toMatchObject({ status: "final", creditedSellerId: actors.sellerA!.id, path: "package_link" });
+  });
+  it("runs frequent and daily jobs with a lock, skips a repeated daily run and never duplicates effects", async () => {
+    const { runJob, frequentWork, dailyWork, automationSnapshot } = await import("@/lib/platform/automation");
+    const counts = async () => ({ mail: (await db.select().from(platform.emailOutbox)).length, notifications: (await db.select().from(platform.notifications)).length, deliveries: (await db.select().from(crm.webhookDeliveries)).length, commissions: (await db.select().from(platform.commissions)).length });
+    // Due esecuzioni sovrapposte: la seconda viene saltata.
+    let release!: () => void;
+    const slow = runJob("frequent", "cron", () => new Promise((r) => { release = () => r({ ok: true }); }));
+    await new Promise((r) => setTimeout(r, 20));
+    expect((await runJob("frequent", "cron", frequentWork)).status).toBe("skipped");
+    release(); expect((await slow).status).toBe("ok");
+    const first = await runJob("frequent", "cron", frequentWork);
+    expect(first.status).toBe("ok");
+    const afterFrequent = await counts();
+    expect((await runJob("frequent", "cron", frequentWork)).status).toBe("ok");
+    expect((await counts()).deliveries).toBe(afterFrequent.deliveries);
+    expect((await counts()).commissions).toBe(afterFrequent.commissions);
+    const daily = await runJob("daily", "cron", () => dailyWork("cron"));
+    expect(daily.status).toBe("ok");
+    const afterDaily = await counts();
+    const again = await runJob("daily", "cron", () => dailyWork("cron"));
+    expect(again.status).toBe("skipped");
+    expect(await counts()).toEqual(afterDaily);
+    // Anche un avvio manuale non ripete i riepiloghi del giorno.
+    await runJob("daily", "manual", () => dailyWork("manual"));
+    const manual = await counts();
+    expect(manual.notifications).toBe(afterDaily.notifications);
+    expect(manual.commissions).toBe(afterDaily.commissions);
+    const snapshot = await automationSnapshot();
+    expect(snapshot.jobs.find((j) => j.job === "frequent")!.state).toBe("ok");
+    expect(snapshot.jobs.find((j) => j.job === "daily")!.state).toBe("ok");
+    const later = await automationSnapshot(new Date(Date.now() + 60 * 60_000));
+    expect(later.jobs.find((j) => j.job === "frequent")!.state).toBe("late");
+    // Errore in un passo: registrato, gli altri passi proseguono.
+    const failed = await runJob("frequent", "cron", async () => { throw new Error("prova di errore"); });
+    expect(failed.status).toBe("error");
+    expect((await automationSnapshot()).jobs.find((j) => j.job === "frequent")!.lastError!.error).toContain("prova di errore");
+    expect((await data(await call("owner", "crm/automation"))).jobs).toHaveLength(2);
+    expect((await call("sellerA", "crm/automation")).status).toBe(403);
+  });
+  it("protects the cron endpoints with the shared secret", async () => {
+    process.env.CRON_SECRET = randomBytes(24).toString("hex");
+    const frequent = (await import("@/app/api/cron/frequent/route")).GET;
+    const daily = (await import("@/app/api/cron/route")).GET;
+    expect((await frequent(new Request(`${origin}/api/cron/frequent`))).status).toBe(403);
+    expect((await frequent(new Request(`${origin}/api/cron/frequent`, { headers: { authorization: "Bearer sbagliato" } }))).status).toBe(403);
+    const ok = await frequent(new Request(`${origin}/api/cron/frequent`, { headers: { authorization: `Bearer ${process.env.CRON_SECRET}` } }));
+    expect(ok.status).toBe(200);
+    expect(JSON.stringify(await ok.json())).not.toContain("@example.test");
+    expect((await daily(new Request(`${origin}/api/cron`, { headers: { authorization: `Bearer ${process.env.CRON_SECRET}` } }))).status).toBe(200);
+  });
+  it("reports diagnostics and setup status without secrets and without declaring readiness from defaults", async () => {
+    const diag = await data(await call("owner", "crm/diagnostics"));
+    const text = JSON.stringify(diag);
+    expect(text).not.toContain("sk_test_synthetic_fixture_only");
+    expect(text).not.toContain(process.env.BETTER_AUTH_SECRET!);
+    expect(diag.items.find((i: { key: string }) => i.key === "database").state).not.toBe("error");
+    expect(diag.items.find((i: { key: string }) => i.key === "payments").detail).toMatch(/prova|test/i);
+    expect(diag.items.find((i: { key: string }) => i.key === "email").state).not.toBe("verified");
+    const setup = await data(await call("owner", "crm/setup"));
+    expect(setup.sections.map((s: { key: string }) => s.key)).toEqual(["brand", "catalog", "team", "assignment", "commercial", "email", "automation", "final"]);
+    expect(setup.ready).toBe(false);
+    expect(setup.decisions.length).toBeGreaterThan(0);
+    expect(setup.decisions.some((d: { key: string }) => d.key === "flows")).toBe(true);
+    await data(await call("owner", "crm/setup", "PUT", { siteRequests: true, assistedSales: true, packageLinks: true, production: true, externalApi: false }));
+    const again = await data(await call("owner", "crm/setup"));
+    expect(again.flowsDecided).toBe(true);
+    expect(again.sections.find((s: { key: string }) => s.key === "brand").status).toBe("configured");
+    expect((await call("inviteadminteam", "crm/setup", "PUT", { siteRequests: true, assistedSales: true, packageLinks: true, production: true, externalApi: false })).status).toBe(403);
+    expect((await call("marketing", "crm/setup")).status).toBe(403);
   });
 });
