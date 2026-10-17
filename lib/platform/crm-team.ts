@@ -4,19 +4,21 @@
  * partecipazione all'assegnazione, limiti di sconto e rate) e disattivazione
  * senza perdita di storia, con riassegnazione e revoca degli accessi.
  */
-import { and, eq, inArray, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db";
 import { leads } from "@/db/schema";
 import { user, session } from "@/db/auth-schema";
 import { apiKeys, crmDeals, teamProfiles } from "@/db/crm-schema";
-import { auditEvents, leadOwnership, memberships, projectMembers, projects, tasks } from "@/db/platform-schema";
+import { auditEvents, emailOutbox, leadOwnership, memberships, projectMembers, projects, staffInvitations, tasks } from "@/db/platform-schema";
+import { chooseAssignee } from "@/lib/crm-core/assignment";
+import { EXCLUSION_LABELS, profileGaps } from "./crm-setup";
 import { businessHoursSchema, isAbsent, isWithinHours, defaultBusinessHours } from "@/lib/crm-core/hours";
 import { ROLE_GRANTS, MARKETING_PERMISSIONS, canDelegate, can, effectiveGrants, type Grant, type Permission, type Role } from "./permissions";
 import { demand, demandRecent, demandAvailable, audit, type Actor } from "./access";
 import { json, notFound, forbidden, PlatformError, readBody } from "./http";
 import { createInvitation } from "./team";
-import { recordAssignment, assignmentRules } from "./crm-routing";
+import { recordAssignment, assignmentRules, salesCandidates } from "./crm-routing";
 import { resolvePurchaseRule } from "./crm";
 import { notify } from "./crm-notify";
 import { mailConfigured } from "./config";
@@ -106,7 +108,26 @@ export async function teamDirectory(request: Request, actor: Actor) {
       };
     })
     .filter(Boolean);
-  return json({ people, templates: Object.entries(ROLE_TEMPLATES).map(([key, t]) => ({ key, label: t.label })) });
+  // Perché una persona (non) riceverebbe una richiesta adesso: stesso motore dell'assegnazione reale.
+  const candidates = await salesCandidates(getDb());
+  const probe = chooseAssignee(candidates, { requiredSkill: null, language: rules.defaultLanguage, openDealOwner: null, now, orgHours: rules.hours, defaultCapacity: rules.defaultCapacity });
+  const enriched = (people as NonNullable<(typeof people)[number]>[]).map((p) => {
+    const c = probe.considered.find((x) => x.userId === p.id);
+    const mainRole = p.roles.find((r) => r.active)?.role ?? p.roles[0]?.role ?? "";
+    return { ...p, gaps: profileGaps(profiles.find((x) => x.userId === p.id), mainRole), assignment: c ? { eligible: !c.excluded, why: c.excluded ? EXCLUSION_LABELS[c.excluded] : c.inHours ? "idoneo adesso" : "idoneo, fuori orario", load: c.load, capacity: c.capacity } : { eligible: false, why: candidates.some((x) => x.userId === p.id) ? "non partecipa" : "ruolo che non riceve richieste" } };
+  });
+  // Inviti con stato reale e, se l'email non è partita, l'errore del servizio.
+  const invitations = can(actor.grants, "invite.manage") ? await getDb().select({ id: staffInvitations.id, email: staffInvitations.email, role: staffInvitations.role, template: staffInvitations.template, status: staffInvitations.status, expiresAt: staffInvitations.expiresAt, createdAt: staffInvitations.createdAt }).from(staffInvitations).where(actor.roles.includes("owner") ? sql`true` : eq(staffInvitations.invitedBy, actor.id)).orderBy(desc(staffInvitations.createdAt)).limit(100) : [];
+  const mails = invitations.length ? await getDb().select({ eventKey: emailOutbox.eventKey, status: emailOutbox.status, lastError: emailOutbox.lastError }).from(emailOutbox).where(sql`${emailOutbox.eventKey} like 'invitation:%'`) : [];
+  return json({
+    people: enriched,
+    invitations: invitations.map((i) => {
+      const mail = mails.find((m) => m.eventKey.startsWith(`invitation:${i.id}:`));
+      const status = i.status === "pending" && i.expiresAt.getTime() < now.getTime() ? "expired" : i.status;
+      return { ...i, status, template: i.template ? ROLE_TEMPLATES[i.template]?.label ?? i.template : null, mail: mail ? { status: mail.status, error: mail.status === "failed" || mail.status === "retry" ? mail.lastError?.slice(0, 200) ?? "invio non riuscito" : null } : null };
+    }),
+    templates: Object.entries(ROLE_TEMPLATES).map(([key, t]) => ({ key, label: t.label })),
+  });
 }
 export async function teamProfile(request: Request, actor: Actor, userId: string) {
   const self = userId === actor.id;

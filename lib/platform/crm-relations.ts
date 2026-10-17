@@ -20,6 +20,7 @@ export type Reader = Pick<Db, "select">;
 export const DEFAULT_PIPELINE: Pipeline = {
   key: "vendite",
   name: "Vendite",
+  archived: false,
   stages: PIPELINE_STATES.map((key) => ({
     key,
     label: PIPELINE_LABELS[key],

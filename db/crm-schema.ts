@@ -354,3 +354,24 @@ export const webhookDeliveries = pgTable(
   },
   (t) => [uniqueIndex("webhook_delivery_idx").on(t.endpointId, t.eventId), index("webhook_delivery_due_idx").on(t.status, t.nextAttemptAt)],
 );
+/** Esecuzioni delle attività automatiche (frequenti e giornaliere): base del pannello di stato. */
+export const jobRuns = pgTable(
+  "job_runs",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    job: text("job").notNull(),
+    trigger: text("trigger").notNull().default("cron"),
+    status: text("status").notNull().default("running"),
+    startedAt: ts("started_at").notNull().defaultNow(),
+    finishedAt: ts("finished_at"),
+    error: text("error"),
+    summary: jsonb("summary").$type<Record<string, unknown>>(),
+  },
+  (t) => [index("job_run_job_idx").on(t.job, t.startedAt)],
+);
+/** Blocco a tempo per evitare esecuzioni sovrapposte dello stesso lavoro. */
+export const jobLocks = pgTable("job_locks", {
+  job: text("job").primaryKey(),
+  owner: text("owner").notNull(),
+  lockedUntil: ts("locked_until").notNull(),
+});

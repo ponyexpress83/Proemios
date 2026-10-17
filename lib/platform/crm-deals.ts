@@ -99,6 +99,7 @@ async function dealCreate(request: Request, actor: Actor) {
   const owner = body.ownerId ?? actor.id;
   if (owner !== actor.id && !(await salesCandidates(getDb())).some((c) => c.userId === owner && c.active)) throw new PlatformError(422, "INVALID_ASSIGNEE", "Scegli una persona attiva che segue contatti.");
   const pipeline = await pipelineFor(body.pipelineKey);
+  if (pipeline.archived) throw new PlatformError(409, "PIPELINE_ARCHIVED", "Questa pipeline è archiviata: scegline una attiva.");
   const rules = await readSetting("attribution-rules", attributionRulesSchema, defaultAttributionRules);
   const result = await getDb().transaction(async (tx) => {
     let contact: typeof crmContacts.$inferSelect;

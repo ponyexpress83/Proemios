@@ -308,6 +308,8 @@ export async function linkPurchase(request: Request, actor: Actor) {
   if (link.kind !== "package") throw new PlatformError(409, "WRONG_LINK", "Questo link è una proposta personalizzata: collegala al tuo account.");
   const item = (await catalog()).items.find((i) => i.key === link.catalogKey && i.active);
   if (!item) throw new PlatformError(410, "LINK_UNAVAILABLE", "Il pacchetto non è più disponibile.");
+  // Un pacchetto standard resta acquistabile senza valutazione solo se la regola d'acquisto in vigore lo prevede.
+  if (!item.input.singleService || !(await resolvePurchaseRule()).autoOfferSingleServices.includes(item.input.singleService)) throw new PlatformError(409, "NOT_STANDARD", "Questo servizio oggi richiede una proposta personalizzata: chiedi a chi ti segue.");
   const tax = await resolvePaymentPolicy();
   const commissions = commissionRuleSchema.safeParse(await getSetting("commission-rule"));
   const rule = await resolvePurchaseRule();

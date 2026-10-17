@@ -118,6 +118,12 @@ export async function invitationCollection(request: Request, actor: Actor) {
 export async function createInvitation(actor: Actor, body: { email: string; role: Role; grants: Grant[] | null; projectIds: string[]; template: string | null; profile: Record<string, unknown> | null; label?: string }) {
   validateDelegation(actor, body.role, body.grants);
   for (const id of body.projectIds) await projectAccess(actor, id, "project.assign");
+  // Nessun doppione: un invito valido per la stessa email e lo stesso ruolo basta, e chi ha già il ruolo non va reinvitato.
+  const email = body.email.toLowerCase();
+  const [open] = await getDb().select({ id: staffInvitations.id }).from(staffInvitations).where(and(eq(staffInvitations.email, email), eq(staffInvitations.role, body.role), eq(staffInvitations.status, "pending"), sql`${staffInvitations.expiresAt} > now()`)).limit(1);
+  if (open) throw new PlatformError(409, "INVITE_PENDING", "C'è già un invito valido per questa persona e questo ruolo: revocalo prima di mandarne un altro.");
+  const [existing] = await getDb().select({ id: memberships.id }).from(memberships).innerJoin(user, eq(user.id, memberships.userId)).where(and(sql`lower(${user.email}) = ${email}`, eq(memberships.role, body.role), eq(memberships.active, true))).limit(1);
+  if (existing) throw new PlatformError(409, "ALREADY_MEMBER", "Questa persona ha già questo ruolo attivo.");
   const token = randomBytes(32).toString("base64url");
   const [invitation] = await getDb()
     .insert(staffInvitations)
