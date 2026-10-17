@@ -30,6 +30,7 @@ const clientSchema = z.object({
   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: z.string().optional(),
   NEXT_PUBLIC_CALENDAR_URL: z.string().url().optional(),
   NEXT_PUBLIC_ANALYTICS_DOMAIN: z.string().optional(),
+  NEXT_PUBLIC_GA4_MEASUREMENT_ID: z.string().regex(/^G-[A-Z0-9]{4,20}$/).optional(),
 });
 
 const cleanEmpty = (values: Record<string, string | undefined>) => Object.fromEntries(Object.entries(values).map(([key,value]) => [key, value?.trim() || undefined]));
@@ -55,4 +56,5 @@ export const publicEnv = clientSchema.parse(cleanEmpty({
   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
   NEXT_PUBLIC_CALENDAR_URL: process.env.NEXT_PUBLIC_CALENDAR_URL,
   NEXT_PUBLIC_ANALYTICS_DOMAIN: process.env.NEXT_PUBLIC_ANALYTICS_DOMAIN,
+  NEXT_PUBLIC_GA4_MEASUREMENT_ID: process.env.NEXT_PUBLIC_GA4_MEASUREMENT_ID,
 }));

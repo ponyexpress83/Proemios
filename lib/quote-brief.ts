@@ -10,6 +10,8 @@ export type QuotePrefill = {
   tempi?: "standard" | "prioritaria";
   materiale?: MaterialAmount;
   contesto?: string;
+  /** "Mi serve un servizio preciso": una sola lavorazione, senza pacchetti aggiunti. */
+  soloServizio?: boolean;
 };
 export function quotePrefill(sp: Record<string, string | undefined>): QuotePrefill {
   const mapping: Record<string, ProjectType> = {
@@ -44,8 +46,9 @@ export function quotePrefill(sp: Record<string, string | undefined>): QuotePrefi
     statoTesto: state.success ? state.data : undefined,
     parole: Number.isInteger(n) && n > 0 && n <= 2_000_000 ? n : undefined,
     servizi: services,
-    tempi: sp.tempi === "prioritaria" ? "prioritaria" : "standard",
+    tempi: sp.tempi ? (sp.tempi === "prioritaria" ? "prioritaria" : "standard") : undefined,
     materiale: material,
+    soloServizio: sp.singolo === "1" ? true : sp.singolo === "0" ? false : services.length === 1 && Boolean(sp.servizio) ? true : undefined,
     contesto:
       sp.percorso === "storia-impresa"
         ? "Storia della mia impresa o del mio percorso di lavoro."

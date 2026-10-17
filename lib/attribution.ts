@@ -11,6 +11,8 @@ export type LeadAttribution = {
   landingPath?: string;
   referrer?: string;
   firstSeenAt?: string;
+  /** Id della campagna dal link tracciato (parametro «pc»). */
+  campaignId?: string;
 };
 
 const MAX_VALUE = 500;
@@ -35,6 +37,7 @@ export function sanitizeAttribution(input: unknown): LeadAttribution | null {
     landingPath: clean(raw.landingPath),
     referrer: clean(raw.referrer),
     firstSeenAt: clean(raw.firstSeenAt),
+    campaignId: typeof raw.campaignId === "string" && /^[0-9a-f-]{36}$/.test(raw.campaignId) ? raw.campaignId : undefined,
   };
 
   return Object.values(result).some(Boolean) ? result : null;

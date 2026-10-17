@@ -1,4 +1,5 @@
 import { randomUUID, createHash } from "node:crypto";
+import { after } from "next/server";
 import { z } from "zod";
 import { applicationOrigins } from "./config";
 
@@ -43,6 +44,8 @@ export function route(handler: (request: Request) => Promise<Response>) {
           evt: "platform.request.failed",
           requestId,
           error: error instanceof Error ? error.name : "Unknown",
+          // Fuori produzione il messaggio aiuta a capire il guasto; in produzione resta solo l'id.
+          ...(process.env.NODE_ENV !== "production" && error instanceof Error ? { message: error.message.slice(0, 500) } : {}),
         }),
       );
       return json(
@@ -90,4 +93,19 @@ export function csvCell(value: unknown): string {
   let s = String(value ?? "");
   if (/^[\s]*[=+@-]/.test(s)) s = `'${s}`;
   return `"${s.replaceAll('"', '""')}"`;
+}
+
+/**
+ * Esegue un lavoro appena la risposta è partita, senza trattenerla. Fuori da
+ * una richiesta Next (test, script) non fa nulla: lì il lavoro lo fa il cron
+ * o una chiamata esplicita.
+ */
+export function afterResponse(work: () => Promise<unknown>) {
+  try {
+    after(async () => {
+      await work().catch(() => {});
+    });
+  } catch {
+    /* nessun contesto di richiesta */
+  }
 }

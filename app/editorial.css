@@ -3068,3 +3068,27 @@ body:has(.proemios-public),
 .proemios-public .operative-surface :focus-visible {
   outline-color: #f16650;
 }
+
+/* Tre ingressi, prezzi di partenza, FAQ e CTA mobile della landing */
+.proemios-public .entry-grid{display:grid;gap:18px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));margin-top:30px}
+.proemios-public .entry-card{display:flex;flex-direction:column;gap:10px;padding:28px 26px;border:1px solid var(--border);border-radius:18px;background:var(--surface,#fffdf8);color:inherit;text-decoration:none;transition:border-color .2s,transform .2s}
+.proemios-public .entry-card:hover,.proemios-public .entry-card:focus-visible{border-color:var(--accent,#f16650);transform:translateY(-2px)}
+.proemios-public .entry-card h3{font-size:1.25rem;margin:4px 0 0}
+.proemios-public .entry-card p{font-size:.95rem;margin:0}
+.proemios-public .entry-card .text-link{margin-top:auto}
+.proemios-public .pricing-list{list-style:none;margin:30px 0 0;padding:0;border-top:1px solid var(--border)}
+.proemios-public .pricing-list li{display:flex;justify-content:space-between;align-items:baseline;gap:20px;padding:18px 0;border-bottom:1px solid var(--border)}
+.proemios-public .pricing-list li div{display:flex;flex-direction:column;gap:3px}
+.proemios-public .pricing-list li small{font-size:.85rem;opacity:.75}
+.proemios-public .pricing-list li span{font-size:1.35rem;font-weight:600;white-space:nowrap}
+.proemios-public .pricing-list li span em{font-style:normal;font-size:.8rem;font-weight:400;opacity:.7;margin-right:4px}
+.proemios-public .pricing-note{margin:18px 0 26px;font-size:.9rem;max-width:760px;opacity:.85}
+.proemios-public .mobile-cta{display:none}
+@media (max-width:720px){
+  .proemios-public .mobile-cta{position:fixed;left:0;right:0;bottom:0;z-index:40;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 16px calc(10px + env(safe-area-inset-bottom));background:var(--surface,#fffdf8);border-top:1px solid var(--border);box-shadow:0 -6px 24px rgba(0,0,0,.08)}
+  .proemios-public .mobile-cta span{font-size:.8rem;line-height:1.3}
+  .proemios-public .mobile-cta .button{white-space:nowrap;padding:10px 14px;min-height:44px}
+  body.has-mobile-cta{padding-bottom:calc(76px + env(safe-area-inset-bottom))}
+  .proemios-public .pricing-list li{flex-direction:column;align-items:flex-start;gap:6px}
+}
+@media (prefers-reduced-motion: reduce){.proemios-public .entry-card{transition:none}}

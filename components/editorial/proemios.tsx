@@ -28,6 +28,7 @@ import {
   AccordionContent,
 } from "@/components/editorial/accordion";
 import { BeforeAfter } from "./before-after";
+import { EntryPoints, PricingGuide, Faq, MobileCta } from "./landing-sections";
 export { BeforeAfter } from "./before-after";
 import { services, paths, workflow } from "@/lib/editorial-content";
 export function Shell({ children }: { children: ReactNode }) {
@@ -246,7 +247,7 @@ export function Platform() {
             ))}
           </div>
           <Link href="/accedi" className="text-link">
-            Prova l’area autore <ArrowRight size={18} />
+            Accedi all’area autore <ArrowRight size={18} />
           </Link>
         </div>
         <div className="platform-visual">
@@ -435,7 +436,7 @@ function TrustDetails() {
               e consegne nel tuo spazio autore.
             </p>
             <Link href="/accedi" className="text-link">
-              Prova l’area autore <ArrowRight size={16} />
+              Accedi all’area autore <ArrowRight size={16} />
             </Link>
           </article>
         </div>
@@ -600,27 +601,9 @@ export function HomePage() {
       <noscript>
         <a href="/preventivo">Calcola il preventivo completo</a>
       </noscript>
-      <section className="section paths-section" id="da-dove-parti">
-        <div className="container">
-          <div className="section-heading">
-            <div>
-              <Eyebrow>DA DOVE PARTI?</Eyebrow>
-              <h2>
-                Ogni libro parte
-                <br />
-                da un punto <em>diverso.</em>
-              </h2>
-            </div>
-            <p>
-              Un manoscritto nel cassetto. Un’idea che insiste.
-              <br />
-              Partiamo da dove sei, insieme.
-            </p>
-          </div>
-          <PathCards />
-        </div>
-      </section>
-      <Platform />
+      <EntryPoints />
+      <BeforeAfter />
+      <PricingGuide />
       <section className="section workflow-section">
         <div className="container">
           <div className="section-heading">
@@ -639,7 +622,9 @@ export function HomePage() {
           <Timeline />
         </div>
       </section>
+      <Team />
       <TrustDetails />
+      <Platform />
       <section className="section">
         <div className="container">
           <div className="section-heading">
@@ -657,7 +642,26 @@ export function HomePage() {
           <ServicesGrid />
         </div>
       </section>
-      <BeforeAfter />
+      <section className="section paths-section" id="da-dove-parti">
+        <div className="container">
+          <div className="section-heading">
+            <div>
+              <Eyebrow>APPROFONDIMENTI</Eyebrow>
+              <h2>
+                Ogni libro parte
+                <br />
+                da un punto <em>diverso.</em>
+              </h2>
+            </div>
+            <p>
+              Cinque percorsi raccontati per esteso.
+              <br />
+              Partiamo da dove sei, insieme.
+            </p>
+          </div>
+          <PathCards />
+        </div>
+      </section>
       <section className="partner-strip container">
         <div>
           <Eyebrow>PER AGENZIE E PUBLISHER</Eyebrow>
@@ -668,7 +672,9 @@ export function HomePage() {
           Parliamo di collaborazione <ArrowRight size={18} />
         </Link>
       </section>
+      <Faq />
       <CTA />
+      <MobileCta hidden={assistantOpen} />
     </Shell>
   );
 }

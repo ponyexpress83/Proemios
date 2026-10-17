@@ -56,8 +56,12 @@ export const pricingInputSchema = z.object({
     .max(2_000_000, "Oltre due milioni di parole conviene che ne parliamo a voce."),
   materialAmount: materialAmountSchema.optional(),
   requestedServices: z.array(serviceKeySchema).default([]),
+  singleService: serviceKeySchema.optional(),
   urgency: z.enum(["standard", "prioritaria"]).default("standard"),
-});
+}).refine(
+  input => !input.singleService || input.requestedServices.every(key => key === input.singleService),
+  { path: ["requestedServices"], message: "Per il servizio singolo puoi selezionare una sola lavorazione." },
+);
 export type PricingInputDto = z.infer<typeof pricingInputSchema>;
 
 export const contattoPreventivoSchema = z.object({
@@ -67,11 +71,20 @@ export const contattoPreventivoSchema = z.object({
   note: z.string().max(3000).optional().or(z.literal("")),
   consensoPrivacy: consensoSchema,
   consensoMarketing: z.boolean().default(false),
+  /** Richiesta esplicita di essere ricontattati: il telefono da solo non la implica. */
+  ricontatto: z.boolean().default(false),
 });
 
+/** Parametri di campagna della sessione: solo stringhe corte, sanificate ancora dal server. */
+export const attributionSchema = z.object({
+  utmSource: z.string().max(500).optional(), utmMedium: z.string().max(500).optional(), utmCampaign: z.string().max(500).optional(),
+  utmContent: z.string().max(500).optional(), utmTerm: z.string().max(500).optional(), gclid: z.string().max(500).optional(), fbclid: z.string().max(500).optional(),
+  landingPath: z.string().max(500).optional(), referrer: z.string().max(500).optional(), firstSeenAt: z.string().max(40).optional(), campaignId: z.string().max(40).optional(),
+}).partial().optional();
 export const preventivoSchema = z.object({
   input: pricingInputSchema,
   contatto: contattoPreventivoSchema,
+  attribution: attributionSchema,
   // Honeypot: se compilato è un bot.
   sito: z.string().max(0).optional(),
 });
@@ -116,6 +129,7 @@ export const contattoSchema = z.object({
     .max(4000),
   consensoPrivacy: consensoSchema,
   consensoMarketing: z.boolean().default(false),
+  attribution: attributionSchema,
   sito: z.string().max(0).optional(),
 });
 
