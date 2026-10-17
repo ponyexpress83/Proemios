@@ -379,7 +379,7 @@ INSERT INTO "crm_deals" ("contact_id", "origin_lead_id", "title", "stage", "owne
 SELECT l."contact_id", l."id", l."nome", l."stage", o."assigned_to", l."next_action", l."next_action_at", l."lost_reason", l."closed_at", l."created_at", now()
 FROM "leads" l LEFT JOIN "platform_lead_ownership" o ON o."lead_id" = l."id";--> statement-breakpoint
 UPDATE "leads" l SET "deal_id" = d."id" FROM "crm_deals" d WHERE d."origin_lead_id" = l."id";--> statement-breakpoint
-UPDATE "leads" SET "source_kind" = CASE "fonte" WHEN 'marketplace' THEN 'marketplace' WHEN 'import' THEN 'manual' ELSE 'form' END;--> statement-breakpoint
+UPDATE "leads" SET "source_kind" = CASE "fonte"::text WHEN 'marketplace' THEN 'marketplace' WHEN 'import' THEN 'manual' ELSE 'form' END;--> statement-breakpoint
 UPDATE "platform_quote_records" r SET "deal_id" = l."deal_id" FROM "quotes" q JOIN "leads" l ON l."id" = q."lead_id" WHERE q."id" = r."quote_id";--> statement-breakpoint
 UPDATE "platform_projects" p SET "deal_id" = r."deal_id" FROM "platform_quote_records" r WHERE r."quote_id" = p."quote_id";--> statement-breakpoint
 UPDATE "platform_projects" SET "ops_status" = CASE WHEN "stage" IN ('approved', 'delivered') THEN 'concluded' WHEN "stage" = 'review' THEN 'client_review' WHEN "stage" IN ('editing') THEN 'in_progress' WHEN "stage" IN ('intake') THEN 'ready_for_assignment' ELSE 'waiting_materials' END;--> statement-breakpoint

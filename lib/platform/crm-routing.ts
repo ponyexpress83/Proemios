@@ -116,6 +116,8 @@ export async function routeLead(tx: Tx, leadId: string, options: { now?: Date; n
     if (!decision.assignee) await tx.insert(leadActivities).values({ leadId, kind: "assignment", direction: "inbound", body: `Nessun venditore idoneo (${decision.considered.map((c) => c.excluded ?? "idoneo").join(", ") || "nessun candidato"}): resta nella coda monitorata.`, outcome: "queued" });
   }
   await tx.update(leads).set({ assignmentStatus: result.status, slaDueAt: result.slaDueAt, updatedAt: new Date() }).where(eq(leads.id, leadId));
+  // Ogni trattativa aperta ha una prossima azione: per una richiesta nuova è il primo contatto entro la scadenza.
+  if (!deal.nextAction || !deal.nextActionAt) await tx.update(crmDeals).set({ nextAction: deal.nextAction ?? "Primo contatto", nextActionAt: deal.nextActionAt ?? result.slaDueAt, updatedAt: new Date() }).where(eq(crmDeals.id, deal.id));
   await setOwner(tx, { leadId, dealId: deal.id, to: result.assignee, method: result.status === "assigned" ? (result.reason === "open_deal_owner" ? "rule_keep" : "auto") : result.status, reason: result.reason, ruleVersion: rules.version, actorId: options.actorId ?? null });
   await emitEvent(tx, "lead.created", leadId, leadId, { leadId, contactId: contact.id, dealId: deal.id, source: lead.sourceKind ?? lead.fonte, priority: lead.priority });
   if (result.assignee) {

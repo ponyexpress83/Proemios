@@ -148,7 +148,9 @@ describe("relations, acquisition and automatic assignment", () => {
     expect(history[0]).toMatchObject({ toUser: actors.sellerA!.id, method: "auto", reason: "balanced_in_hours" });
     expect(history[0]!.ruleVersion).toMatch(/^assegnazione-test-/);
     adsDeal = lead.dealId!; adsContact = lead.contactId!;
-    expect((await db.select().from(crm.crmDeals).where(eq(crm.crmDeals.id, adsDeal)))[0]!.ownerId).toBe(actors.sellerA!.id);
+    const [deal] = await db.select().from(crm.crmDeals).where(eq(crm.crmDeals.id, adsDeal));
+    expect(deal).toMatchObject({ ownerId: actors.sellerA!.id, nextAction: "Primo contatto" });
+    expect(deal!.nextActionAt!.getTime()).toBe(lead.slaDueAt!.getTime());
     const events = await db.select().from(crm.crmEvents);
     expect(events.some((e) => e.type === "lead.created" && e.entityId === adsLead)).toBe(true);
     expect(events.some((e) => e.type === "lead.assigned" && e.entityId === adsLead)).toBe(true);

@@ -5,6 +5,8 @@ import Link from "next/link";
 import type { Route } from "next";
 import type { PricingInput } from "@/lib/pricing";
 import { authClient } from "@/lib/auth-client";
+import { WorkView, DealsView, ContactsView, PoolView, ApprovalsView, PeopleView, CrmRulesView, HandoffPanel } from "./crm-views";
+const CRM_TABS = ["work", "deals", "contacts", "pool", "approvals", "people", "crm-rules"];
 import {
   can,
   hasPermission,
@@ -273,15 +275,22 @@ function State({ value }: { value: string }) {
 }
 const tabRules: Array<{ id: string; label: string; permission?: Permission }> = [
   { id: "overview", label: "Oggi" },
+  { id: "work", label: "Il mio lavoro", permission: "task.read" },
+  { id: "deals", label: "Trattative", permission: "crm.read" },
+  { id: "contacts", label: "Clienti", permission: "crm.read" },
+  { id: "pool", label: "Coda libera", permission: "crm.write" },
+  { id: "approvals", label: "Eccezioni", permission: "quote.write" },
   { id: "projects", label: "I miei libri", permission: "project.read" },
-  { id: "leads", label: "Contatti", permission: "crm.read" },
+  { id: "leads", label: "Richieste", permission: "crm.read" },
   { id: "quotes", label: "Preventivi", permission: "quote.read" },
   { id: "tasks", label: "Attività", permission: "task.read" },
   { id: "affiliates", label: "Affiliazione", permission: "affiliate.read" },
   { id: "commissions", label: "Commissioni", permission: "commission.read" },
   { id: "finance", label: "Finance", permission: "finance.read" },
   { id: "marketing", label: "Marketing", permission: "marketing.read" },
+  { id: "people", label: "Team e carichi", permission: "crm.assign" },
   { id: "team", label: "Persone e accessi", permission: "role.manage" },
+  { id: "crm-rules", label: "Regole CRM", permission: "crm.read" },
   { id: "settings", label: "Regole economiche", permission: "settings.manage" },
   { id: "operations", label: "Operazioni", permission: "operations.read" },
   { id: "notifications", label: "Notifiche" },
@@ -309,12 +318,15 @@ export function PlatformWorkspace({ user }: { user: Profile }) {
     if (quote && hasPermission(user.grants, "quote.read")) { setTab("quotes"); setSelected(quote); }
     else if (project && hasPermission(user.grants, "project.read")) { setTab("projects"); setSelected(project); }
     else if (lead && hasPermission(user.grants, "crm.read")) { setTab("leads"); setSelected(lead); }
+    else if (params.get("tab") && tabRules.some((t) => t.id === params.get("tab"))) setTab(params.get("tab")!);
   }, [user.grants]);
   useEffect(() => {
     let active = true;
     setLoading(true);
     setError("");
     setData({});
+    // Le viste del CRM caricano i propri dati.
+    if (CRM_TABS.includes(tab)) { setLoading(false); return; }
     platformApi<Collection>(`${tab}${tab === "leads" && crmQuery ? `?q=${encodeURIComponent(crmQuery)}` : ""}`)
       .then((r) => {
         if (active) setData(r);
@@ -599,6 +611,13 @@ export function PlatformWorkspace({ user }: { user: Profile }) {
               <TodayView data={data} />
             ) : null}
             {tab === "marketing" ? <MarketingView user={user} /> : null}
+            {tab === "work" ? <WorkView /> : null}
+            {tab === "deals" ? <DealsView user={user} /> : null}
+            {tab === "contacts" ? <ContactsView user={user} /> : null}
+            {tab === "pool" ? <PoolView /> : null}
+            {tab === "approvals" ? <ApprovalsView /> : null}
+            {tab === "people" ? <PeopleView user={user} /> : null}
+            {tab === "crm-rules" ? <CrmRulesView user={user} /> : null}
             {tab === "quotes" ? (
               <div className="platform-card">
                 {data.quotes?.map((q) => (
@@ -1266,6 +1285,7 @@ function ProjectView({ id, user }: { id: string; user: Profile }) {
           ) : null}
         </section>
       </div>
+      {user.staff ? <HandoffPanel projectId={id} user={user} /> : null}
       <section className="platform-card">
         <h2>Prossimi passi</h2>
         {detail.tasks.map((t) => (

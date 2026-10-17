@@ -160,7 +160,7 @@ export const ROLE_GRANTS: Record<Role, Grant[]> = {
   // finanziario, chiavi o utenti: solo dashboard, campagne, contatti autorizzati
   // e bozze di automazione. Attivazione, assegnazione, ricavi aggregati, export
   // e collegamenti si delegano a parte.
-  marketing: grant("organization", ["marketing.read", "marketing.campaigns", "marketing.contacts", "automation.draft"]),
+  marketing: [...grant("organization", ["marketing.read", "marketing.campaigns", "marketing.contacts", "automation.draft"]), ...grant("assigned", ["task.read", "task.write"])],
 };
 /** Permessi dell'area marketing, delegabili uno per uno a un Admin (profilo «Admin 2»). */
 export const MARKETING_PERMISSIONS: Permission[] = ["marketing.read", "marketing.campaigns", "marketing.contacts", "automation.draft", "automation.activate", "crm.assign", "revenue.aggregate", "export", "integrations.manage"];

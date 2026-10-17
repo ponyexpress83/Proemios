@@ -129,8 +129,9 @@ export async function handoffDetail(request: Request, actor: Actor, projectId: s
   if (request.method !== "GET") throw notFound();
   const { handoff, seller } = await handoffAccess(actor, projectId);
   const live = await buildHandoff(getDb(), projectId);
+  const phases = seller ? [] : await getDb().select({ id: tasks.id, phase: tasks.phase, skill: tasks.skill, title: tasks.title, status: tasks.status, claimable: tasks.claimable, dueAt: tasks.dueAt, assignee: user.name }).from(tasks).leftJoin(user, eq(user.id, tasks.assignedTo)).where(and(eq(tasks.projectId, projectId), sql`${tasks.phase} is not null`)).orderBy(tasks.createdAt);
   // Il venditore non riceve i file né le note interne di produzione: solo esito, mancanze e domande.
-  return json({ status: handoff.status, acceptedAt: handoff.acceptedAt, opsStatus: live?.project.opsStatus, opsLabel: live ? OPS_LABELS[live.project.opsStatus as OpsStatus] : null, ready: live?.ready, conditions: live?.conditions, missing: live?.missing, inconsistencies: live?.inconsistencies, package: seller ? { ...live?.package, client: undefined } : live?.package, original: { createdAt: handoff.createdAt, inconsistencies: handoff.inconsistencies, missing: handoff.missing } });
+  return json({ status: handoff.status, acceptedAt: handoff.acceptedAt, opsStatus: live?.project.opsStatus, opsLabel: live ? OPS_LABELS[live.project.opsStatus as OpsStatus] : null, ready: live?.ready, conditions: live?.conditions, missing: live?.missing, inconsistencies: live?.inconsistencies, package: seller ? { ...live?.package, client: undefined } : live?.package, original: { createdAt: handoff.createdAt, inconsistencies: handoff.inconsistencies, missing: handoff.missing }, phases });
 }
 export async function handoffItemCreate(request: Request, actor: Actor, projectId: string) {
   if (request.method !== "POST") throw notFound();
