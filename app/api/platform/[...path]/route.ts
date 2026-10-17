@@ -8,7 +8,7 @@ import { invoiceCollection, invoicePdf, invoiceRetry, invoiceStatus } from "@/li
 import { route, json, notFound, checkMutationOrigin } from "@/lib/platform/http";
 import { getActor } from "@/lib/platform/access";
 import { quotePdf } from "@/lib/platform/quote-pdf";
-import { contractDetail, contractCollection, contractPdf, contractWithdraw, contractWithdrawalHandle } from "@/lib/platform/contracts";
+import { contractDetail, contractCollection, contractPdf, contractWithdraw, contractWithdrawalHandle, quoteAttachment } from "@/lib/platform/contracts";
 import { campaignCollection, campaignDetail, campaignSpendImport, marketingContacts, marketingDashboard, automationDrafts } from "@/lib/platform/marketing";
 import { integrationCollection } from "@/lib/platform/integrations";
 import {
@@ -140,6 +140,7 @@ const handler = route(async (request) => {
       if (action === "offer") return quoteOffer(request, actor, id);
       if (action === "reminders") return quoteReminders(request, actor, id);
       if (action === "plan") return quotePlan(request, actor, id);
+      if (action === "attachment") return quoteAttachment(request, actor, id);
       break;
     case "contracts":
       if (!id) return contractCollection(request, actor);

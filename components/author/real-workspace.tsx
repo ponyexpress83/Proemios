@@ -20,8 +20,8 @@ type Notification = { id: string; title: string; body: string; href: string | nu
 const format = (v: number) => new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(v);
 const cents = (v: number) => format(v / 100);
 const date = (s: string) => new Date(s).toLocaleDateString("it-IT");
-const stages = [{ id: "brief", label: "Brief" }, { id: "estimate", label: "Preventivo" }, { id: "materials", label: "Materiali" }, { id: "editing", label: "Lavorazione" }, { id: "review", label: "Revisione" }, { id: "approved", label: "Approvazione" }, { id: "delivered", label: "Consegna" }];
-const labels: Record<string, string> = { brief: "Definizione del progetto", estimate: "Preventivo", materials: "Materiali da raccogliere", editing: "Lavorazione editoriale", review: "Revisione", approved: "Approvato", delivered: "Consegnato" };
+const stages = [{ id: "brief", label: "Brief" }, { id: "estimate", label: "Preventivo" }, { id: "materials", label: "Materiali" }, { id: "intake", label: "Verifica iniziale" }, { id: "editing", label: "Lavorazione" }, { id: "review", label: "Revisione" }, { id: "approved", label: "Approvazione" }, { id: "delivered", label: "Consegna" }];
+const labels: Record<string, string> = { brief: "Definizione del progetto", estimate: "Preventivo", materials: "Materiali da raccogliere", intake: "Verifica iniziale dei materiali", editing: "Lavorazione editoriale", review: "Revisione", approved: "Approvato", delivered: "Consegnato" };
 const fileStatus: Record<string, string> = { quarantine: "in controllo", ready: "disponibile", rejected: "respinto", deleted: "rimosso" };
 const serviceNames: Record<string, string> = { proofreading: "Correzione bozze", editing: "Editing", layout: "Impaginazione", epub: "EPUB", cover: "Copertina", kdp: "Pubblicazione KDP", isbn: "Assistenza ISBN", amazonListing: "Scheda Amazon" };
 type View = "overview" | "projects" | "quotes" | "payments" | "messages" | "notifications";

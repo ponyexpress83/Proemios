@@ -1175,6 +1175,47 @@ describe("prepared integrations: Brevo webhook and consent synchronisation", () 
     const status = await integrationStatus();
     expect(status.brevo.configured).toBe(true); expect(status.googleAds.mode).toBe("prepared"); expect(status.whatsapp.configured).toBe(false);
     expect(JSON.stringify(status)).not.toContain("brevo-synthetic");
+    // The dashboard reports only events actually received by the webhook.
+    const dashboard = await data(await call("admin", "marketing?giorni=30"));
+    const campaigns = dashboard.metrics.find((m: { key: string }) => m.key === "email_campaigns");
+    expect(campaigns.status).toBe("ok"); expect(campaigns.value).toContain("disiscritte 1"); expect(campaigns.value).toContain("consegnate 1");
     delete process.env.BREVO_API_KEY; delete process.env.BREVO_WEBHOOK_SECRET;
+    const { emailAllowed } = await import("@/lib/platform/recovery");
+    const privacyOnly = { consensoPrivacy: true, consensoMarketing: false, marketingRevokedAt: null, contactPreferences: null };
+    expect(emailAllowed(privacyOnly, "assistance")).toBe(true); expect(emailAllowed(privacyOnly, "cart")).toBe(false); expect(emailAllowed(privacyOnly, "marketing")).toBe(false);
+  });
+});
+
+describe("complex-job attachment, initial check stage and order button", () => {
+  it("binds a team PDF attachment into the order sheet before acceptance and freezes it afterwards", async () => {
+    const created = await data(await call("sellerB", `leads/${leadId}/quotes`, "POST", { input: priceInput }), 201);
+    const quote = created.quote.id as string;
+    const pdfBytes = new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0x2e, 0x34, 0x0a, 0x25, 0xe2, 0xe3, 0xcf, 0xd3, 0x0a]);
+    const upload = (actor: string, bytes: Uint8Array, name = "capitolato.pdf") => { const form = new FormData(); form.append("file", new File([bytes.slice().buffer as ArrayBuffer], name, { type: "application/pdf" })); return handler(new Request(`${origin}/api/platform/quotes/${quote}/attachment`, { method: "POST", headers: { origin, cookie: actors[actor]!.cookie }, body: form })); };
+    expect([403, 404]).toContain((await upload("authorA", pdfBytes)).status);
+    expect((await upload("sellerB", new TextEncoder().encode("plain text"), "note.txt")).status).toBe(422);
+    const saved = await data(await upload("sellerB", pdfBytes), 201);
+    expect(saved.attachment.hash).toBe(createHash("sha256").update(pdfBytes).digest("hex"));
+    const detail = await data(await call("authorA", `quotes/${quote}`));
+    expect(detail.attachment.name).toBe("capitolato.pdf");
+    const download = await call("authorA", `quotes/${quote}/attachment`);
+    expect(download.status).toBe(200); expect(new Uint8Array(await download.arrayBuffer())).toEqual(pdfBytes);
+    expect((await call("editorA", `quotes/${quote}/attachment`)).status).toBe(404);
+    const { defaultPaymentPolicy } = await import("@/lib/platform/config");
+    const policyVersion = detail.paymentPolicy.version as string;
+    const accepted = await data(await call("authorA", `quotes/${quote}/accept`, "POST", { tier: detail.packages[0].tier, version: detail.record.version, policyVersion, termsAccepted: true, orderSheetAccepted: true }));
+    const [contract] = await db.select().from(platform.contracts).where(eq(platform.contracts.id, accepted.contractId));
+    expect(contract!.orderSheet.attachment).toMatchObject({ name: "capitolato.pdf", hash: saved.attachment.hash });
+    expect((await upload("sellerB", pdfBytes)).status).toBe(409);
+    expect((await call("sellerB", `quotes/${quote}/attachment`, "DELETE")).status).toBe(409);
+    void defaultPaymentPolicy;
+  });
+  it("offers an optional initial check stage between materials and work", async () => {
+    const project = (await data(await call("owner", "projects", "POST", { title: "Verifica iniziale" }), 201)).project.id as string;
+    await data(await call("owner", `projects/${project}`, "PATCH", { stage: "materials" }));
+    const intake = await data(await call("owner", `projects/${project}`, "PATCH", { stage: "intake" }));
+    expect(intake.project.stage).toBe("intake");
+    expect((await call("owner", `projects/${project}`, "PATCH", { stage: "review" })).status).toBe(409);
+    expect((await data(await call("owner", `projects/${project}`, "PATCH", { stage: "editing" }))).project.stage).toBe("editing");
   });
 });

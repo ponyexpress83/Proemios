@@ -149,6 +149,7 @@ type QuoteDetail = {
   history: Array<{ version: number; createdAt: string }>;
   record: { version: number; selectedTier: string | null; acceptedAt: string | null; commercialState: string; expiresAt: string | null; remindersPausedAt: string | null; reviewNote: string | null; reviewRequestedAt: string | null; preferredTier: string | null; paymentPlan: { installments: number; grantedBy: string; approvedBy?: string | null; note?: string | null } | null };
   contract: { id: string; version: number; termsVersion: string; acceptedAt: string; acceptances: { terms: true; orderSheet: true; earlyStart: boolean; marketing: boolean }; consumer: boolean; withdrawalDeadline: string | null; withdrawalRequestedAt: string | null; stableCopy: boolean; pdfUrl: string } | null;
+  attachment: { name: string; hash: string; uploadedAt: string | null } | null;
   journey: string;
   attribution?: { responsible: { id: string; name: string } | null; source: { channel: string; attribution: Record<string, string> | null }; affiliate: { ruleVersion: string } | null; salesAssisted: boolean; offeredBy: { name: string } | null; commissionRule: { version: string; sellerBps: number; affiliateBps: number; assistedSalesOnly: boolean } | null };
   packages: Array<{
@@ -186,6 +187,7 @@ const stages: Record<string, string> = {
   brief: "Idea e materiali",
   estimate: "Proposta",
   materials: "Materiali",
+  intake: "Verifica iniziale",
   editing: "Lavorazione",
   review: "Da approvare",
   approved: "Approvato",
@@ -1640,6 +1642,14 @@ function QuoteView({ id, user }: { id: string; user: Profile }) {
             <small>1 = acconto e saldo unico. Oltre la soglia della regola «Cosa è acquistabile subito» serve chi gestisce le regole economiche. Le rate Klarna/Scalapay le offre Stripe sulla singola operazione e non c’entrano con questo piano.</small>
           </form>
         ) : null}
+        {hasPermission(user.grants, "quote.write") && !detail.record.acceptedAt ? (
+          <form className="platform-inline" onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); const file = f.get("file"); if (!(file instanceof File) || !file.size) return; const body = new FormData(); body.append("file", file); run(() => platformApi(`quotes/${id}/attachment`, "POST", body)); }}>
+            <label>Allegato specifico per lavori complessi (PDF, entra nella scheda d’ordine)<input name="file" type="file" accept="application/pdf,.pdf" /></label>
+            <button className="platform-button" disabled={busy}>Carica l’allegato</button>
+            {detail.attachment ? <small>Attuale: <a href={`/api/platform/quotes/${id}/attachment`}>{detail.attachment.name}</a> · <button type="button" className="platform-text-button" disabled={busy} onClick={() => run(() => platformApi(`quotes/${id}/attachment`, "DELETE"))}>rimuovi</button></small> : null}
+          </form>
+        ) : null}
+        {detail.attachment && detail.record.acceptedAt ? <p>Allegato specifico accettato: <a href={`/api/platform/quotes/${id}/attachment`}>{detail.attachment.name}</a>.</p> : null}
         {detail.record.paymentPlan ? <p>Piano: saldo in {detail.record.paymentPlan.installments} rate{detail.record.paymentPlan.approvedBy ? " (eccezione approvata)" : ""}{detail.record.paymentPlan.note ? ` · ${detail.record.paymentPlan.note}` : ""}.</p> : null}
         {detail.contract ? (
           <div className="platform-notice">

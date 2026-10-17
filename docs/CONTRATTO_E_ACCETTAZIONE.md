@@ -39,6 +39,28 @@ Nessuna clausola nuova viene generata per singolo cliente: la personalizzazione 
 
 `POST /api/platform/contracts/:id/withdraw` (solo l'autore del contratto, solo consumatori, entro la scadenza; idempotente). Effetti: data e nota registrate, promemoria del progetto sospesi, email al cliente e al team, notifica al venditore, blocco di nuovi pagamenti (`409 WITHDRAWN` al checkout). Nessun rimborso parte da solo: Finance prepara e un secondo utente con `refund.authorize` autorizza (vedi `docs/FATTURAZIONE_E_PAGAMENTI.md`). Il team chiude la pratica con `POST contracts/:id/withdrawal {outcome}` (`finance.record`).
 
+## Allegato specifico per lavori complessi
+
+Il team può caricare un PDF (brief, piano per fasi, capitolato; massimo 4 MB) su una proposta non ancora accettata: `POST quotes/:id/attachment` (`quote.write`), `GET quotes/:id/attachment` per chi può leggere la proposta, `DELETE` prima dell'accettazione. Nome, impronta SHA-256 e data entrano nella scheda d'ordine (`order_sheet.attachment`) e nel PDF del contratto; dopo l'accettazione l'allegato è immutabile (`409 ACCEPTED_QUOTE`) e il download verifica l'impronta. Il cliente lo vede e lo scarica nella pagina di conferma prima di accettare.
+
+## Revisione con la skill «avvocato commerciale digitale» (17 ottobre 2026)
+
+La skill è presente nell'ambiente ed è stata letta (riferimenti e-commerce/consumatori e privacy). Non è un avvocato abilitato: le sue indicazioni sono state usate come checklist, e ogni punto resta da far validare dal legale di fiducia. Esito applicato al codice:
+
+| Controllo | Stato nel codice | Azione |
+|---|---|---|
+| Pulsante d'ordine con dicitura inequivoca di obbligo di pagamento (art. 51, c. 2, Codice del Consumo) | prima: «Accetta e paga … ora» / «Accetta la proposta» | ora: «Ordine con obbligo di pagare: € … ora» / «Ordine con obbligo di pagare» |
+| Informativa sul recesso + modulo tipo (allegato I, parte B) | informativa in /termini e nella scheda; modulo assente | modulo tipo inserito nel PDF del contratto per i consumatori, con i dati del fornitore |
+| Dati del venditore accessibili (D.lgs. 70/2003) | presenti in /termini, /privacy e nel contratto | nessuna |
+| Prezzo totale con imposte prima dell'ordine | scheda d'ordine con imponibile, IVA, totale, acconto e rate | nessuna |
+| Foro del consumatore inderogabile | /termini e condizioni versionate | nessuna |
+| Clausole vessatorie (artt. 33 ss.): limitazione di responsabilità, decadenze | testo già pubblicato (limite al corrispettivo, riscontro entro 15 giorni) | da far valutare: la limitazione di responsabilità e l'approvazione tacita delle consegne possono essere contestate verso un consumatore |
+| Base giuridica delle email di recupero | prima: scopo `cart` ammesso con la sola informativa | ora: `cart` e `marketing` richiedono consenso esplicito; il primo passo predefinito ha scopo `assistance` (misure precontrattuali sulla richiesta aperta) |
+| Garanzia legale | pertinente ai beni; per i servizi vale la diligenza professionale | nessuna |
+| Consumatore/impresa | dedotto dal profilo di fatturazione (partita IVA) | da validare (vedi punto 1 sotto) |
+
+Nessun testo legale nuovo è stato pubblicato: il modulo tipo è il modello di legge, e la dicitura del pulsante è una formula di legge.
+
 ## Punti da validare con il consulente legale
 
 1. **Qualifica consumatore/impresa** derivata dal profilo di fatturazione (partita IVA = impresa). Un professionista che acquista per fini estranei all'attività è trattato da impresa: decidere se chiedere una dichiarazione esplicita.

@@ -14,6 +14,7 @@ import {
   type OrderSheet,
   type ContractAcceptances,
   type PaymentPlan,
+  leadActivities,
 } from "@/db/platform-schema";
 import type { QuotePackage } from "@/lib/pricing";
 import { BRAND } from "@/config/brand";
@@ -24,7 +25,7 @@ import { quoteAccess } from "./crm";
 import { audit, demand, type Actor } from "./access";
 import { readBody, json, notFound, PlatformError } from "./http";
 import { SimplePdf, euroCents } from "./pdf";
-import { storePrivate, readPrivate, storageConfigured } from "./storage";
+import { storePrivate, readPrivate, deletePrivate, storageConfigured, inspectUpload } from "./storage";
 import { protectMailHtml } from "./mail";
 import { impaginaEmail, esc, destinatarioInterno } from "@/lib/email";
 import { installmentSchedule } from "./schedule";
@@ -59,6 +60,7 @@ export function buildOrderSheet(input: {
   pkg: QuotePackage;
   quoteInput: { projectType: string; textState: string; wordCount: number; singleService?: string; urgency?: string };
   plan: PaymentPlan | null;
+  attachment?: { name: string; hash: string; uploadedAt: string } | null;
   customer: { name: string; kind: string; taxCode: string | null; vatNumber: string | null; street: string; postcode: string; city: string; province: string | null; country: string } | null;
   email: string;
 }): OrderSheet {
@@ -90,8 +92,16 @@ export function buildOrderSheet(input: {
     supplier: { name: TITOLARE.ragioneSociale, legalForm: TITOLARE.formaGiuridica, address: TITOLARE.sedeLegale, vat: TITOLARE.partitaIva, email: BRAND.email.general },
     earlyStartText: ORDER_SHEET_TEXTS.earlyStart,
     withdrawalText: ORDER_SHEET_TEXTS.withdrawal,
+    attachment: input.attachment ?? null,
   };
 }
+/** Testo del modulo tipo di recesso previsto dal Codice del Consumo, compilato con i dati del fornitore. */
+const WITHDRAWAL_FORM = [
+  `Destinatario: ${TITOLARE.ragioneSociale}, ${TITOLARE.sedeLegale}, ${BRAND.email.general}, PEC ${TITOLARE.pec}.`,
+  "Con la presente io/noi (*) notifico/notifichiamo (*) il recesso dal mio/nostro (*) contratto di vendita dei seguenti beni/servizi (*): ____________",
+  "Ordinato il (*)/ricevuto il (*): ____________ · Nome del/dei consumatore(i): ____________ · Indirizzo del/dei consumatore(i): ____________",
+  "Firma del/dei consumatore(i) (solo se il presente modulo è notificato in versione cartacea): ____________ · Data: ____________ · (*) Cancellare la dicitura inutile.",
+];
 export async function renderContractPdf(sheet: OrderSheet, meta: { acceptedAt: Date; acceptedBy: string; acceptances: ContractAcceptances; consumer: boolean; ip: string | null; termsHash: string; sheetHash: string }) {
   const pdf = await SimplePdf.create();
   const terms = termsSnapshot();
@@ -115,6 +125,7 @@ export async function renderContractPdf(sheet: OrderSheet, meta: { acceptedAt: D
   pdf.line(`Consegne: ${sheet.deliveries}`);
   pdf.line(`Tempi: ${sheet.deadlines}`);
   pdf.line(`Avvio: ${sheet.startConditions}`);
+  if (sheet.attachment) pdf.line(`Allegato specifico: «${sheet.attachment.name}» del ${new Date(sheet.attachment.uploadedAt).toLocaleDateString("it-IT")}, impronta SHA-256 ${sheet.attachment.hash}. Fa parte integrante della scheda d'ordine.`);
   pdf.space();
   pdf.line("Corrispettivo", { heading: true });
   const a = sheet.amounts;
@@ -128,7 +139,11 @@ export async function renderContractPdf(sheet: OrderSheet, meta: { acceptedAt: D
   pdf.line(`- Avvio anticipato durante il periodo di recesso: ${meta.acceptances.earlyStart ? "richiesto espressamente" : "non richiesto"}.`, { indent: 8 });
   if (meta.acceptances.earlyStart) pdf.line(sheet.earlyStartText, { indent: 16 });
   pdf.line(`- Comunicazioni informative facoltative: ${meta.acceptances.marketing ? "consenso dato" : "nessun consenso"} (revocabile in qualsiasi momento, non incide sul contratto).`, { indent: 8 });
-  if (meta.consumer) pdf.line(`Recesso: ${sheet.withdrawalText}`);
+  if (meta.consumer) {
+    pdf.line(`Recesso: ${sheet.withdrawalText}`);
+    pdf.line("Modulo di recesso tipo (allegato I, parte B, Codice del Consumo). Da compilare e inviare solo se si intende recedere:", { size: 9 });
+    for (const row of WITHDRAWAL_FORM) pdf.line(row, { size: 9, indent: 8 });
+  }
   pdf.line(`Impronte SHA-256 · scheda d'ordine ${meta.sheetHash} · condizioni generali ${meta.termsHash}`, { size: 8 });
   pdf.line("Documento registrato elettronicamente con le accettazioni sopra indicate. Non è una firma elettronica qualificata.", { size: 8 });
   pdf.space(20);
@@ -257,6 +272,48 @@ export async function contractWithdrawalHandle(request: Request, actor: Actor, i
   const [updated] = await getDb().update(contracts).set({ withdrawalHandledAt: new Date(), withdrawalOutcome: body.outcome, withdrawalNote: body.note ?? contract.withdrawalNote }).where(eq(contracts.id, id)).returning();
   await audit(actor, "contract.withdrawal-handled", "contract", id, { outcome: body.outcome });
   return json({ contract: contractView(updated!) });
+}
+/**
+ * Allegato specifico per lavori complessi: un PDF del team (brief, piano per
+ * fasi, capitolato) che entra nella scheda d'ordine con nome e impronta e che
+ * il cliente legge e scarica prima di accettare. Solo prima dell'accettazione,
+ * solo PDF, massimo 4 MB; dopo l'accettazione resta immutabile.
+ */
+export async function quoteAttachment(request: Request, actor: Actor, id: string) {
+  if (request.method === "GET") {
+    const { record } = await quoteAccess(actor, id, "quote.read");
+    if (!record.attachmentKey || !record.attachmentName) throw notFound();
+    const chunks: Uint8Array[] = [];
+    const reader = (await readPrivate(record.attachmentKey)).getReader();
+    for (;;) { const { done, value } = await reader.read(); if (done) break; chunks.push(value); }
+    const bytes = Buffer.concat(chunks);
+    if (record.attachmentHash && sha256(bytes) !== record.attachmentHash) throw new PlatformError(409, "ATTACHMENT_MISMATCH", "L'allegato archiviato non corrisponde all'impronta registrata.");
+    await audit(actor, "quote.attachment-downloaded", "quote", id);
+    return new Response(new Uint8Array(bytes), { headers: { "Content-Type": "application/pdf", "Content-Disposition": `attachment; filename*=UTF-8''${encodeURIComponent(record.attachmentName)}`, "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff", "X-Robots-Tag": "noindex, nofollow" } });
+  }
+  const { record, quote } = await quoteAccess(actor, id, "quote.write");
+  if (record.acceptedAt) throw new PlatformError(409, "ACCEPTED_QUOTE", "L'allegato fa parte del contratto accettato: per cambiarlo serve una nuova proposta.");
+  if (request.method === "DELETE") {
+    if (record.attachmentKey) await deletePrivate(record.attachmentKey).catch(() => undefined);
+    await getDb().update(quoteRecords).set({ attachmentKey: null, attachmentName: null, attachmentHash: null, attachmentUploadedAt: null }).where(eq(quoteRecords.quoteId, id));
+    await audit(actor, "quote.attachment-removed", "quote", id);
+    return json({ ok: true });
+  }
+  if (request.method !== "POST") throw notFound();
+  if (Number(request.headers.get("content-length")) > 4.5 * 1024 * 1024) throw new PlatformError(413, "FILE_TOO_LARGE", "L'allegato supera i 4 MB.");
+  const form = await request.formData(), uploaded = form.get("file");
+  if (!(uploaded instanceof File)) throw new PlatformError(422, "MISSING_FILE", "Seleziona un file PDF.");
+  if (uploaded.size > 4 * 1024 * 1024) throw new PlatformError(413, "FILE_TOO_LARGE", "L'allegato supera i 4 MB.");
+  const bytes = new Uint8Array(await uploaded.arrayBuffer());
+  const inspection = inspectUpload(uploaded.name, bytes);
+  if (inspection.mime !== "application/pdf") throw new PlatformError(422, "INVALID_FILE_TYPE", "L'allegato specifico deve essere un PDF.");
+  const key = await storePrivate(`quote-attachments-${id}`, bytes, "application/pdf");
+  if (record.attachmentKey) await deletePrivate(record.attachmentKey).catch(() => undefined);
+  const hash = sha256(bytes), uploadedAt = new Date();
+  await getDb().update(quoteRecords).set({ attachmentKey: key, attachmentName: uploaded.name, attachmentHash: hash, attachmentUploadedAt: uploadedAt, salesAssisted: true }).where(eq(quoteRecords.quoteId, id));
+  await getDb().insert(leadActivities).values({ leadId: quote.leadId, actorId: actor.id, kind: "negotiation", body: `Allegato specifico «${uploaded.name}» aggiunto alla proposta.`, outcome: hash.slice(0, 12) });
+  await audit(actor, "quote.attachment-added", "quote", id, { name: uploaded.name, hash });
+  return json({ attachment: { name: uploaded.name, hash, uploadedAt } }, 201);
 }
 /** Dati del cliente per la scheda d'ordine: profilo di fatturazione se c'è, altrimenti solo l'email. */
 export async function customerForSheet(tx: Tx, userId: string) {

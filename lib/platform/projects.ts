@@ -48,7 +48,7 @@ const projectEdit = z
     title: z.string().trim().min(3).max(180).optional(),
     description: z.string().max(5000).optional(),
     stage: z
-      .enum(["brief", "estimate", "materials", "editing", "review", "approved", "delivered"])
+      .enum(["brief", "estimate", "materials", "intake", "editing", "review", "approved", "delivered"])
       .optional(),
     dueAt: z.string().datetime().nullable().optional(),
   })
@@ -56,7 +56,10 @@ const projectEdit = z
 const steps: Record<string, string[]> = {
   brief: ["estimate", "materials"],
   estimate: ["materials"],
-  materials: ["editing"],
+  // Verifica iniziale dei materiali (facoltativa): il team controlla ciò che è
+  // arrivato prima di avviare la lavorazione; si può saltare.
+  materials: ["intake", "editing"],
+  intake: ["editing", "materials"],
   editing: ["review"],
   review: ["editing"],
   approved: ["delivered", "review"],
