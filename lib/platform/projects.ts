@@ -441,6 +441,10 @@ export async function projectUpload(request: Request, actor: Actor, id: string) 
           .update(projects)
           .set({ stage: "review", updatedAt: new Date() })
           .where(eq(projects.id, id));
+      // Materiali arrivati (e già controllati): la produzione può assegnare il lavoro.
+      if (kind === "manuscript" && saved!.status === "ready")
+        await tx.update(projects).set({ opsStatus: "ready_for_assignment", updatedAt: new Date() }).where(and(eq(projects.id, id), eq(projects.opsStatus, "waiting_materials")));
+      if (kind === "delivery") await tx.update(projects).set({ opsStatus: "client_review" }).where(and(eq(projects.id, id), eq(projects.opsStatus, "quality_check")));
       return saved!;
     });
   } catch (error) {
@@ -460,6 +464,7 @@ export async function projectUpload(request: Request, actor: Actor, id: string) 
           .set({ status: "ready" })
           .where(eq(projectFiles.id, file.id));
         file.status = "ready";
+        if (kind === "manuscript") await getDb().update(projects).set({ opsStatus: "ready_for_assignment", updatedAt: new Date() }).where(and(eq(projects.id, id), eq(projects.opsStatus, "waiting_materials")));
       }
     } catch (error) {
       if (error instanceof PlatformError && error.code === "UNSAFE_FILE") {

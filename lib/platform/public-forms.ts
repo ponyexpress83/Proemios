@@ -1,7 +1,7 @@
 import { randomBytes, createHash } from "node:crypto";
 import { eq, and, sql } from "drizzle-orm";
 import { z } from "zod";
-import { sanitizeAttribution, scoreLead } from "@/lib/attribution";
+import { sanitizeAttribution, scoreLead, type LeadAttribution } from "@/lib/attribution";
 import { syncBrevoContact } from "./brevo";
 import { getDb } from "@/db";
 import { leads, quotes, agencyLeads } from "@/db/schema";
@@ -32,6 +32,14 @@ import { getSetting, resolvePaymentPolicy, resolvePurchaseRule } from "./crm";
 import { initialCommercialState } from "./commercial";
 import { recordFunnel } from "./funnel";
 import { assignInboundLead } from "./inbound-routing";
+import { routeLead } from "./crm-routing";
+
+/** Tipo di origine dalla sessione: campagna, social o modulo del sito. */
+export function sourceKindOf(attribution: LeadAttribution | null): "campaign" | "social" | "form" {
+  if (!attribution) return "form";
+  if (attribution.fbclid || /social|instagram|facebook|tiktok|linkedin/i.test(`${attribution.utmMedium ?? ""} ${attribution.utmSource ?? ""}`)) return attribution.campaignId || attribution.utmMedium === "cpc" || attribution.utmMedium === "paid" ? "campaign" : "social";
+  return attribution.gclid || attribution.campaignId || attribution.utmCampaign ? "campaign" : "form";
+}
 import { protectMailHtml } from "./mail";
 
 type Tx = Parameters<Parameters<ReturnType<typeof getDb>["transaction"]>[0]>[0];
@@ -113,10 +121,14 @@ export async function publicQuote(request: Request) {
         sourceDetail: attribution?.utmCampaign ?? attribution?.utmSource ?? null,
         marketingConsentAt: contatto.consensoMarketing ? new Date() : null,
         contactPreferences: { email: true, phone: ricontatto && Boolean(contatto.telefono), whatsapp: false, sms: false },
+        sourceKind: sourceKindOf(attribution),
+        priority: body.input.urgency === "prioritaria" ? "high" : "normal",
+        requiredSkill: body.input.singleService ?? null,
         leadScore: scoreLead({ hasPhone: Boolean(contatto.telefono), wordCount: body.input.wordCount, projectType: body.input.projectType, urgency: body.input.urgency, requestedServices: body.input.requestedServices.length, noteLength: contatto.note?.length }),
       })
       .returning();
-    const seller = await assignInboundLead(tx, lead!.id);
+    const routed = await routeLead(tx, lead!.id, { notifyAssignee: false });
+    const seller = routed.assignee;
     const [quote] = await tx
       .insert(quotes)
       .values({
@@ -132,6 +144,7 @@ export async function publicQuote(request: Request) {
       .insert(quoteRecords)
       .values({
         quoteId: quote!.id,
+        dealId: routed.dealId,
         pricingVersion,
         taxPolicy: tax,
         commissionPolicy: rule.success ? rule.data : null,
@@ -242,6 +255,7 @@ export async function publicContact(request: Request, agency = false) {
         marketingConsentAt: contact.success && contact.data.consensoMarketing ? new Date() : null,
         attribution: contact.success ? sanitizeAttribution(contact.data.attribution) : null,
         sourceDetail: contact.success ? sanitizeAttribution(contact.data.attribution)?.utmCampaign ?? null : null,
+        sourceKind: agency ? "partner" : sourceKindOf(contact.success ? sanitizeAttribution(contact.data.attribution) : null),
         note: message,
       })
       .returning();

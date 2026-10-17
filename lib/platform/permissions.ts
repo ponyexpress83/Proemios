@@ -66,6 +66,13 @@ export const PERMISSIONS = [
   "automation.activate", // attivazione delle automazioni
   "revenue.aggregate", // ricavi aggregati (mai il dettaglio finanziario)
   "integrations.manage", // stato e configurazione dei collegamenti esterni (solo amministratori)
+  /** CRM esteso */
+  "crm.merge", // unione controllata di schede duplicate
+  "quote.approve", // approvazione delle eccezioni (sconti oltre soglia, voci personalizzate, rate)
+  "attribution.correct", // correzione autorizzata e motivata di un'attribuzione
+  "support.read",
+  "support.write",
+  "report.read", // report su tempi di risposta, conversione, carico e ritardi
 ] as const;
 export type Permission = (typeof PERMISSIONS)[number];
 export type Scope = "own" | "assigned" | "organization";
@@ -99,6 +106,9 @@ export const ROLE_GRANTS: Record<Role, Grant[]> = {
     "quote.read",
     "quote.write",
     "quote.send",
+    "support.read",
+    "support.write",
+    "report.read",
   ]),
   author: grant("own", [
     ...projectPermissions,
@@ -121,6 +131,8 @@ export const ROLE_GRANTS: Record<Role, Grant[]> = {
     "file.deliver",
     "message.internal",
     "task.write",
+    "support.read",
+    "support.write",
   ]),
   seller: grant("assigned", [
     "crm.read",
@@ -131,6 +143,8 @@ export const ROLE_GRANTS: Record<Role, Grant[]> = {
     "task.read",
     "task.write",
     "commission.read",
+    "support.read",
+    "support.write",
   ]),
   affiliate: grant("own", ["affiliate.read", "commission.read"]),
   finance: grant("organization", [
@@ -140,12 +154,13 @@ export const ROLE_GRANTS: Record<Role, Grant[]> = {
     "commission.write",
     "quote.read",
     "export",
+    "report.read",
   ]),
   // Marketing non vede manoscritti, documenti editoriali, fatture, dettaglio
   // finanziario, chiavi o utenti: solo dashboard, campagne, contatti autorizzati
   // e bozze di automazione. Attivazione, assegnazione, ricavi aggregati, export
   // e collegamenti si delegano a parte.
-  marketing: grant("organization", ["marketing.read", "marketing.campaigns", "marketing.contacts", "automation.draft"]),
+  marketing: [...grant("organization", ["marketing.read", "marketing.campaigns", "marketing.contacts", "automation.draft"]), ...grant("assigned", ["task.read", "task.write"])],
 };
 /** Permessi dell'area marketing, delegabili uno per uno a un Admin (profilo «Admin 2»). */
 export const MARKETING_PERMISSIONS: Permission[] = ["marketing.read", "marketing.campaigns", "marketing.contacts", "automation.draft", "automation.activate", "crm.assign", "revenue.aggregate", "export", "integrations.manage"];

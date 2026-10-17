@@ -31,7 +31,11 @@ import { requireBillingProfile, getBillingProfile, type BillingProfile } from ".
 import { queueInvoice, invoiceView, issueQueuedInvoices } from "./invoices";
 import { ficConfigured, ficSendsToSdi } from "./fic";
 import { recordFunnel } from "./funnel";
-import { billingProfiles, invoices, projects, tasks, contracts } from "@/db/platform-schema";
+import { billingProfiles, invoices, projects, tasks, contracts, leadActivities } from "@/db/platform-schema";
+import { crmDeals } from "@/db/crm-schema";
+import { commissionBeneficiaries } from "./crm-attribution";
+import { createHandoff } from "./crm-handoff";
+import { emitEvent } from "./crm-relations";
 
 /**
  * Metodi di pagamento offerti nel Checkout. Vuoto: decide la Dashboard di
@@ -255,6 +259,11 @@ async function recordPayment(tx: Tx, session: Stripe.Checkout.Session) {
     .update(quotes)
     .set({ stato: allPaid ? "won" : "deposit_paid", updatedAt: new Date() })
     .where(eq(quotes.id, order.quoteId));
+  // La trattativa è vinta con l'incasso verificato: esce dal carico del venditore.
+  if (record?.dealId) {
+    await tx.update(crmDeals).set({ closedAt: new Date(), lastActivityAt: new Date(), updatedAt: new Date() }).where(and(eq(crmDeals.id, record.dealId), sql`${crmDeals.closedAt} is null`));
+    await emitEvent(tx, "payment.confirmed", intent, order.quoteId, { quoteId: order.quoteId, dealId: record.dealId, kind: order.kind, sequence: order.sequence, amountCents: order.amountCents, currency: order.currency });
+  }
   const projectCreated = quote ? await ensureProject(tx, { quoteId: order.quoteId, authorId: order.authorId, input: quote.input as { projectType: string; singleService?: string }, referentId: record?.acceptedSellerId ?? null, depositPaid: paidItem("deposit", 1), allPaid }) : null;
   if (rule.success && tax.success && quote) {
     const net =
@@ -268,9 +277,15 @@ async function recordPayment(tx: Tx, session: Stripe.Checkout.Session) {
     // Vendita assistita o autonoma: la regola congelata sulla proposta decide
     // se la sola assegnazione del contatto dà diritto alla provvigione.
     const sellerEligible = !rule.data.assistedSalesOnly || Boolean(record?.salesAssisted);
+    // L'istantanea dell'attribuzione (all'accettazione) prevale: un conflitto sospende la provvigione del venditore.
+    const snapshot = await commissionBeneficiaries(tx, quote.id, rule.data.assistedSalesOnly);
+    if (snapshot?.status === "conflict" && record?.dealId) {
+      const [origin] = await tx.select({ leadId: crmDeals.originLeadId }).from(crmDeals).where(eq(crmDeals.id, record.dealId));
+      if (origin?.leadId) await tx.insert(leadActivities).values({ leadId: origin.leadId, dealId: record.dealId, kind: "attribution", body: "Incasso registrato: provvigione del venditore sospesa finché l'attribuzione non viene decisa.", outcome: "withheld", eventKey: `withheld:${intent}` }).onConflictDoNothing();
+    }
     for (const b of [
-      { id: sellerEligible ? record?.acceptedSellerId : null, bps: rule.data.sellerBps, kind: "seller" },
-      { id: referral?.affiliateId, bps: rule.data.affiliateBps, kind: "affiliate" },
+      { id: snapshot ? snapshot.seller : sellerEligible ? record?.acceptedSellerId : null, bps: rule.data.sellerBps, kind: "seller" },
+      { id: snapshot ? snapshot.affiliate : referral?.affiliateId, bps: rule.data.affiliateBps, kind: "affiliate" },
     ])
       if (b.id && b.id !== order.authorId && b.bps > 0)
         await tx
@@ -374,6 +389,8 @@ async function ensureProject(tx: Tx, input: { quoteId: string; authorId: string;
   await tx.insert(tasks).values({ projectId: project.id, assignedTo: input.authorId, createdBy: input.authorId, title: "Carica il manoscritto e i materiali nell'area autore", internal: false, dueAt: new Date(Date.now() + 7 * 86400_000) });
   await tx.insert(notifications).values({ userId: input.authorId, title: "Il tuo progetto è aperto", body: started ? "Carica il manoscritto e i materiali: la lavorazione parte da lì." : "Carica intanto il manoscritto: la lavorazione parte con il saldo, come previsto per questo servizio.", href: `/area-autore?progetto=${project.id}` });
   if (input.referentId) await tx.insert(notifications).values({ userId: input.referentId, title: "Nuovo progetto da seguire", body: `${author?.name ?? "L'autore"} ha pagato: il progetto è aperto in fase materiali.`, href: `/spazio?progetto=${project.id}` });
+  // Pacchetto di passaggio alla produzione: una volta sola, dai fatti registrati (contratto, ordine, incasso).
+  await createHandoff(tx, project.id);
   return project;
 }
 async function recordRefund(tx: Tx, refund: Stripe.Refund) {

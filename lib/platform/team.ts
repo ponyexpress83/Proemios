@@ -13,6 +13,7 @@ import {
   auditEvents,
   accountPreferences,
 } from "@/db/platform-schema";
+import { teamProfiles } from "@/db/crm-schema";
 import {
   PERMISSIONS,
   ROLES,
@@ -39,7 +40,7 @@ const membershipInput = z.object({
   role: z.enum(ROLES),
   grants: z.array(grantSchema).max(100).nullable().default(null),
 });
-function validateDelegation(actor: Actor, role: Role, grants: Grant[] | null) {
+export function validateDelegation(actor: Actor, role: Role, grants: Grant[] | null) {
   if (role === "admin" && grants === null) throw new PlatformError(422, "EXPLICIT_GRANTS_REQUIRED", "Scegli esplicitamente moduli e ambiti per questo admin.");
   if (role === "owner" && !actor.roles.includes("owner")) throw forbidden();
   if (role === "owner" && grants !== null)
@@ -110,14 +111,23 @@ export async function invitationCollection(request: Request, actor: Actor) {
       })
       .strict(),
   );
+  const created = await createInvitation(actor, { ...body, template: null, profile: null });
+  return json(created, 201);
+}
+/** Crea e spedisce un invito personale: stessi controlli per l'invito libero e per i modelli di ruolo. */
+export async function createInvitation(actor: Actor, body: { email: string; role: Role; grants: Grant[] | null; projectIds: string[]; template: string | null; profile: Record<string, unknown> | null; label?: string }) {
   validateDelegation(actor, body.role, body.grants);
   for (const id of body.projectIds) await projectAccess(actor, id, "project.assign");
   const token = randomBytes(32).toString("base64url");
   const [invitation] = await getDb()
     .insert(staffInvitations)
     .values({
-      ...body,
       email: body.email.toLowerCase(),
+      role: body.role,
+      grants: body.grants,
+      projectIds: body.projectIds,
+      template: body.template,
+      profile: body.profile,
       tokenHash: hashToken(token),
       invitedBy: actor.id,
       expiresAt: new Date(Date.now() + 48 * 3600_000),
@@ -129,7 +139,7 @@ export async function invitationCollection(request: Request, actor: Actor) {
       subject: "Invito al team Proemios",
       html: impaginaEmail(
         "Il tuo invito a Proemios",
-        `<p>Hai ricevuto un invito personale per il ruolo ${esc(body.role)}.</p><p><a href="${esc(`${appOrigin()}/invito?token=${token}`)}">Accetta l'invito</a></p><p>Crea o usa il tuo account con questo indirizzo verificato. Il collegamento scade tra 48 ore. Per i ruoli del team è richiesta la verifica in due passaggi.</p>`,
+        `<p>Hai ricevuto un invito personale per il ruolo ${esc(body.label ?? body.role)}.</p><p><a href="${esc(`${appOrigin()}/invito?token=${token}`)}">Accetta l'invito</a></p><p>Crea o usa il tuo account con questo indirizzo verificato. Il collegamento scade tra 48 ore. Per i ruoli del team è richiesta la verifica in due passaggi.</p>`,
       ),
     });
   } catch {
@@ -139,9 +149,10 @@ export async function invitationCollection(request: Request, actor: Actor) {
       .where(eq(staffInvitations.id, invitation!.id));
     throw new PlatformError(503, "MAIL_FAILED", "L'invito non è stato inviato. Riprova.");
   }
-  await audit(actor, "invitation.created", "invitation", invitation!.id, { role: body.role });
-  return json({ id: invitation!.id, emailStatus: "queued" }, 201);
+  await audit(actor, "invitation.created", "invitation", invitation!.id, { role: body.role, template: body.template });
+  return { id: invitation!.id, emailStatus: "queued" };
 }
+
 export async function invitationRevoke(request: Request, actor: Actor, id: string) {
   if (request.method !== "DELETE") throw notFound();
   demand(actor, "invite.manage");
@@ -198,6 +209,11 @@ export async function invitationAccept(request: Request, actor: Actor) {
       });
     for (const projectId of invitation.projectIds)
       await tx.insert(projectMembers).values({ projectId, userId: actor.id }).onConflictDoNothing();
+    // Profilo operativo scelto con il modello di ruolo (team, lingue, competenze, capacità).
+    if (invitation.profile) {
+      const profile = invitation.profile as Partial<typeof teamProfiles.$inferInsert>;
+      await tx.insert(teamProfiles).values({ ...profile, userId: actor.id, updatedBy: invitation.invitedBy }).onConflictDoUpdate({ target: teamProfiles.userId, set: { ...profile, deactivatedAt: null, deactivationReason: null, updatedBy: invitation.invitedBy, updatedAt: new Date() } });
+    }
     if (invitation.role === "affiliate")
       await tx
         .insert(affiliateProfiles)

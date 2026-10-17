@@ -14,7 +14,7 @@ function encryptionKey() {
 export async function protectMailHtml(html: string) {
   return `jwe:${await new CompactEncrypt(new TextEncoder().encode(html)).setProtectedHeader({ alg: "dir", enc: "A256GCM" }).encrypt(encryptionKey())}`;
 }
-async function revealMailHtml(html: string) {
+export async function revealMailHtml(html: string) {
   if (!html.startsWith("jwe:")) return html;
   const result = await compactDecrypt(html.slice(4), encryptionKey());
   return new TextDecoder().decode(result.plaintext);

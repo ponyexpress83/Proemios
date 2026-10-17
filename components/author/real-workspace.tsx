@@ -219,7 +219,18 @@ function ProjectDetail({ detail, linkedQuote, busy, action, onPayments, onMessag
         <h2>Attività</h2>{detail.tasks.length ? detail.tasks.map(t => <p key={t.id}>{t.done ? "✓" : "○"} {t.title}</p>) : <p>Non ci sono attività aperte.</p>}
         <button className="author-text-link" onClick={onMessages}><MessageSquare size={16} /> Scrivi al team su questo progetto →</button></article>
     </div>
+    <SupportRequest projectId={detail.project.id} busy={busy} action={action} />
   </>;
+}
+/** Richiesta di assistenza collegata al progetto e all'ordine: arriva a chi segue la produzione o la vendita. */
+function SupportRequest({ projectId, busy, action }: { projectId: string; busy: boolean; action: (fn: () => Promise<unknown>) => Promise<void> }) {
+  const [sent, setSent] = useState(false);
+  return <article className="workspace-card"><h2>Serve aiuto?</h2>
+    {sent ? <p role="status">Richiesta inviata: la trovi nella cronologia del progetto e ti rispondiamo qui.</p> : <form className="author-upload" onSubmit={e => { e.preventDefault(); const f = new FormData(e.currentTarget); action(async () => { await platformApi("crm/support", "POST", { projectId, subject: String(f.get("subject")), body: String(f.get("body")) }); setSent(true); }); }}>
+      <label>Oggetto<input name="subject" required minLength={3} maxLength={200} /></label>
+      <label>Descrivi la richiesta<textarea name="body" rows={3} required minLength={5} maxLength={5000} /></label>
+      <button type="submit" className="author-cta" disabled={busy}>Invia la richiesta</button>
+    </form>}</article>;
 }
 
 function AuthorMessages({ projects, initial, onRead }: { projects: Project[]; initial?: string; onRead: () => void }) {
