@@ -11,10 +11,11 @@ Verifica fatta il 17/10/2026 dalle deployment di GitHub (integrazione Vercel), s
 | Cosa | Stato verificato | Fonte |
 |---|---|---|
 | Merge della PR #23 | commit `83d9edb` su `release/team-demo-2026-10-14` | git |
+| Merge della PR #24 (questo lavoro) | commit `62f9b2a` su `release/team-demo-2026-10-14`, anteprima di Vercel generata dal ramo | git, API deployment di GitHub |
 | Deployment che contiene il merge | **solo Preview**: https://proemios-bljemb8s4-valerio-gestri-s-projects.vercel.app (stato «success», commit `83d9edb`) | API deployment di GitHub |
 | Produzione | ultima deployment di produzione: commit `16fe6960` del 6/10/2026, **senza il CRM** | API deployment di GitHub |
 | Database della Preview | **non verificabile da qui**: nessun accesso a Vercel o al database. Dopo l'accesso, lo mostra **Impostazioni CRM → Diagnostica → Database e migrazioni** | — |
-| Migrazioni | la build **non** applica le migrazioni. Servono `0012_crm_relations` (CRM) e `0013_automation_runs` (registro delle attività automatiche) sul database usato dalla Preview: `npm run db:migrate` con il `DATABASE_URL` di quell'ambiente | `package.json`, `drizzle/` |
+| Migrazioni | servono `0012_crm_relations` (CRM) e `0013_automation_runs` (registro delle attività automatiche) sul database usato dalla Preview: `npm run db:migrate` con il `DATABASE_URL` di quell'ambiente, oppure `RUN_MIGRATIONS_ON_PREVIEW=1` con ambito *Preview* (lo script `vercel-build` migra solo in anteprima e solo se il database è separato da quello di produzione; in produzione si rifiuta). Vedi `docs/CRM_COLLAUDO.md` | `package.json`, `scripts/vercel-build.mjs`, `drizzle/` |
 | Raggiungibilità della Preview da questo ambiente | **bloccata**: la politica di rete dell'ambiente di lavoro rifiuta `*.vercel.app` (CONNECT 403) | prova con curl |
 | Ramo predefinito del repository | `claude/kalamos-studio-phase-1-6z6xyw` (rilevante per il workflow GitHub Actions, §5) | API GitHub |
 
@@ -69,7 +70,7 @@ Database e migrazioni, email e mittente, pagamenti (modalità prova/reale dedott
 
 ### In locale (eseguite)
 - `tsc --noEmit`, `eslint .`: puliti. `npm run build`: riuscita.
-- Test automatici: **190 superati su 190** (13 file). Nuovi test della messa in uso nel blocco «putting the CRM into use» di `tests/crm.integration.test.ts` e in `tests/crm-core.test.ts`. Database PGlite con le migrazioni reali, autenticazione reale (Better Auth + TOTP), posta in cartella locale, Stripe simulato con eventi firmati a mano.
+- Test automatici: **190 superati su 190** (13 file). In una delle prime esecuzioni complete 5 test del file CRM sono falliti senza che l'errore venisse salvato; nelle 13 esecuzioni complete successive (con i log salvati) tutti i test sono passati. Nuovi test della messa in uso nel blocco «putting the CRM into use» di `tests/crm.integration.test.ts` e in `tests/crm-core.test.ts`. Database PGlite con le migrazioni reali, autenticazione reale (Better Auth + TOTP), posta in cartella locale, Stripe simulato con eventi firmati a mano.
 - Browser (Chromium) su server locale con Postgres locale e utenti di prova `@example.test`, desktop 1280 px e telefono (iPhone 13): configurazione guidata, anteprima e approvazione del marchio, tutte le sezioni delle impostazioni, simulatore, invito di un venditore di prova; nessuno scorrimento orizzontale, nessun errore in console; un venditore vede le impostazioni in sola lettura e non vede la configurazione guidata.
 
 Inviti verificati end-to-end per i 7 modelli (venditore, Marketing, Admin con Marketing, Admin gestione team, operatore, collaboratore esterno, responsabile di produzione), ciascuno con destinatario di prova: invito → email nella cartella di prova → registrazione → accesso rifiutato finché l'email non è verificata → link di verifica → un altro account non può usare l'invito → accettazione → sessioni chiuse → nuovo accesso → 428 «attiva la verifica in due passaggi» → TOTP → permessi controllati sugli endpoint del server.
@@ -84,6 +85,8 @@ Inviti verificati end-to-end per i 7 modelli (venditore, Marketing, Admin con Ma
 | D. Nessun venditore idoneo → coda monitorata → assegnazione successiva | ✅ «queues requests when nobody is eligible…» | non eseguito |
 | E. Operatore → solo materiali autorizzati → avanzamento visibile al cliente | ✅ «suggests and assigns operators…», «hands off with missing materials…» | non eseguito |
 | F. Cron ripetuto e webhook duplicati → nessun effetto doppio | ✅ «runs frequent and daily jobs with a lock…», «delivers signed webhooks…», eventi Stripe ripetuti in B | non eseguito |
+
+Il collaudo sull'anteprima si esegue con `scripts/collaudo-crm.mjs` o dall'interfaccia, seguendo `docs/CRM_COLLAUDO.md`; il prompt per completare configurazione e collaudo con Claude Cowork è in `docs/PROMPT_COWORK_CRM.md`. Lo script ha superato tutti i passi contro un server locale.
 
 **Perché la Preview non è stata collaudata**, con precisione:
 1. L'ambiente di lavoro non raggiunge `*.vercel.app` (proxy: CONNECT 403). Per consentirlo va aggiunto il dominio della Preview (o `*.vercel.app`) tra i domini consentiti nella configurazione di rete dell'ambiente.

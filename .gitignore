@@ -29,3 +29,7 @@ yarn-error.log*
 
 # typescript
 *.tsbuildinfo
+
+# Collaudo CRM: account di prova e risultati locali, mai nel repository
+collaudo-account*.json
+collaudo-crm-stato*.json

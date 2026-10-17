@@ -43,6 +43,8 @@ Proemios è un'app Next.js 15 (App Router, React 19, TypeScript) con Postgres vi
 | CRM: configurazione guidata, simulatore di assegnazione (stesso motore, nessuna scrittura) | `lib/platform/crm-setup.ts` |
 | Attività automatiche: lavori frequente/giornaliero con blocco e registro | `lib/platform/automation.ts`, `app/api/cron/route.ts`, `app/api/cron/frequent/route.ts`, `lib/platform/cron-auth.ts`, migrazione `drizzle/0013_automation_runs.sql`, `.github/workflows/crm-frequent-cron.yml` (predisposto) |
 | Diagnostica delle integrazioni e stato delle migrazioni | `lib/platform/diagnostics.ts` |
+| Build su Vercel con migrazioni solo in anteprima (opt-in `RUN_MIGRATIONS_ON_PREVIEW=1`) | `scripts/vercel-build.mjs` (script `vercel-build`) |
+| Collaudo A–F su un'anteprima con account di prova | `scripts/collaudo-crm.mjs`, `docs/CRM_COLLAUDO.md`, prompt operativo `docs/PROMPT_COWORK_CRM.md` |
 | Documentazione operativa | `docs/*.md`, in particolare `docs/CONSEGNA_CRM_2026-10-17.md`, `docs/CRM_OPERATIVO.md`, `docs/CRM_ARCHITETTURA.md` |
 
 ## Regole che non si cambiano senza autorizzazione
