@@ -2,6 +2,7 @@ import { and, eq, isNull, sql } from "drizzle-orm";
 import { getDb } from "@/db";
 import { leads } from "@/db/schema";
 import { leadOwnership } from "@/db/platform-schema";
+import { crmContacts } from "@/db/crm-schema";
 
 /**
  * Collega all'autore le richieste pubbliche fatte con la stessa email prima
@@ -30,5 +31,7 @@ export async function linkLeadsToAuthor(userId: string, email: string): Promise<
       });
     linked++;
   }
+  // La scheda del contatto con la stessa email verificata viene collegata all'account (mai senza verifica).
+  await getDb().update(crmContacts).set({ userId, identityVerifiedAt: new Date(), updatedAt: new Date() }).where(and(eq(crmContacts.emailNormalized, normalized), isNull(crmContacts.userId), isNull(crmContacts.mergedIntoId)));
   return linked;
 }
