@@ -5,8 +5,9 @@ import Link from "next/link";
 import type { Route } from "next";
 import type { PricingInput } from "@/lib/pricing";
 import { authClient } from "@/lib/auth-client";
-import { WorkView, DealsView, ContactsView, PoolView, ApprovalsView, PeopleView, CrmRulesView, HandoffPanel } from "./crm-views";
-const CRM_TABS = ["work", "deals", "contacts", "pool", "approvals", "people", "crm-rules"];
+import { WorkView, DealsView, ContactsView, PoolView, ApprovalsView, PeopleView, HandoffPanel } from "./crm-views";
+import { SetupView, CrmSettingsView } from "./crm-settings";
+const CRM_TABS = ["work", "deals", "contacts", "pool", "approvals", "people", "crm-setup", "crm-settings"];
 import {
   can,
   hasPermission,
@@ -273,7 +274,7 @@ const JOURNEY_STATE_LABELS: Record<string, string> = { "journey-estimate": "stim
 function State({ value }: { value: string }) {
   return <span className={`platform-state state-${value}`}>{stages[value] ?? JOURNEY_STATE_LABELS[value] ?? value}</span>;
 }
-const tabRules: Array<{ id: string; label: string; permission?: Permission }> = [
+const tabRules: Array<{ id: string; label: string; permission?: Permission; anyOf?: Permission[] }> = [
   { id: "overview", label: "Oggi" },
   { id: "work", label: "Il mio lavoro", permission: "task.read" },
   { id: "deals", label: "Trattative", permission: "crm.read" },
@@ -290,7 +291,8 @@ const tabRules: Array<{ id: string; label: string; permission?: Permission }> = 
   { id: "marketing", label: "Marketing", permission: "marketing.read" },
   { id: "people", label: "Team e carichi", permission: "crm.assign" },
   { id: "team", label: "Persone e accessi", permission: "role.manage" },
-  { id: "crm-rules", label: "Regole CRM", permission: "crm.read" },
+  { id: "crm-setup", label: "Configurazione CRM", anyOf: ["settings.manage", "role.manage", "crm.assign"] },
+  { id: "crm-settings", label: "Impostazioni CRM", permission: "crm.read" },
   { id: "settings", label: "Regole economiche", permission: "settings.manage" },
   { id: "operations", label: "Operazioni", permission: "operations.read" },
   { id: "notifications", label: "Notifiche" },
@@ -298,7 +300,7 @@ const tabRules: Array<{ id: string; label: string; permission?: Permission }> = 
 ];
 
 export function PlatformWorkspace({ user }: { user: Profile }) {
-  const tabs = tabRules.filter((t) => !t.permission || hasPermission(user.grants, t.permission));
+  const tabs = tabRules.filter((t) => (!t.permission || hasPermission(user.grants, t.permission)) && (!t.anyOf || t.anyOf.some((p) => hasPermission(user.grants, p))));
   const [tab, setTab] = useState(tabs[0]?.id ?? "notifications"),
     [data, setData] = useState<Collection>({}),
     [error, setError] = useState(""),
@@ -619,7 +621,8 @@ export function PlatformWorkspace({ user }: { user: Profile }) {
             {tab === "pool" ? <PoolView /> : null}
             {tab === "approvals" ? <ApprovalsView /> : null}
             {tab === "people" ? <PeopleView user={user} /> : null}
-            {tab === "crm-rules" ? <CrmRulesView user={user} /> : null}
+            {tab === "crm-setup" ? <SetupView /> : null}
+            {tab === "crm-settings" ? <CrmSettingsView user={user} /> : null}
             {tab === "quotes" ? (
               <div className="platform-card">
                 {data.quotes?.map((q) => (

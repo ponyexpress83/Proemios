@@ -224,8 +224,11 @@ export async function operationRun(request: Request, actor: Actor) {
   if (request.method !== "POST") throw notFound();
   demand(actor, "operations.write");
   demandRecent(actor);
-  const result = await maintenance();
-  await audit(actor, "maintenance.executed", "operation", undefined, result);
+  // Esecuzione manuale registrata come le altre (stesso blocco anti-sovrapposizione).
+  const { runJob, dailyWork } = await import("./automation");
+  const run = await runJob("daily", "manual", () => dailyWork("manual"));
+  const result = "summary" in run && run.summary ? run.summary : run;
+  await audit(actor, "maintenance.executed", "operation", undefined, { status: run.status });
   return json(result);
 }
 

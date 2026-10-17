@@ -15,6 +15,8 @@ export const pipelineSchema = z
     key: z.string().regex(/^[a-z][a-z0-9_-]{1,39}$/),
     name: z.string().trim().min(2).max(80),
     stages: z.array(pipelineStageSchema).min(2).max(30),
+    /** Archiviata: niente nuove trattative, quelle esistenti restano leggibili e modificabili. */
+    archived: z.boolean().default(false),
   })
   .strict()
   .refine((p) => new Set(p.stages.map((s) => s.key)).size === p.stages.length, { message: "Fasi duplicate." })

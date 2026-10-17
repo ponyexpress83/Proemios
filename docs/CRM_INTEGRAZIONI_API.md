@@ -9,7 +9,7 @@ Stato: **scritto nel codice e verificato nei test di integrazione** (`tests/crm.
 | Server | `pk_…` | solo da server a server, mai nel browser | `leads:write`, `leads:read`, `deals:read`, `events:read` | richieste al minuto per chiave (predefinito 60) |
 | Modulo pubblico | `pf_…` | nel sito, dentro il modulo | solo `capture` (crea una richiesta) | solo dalle origini dichiarate, richieste al minuto per chiave |
 
-- Si creano in **Regole CRM → API e webhook** (serve il permesso `integrations.manage` e un accesso recente con verifica in due passaggi).
+- Si creano in **Impostazioni CRM → API e webhook** (serve il permesso `integrations.manage` e un accesso recente con verifica in due passaggi).
 - La chiave completa si vede **una volta sola**. Nel database resta solo l'impronta SHA-256 e un prefisso per riconoscerla.
 - Revoca immediata. Le chiavi create da una persona disattivata vengono revocate con lei.
 
@@ -56,7 +56,7 @@ La risposta CORS viene data solo alle origini dichiarate sulla chiave. Da un'alt
 
 ## Webhook in uscita
 
-- Si registrano in **Regole CRM → API e webhook** con un indirizzo HTTPS pubblico. Reti interne e `localhost` sono rifiutati.
+- Si registrano in **Impostazioni CRM → API e webhook** con un indirizzo HTTPS pubblico. Reti interne e `localhost` sono rifiutati.
 - Eventi stabili: `lead.created`, `lead.assigned`, `deal.stage_changed`, `quote.accepted`, `payment.confirmed`, `project.handoff_ready`.
 - I contenuti degli eventi portano identificativi e stati, **mai email, telefoni o testi liberi**.
 - Ogni consegna ha queste intestazioni:
@@ -82,4 +82,4 @@ function verify(secret, rawBody, header, tolerance = 300) {
 ## Cosa resta da configurare
 
 - Nessuna chiave o webhook esiste finché un amministratore non li crea.
-- Il cron di manutenzione (`/api/cron/...`, già esistente) consegna i webhook, gestisce le scadenze e manda il riepilogo del mattino. Deve essere attivo nell'ambiente.
+- La manutenzione frequente (`/api/cron/frequent`, ogni 10–15 minuti) consegna e ritenta i webhook e gestisce le scadenze; il cron giornaliero (`/api/cron`) manda il riepilogo del mattino. Vedi `docs/CRM_OPERATIVO.md` §7: su Vercel Hobby il cron frequente richiede un pianificatore esterno.

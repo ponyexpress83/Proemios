@@ -9,12 +9,15 @@ import { notFound } from "./http";
 import { companyCollection, contactCollection, contactDetail, contactMerge, duplicateCollection, savedViews } from "./crm-contacts";
 import { dealCollection, dealDetail } from "./crm-deals";
 import { leadAssign, poolClaim, poolCollection } from "./crm-routing";
-import { crmSettings, fieldCollection, notificationSettings, templateCollection } from "./crm-config";
+import { catalogView, crmSettings, fieldCollection, notificationSettings, templateCollection } from "./crm-config";
 import { approvalCollection, dealPackageLink, linkClaim, linkCollection, linkPurchase, quoteAmend, quoteLines, quoteShareLink, quoteTerms } from "./crm-quotes";
 import { attributionDetail, commissionSummary } from "./crm-attribution";
 import { handoffAccept, handoffDetail, handoffItemCreate, handoffItemDecide, projectOps, projectPhases, projectSuggestions, taskAssign, taskClaim, taskQueue, taskStatus } from "./crm-handoff";
 import { crmReports, supportCollection, workBoard, workMove, workSummary } from "./crm-work";
 import { apiKeyCollection, webhookCollection } from "./crm-api";
+import { automationStatus } from "./automation";
+import { diagnosticsCollection } from "./diagnostics";
+import { setupCollection, simulateAssignment } from "./crm-setup";
 import { teamDeactivate, teamDirectory, teamProfile, teamReactivate, templateInvite } from "./crm-team";
 
 const uuid = (v: string | undefined): v is string => Boolean(v) && z.string().uuid().safeParse(v).success;
@@ -118,8 +121,24 @@ export async function crmRoute(request: Request, actor: Actor, parts: string[]):
       if (!id) return webhookCollection(request, actor);
       if (uuid(id)) return webhookCollection(request, actor, id, action);
       break;
+    case "setup":
+      if (!id) return setupCollection(request, actor);
+      break;
+    case "assignment":
+      if (id === "simulate" && !action) return simulateAssignment(request, actor);
+      break;
+    case "automation":
+      if (!id) return automationStatus(request, actor);
+      break;
+    case "diagnostics":
+      if (!id) return diagnosticsCollection(request, actor);
+      break;
     case "settings":
       if (!id) return crmSettings(request, actor);
+      if (id === "history" && !action) return crmSettings(request, actor, "history");
+      break;
+    case "catalog":
+      if (!id) return catalogView(request, actor);
       break;
     case "fields":
       if (!id) return fieldCollection(request, actor);
