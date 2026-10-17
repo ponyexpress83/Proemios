@@ -534,6 +534,7 @@ export async function quoteDetail(request: Request, actor: Actor, id: string) {
     quote: access.quote,
     contract: contract ? { id: contract.id, version: contract.version, termsVersion: contract.termsVersion, acceptedAt: contract.acceptedAt, acceptances: contract.acceptances, consumer: contract.consumer, withdrawalDeadline: contract.withdrawalDeadline, withdrawalRequestedAt: contract.withdrawalRequestedAt, stableCopy: Boolean(contract.storageKey), pdfUrl: `/api/platform/contracts/${contract.id}/pdf` } : null,
     terms: { version: termsSnapshot().version, updated: termsSnapshot().updated, status: termsSnapshot().status },
+    attachment: access.record.attachmentName && access.record.attachmentHash ? { name: access.record.attachmentName, hash: access.record.attachmentHash, uploadedAt: access.record.attachmentUploadedAt } : null,
     history: await getDb().select({ version: quoteVersions.version, createdAt: quoteVersions.createdAt }).from(quoteVersions).where(eq(quoteVersions.quoteId, id)).orderBy(desc(quoteVersions.version)).limit(100),
     record: {
       version: access.record.version,
@@ -673,7 +674,7 @@ export async function acceptQuote(actor: Actor, id: string, body: z.infer<typeof
     // invece nasce solo con l'acconto verificato (vedi payments.recordPayment).
     const customer = await customerForSheet(tx, actor.id);
     const consumer = customer ? customer.kind !== "business" : true;
-    const sheet = buildOrderSheet({ quoteId: id, version: record.version, pricingVersion: record.pricingVersion, policy: policy.data, pkg: selected, quoteInput: access.quote.input as Parameters<typeof buildOrderSheet>[0]["quoteInput"], plan: record.paymentPlan ?? null, customer, email: actor.email });
+    const sheet = buildOrderSheet({ quoteId: id, version: record.version, pricingVersion: record.pricingVersion, policy: policy.data, pkg: selected, quoteInput: access.quote.input as Parameters<typeof buildOrderSheet>[0]["quoteInput"], plan: record.paymentPlan ?? null, customer, email: actor.email, attachment: record.attachmentKey && record.attachmentName && record.attachmentHash && record.attachmentUploadedAt ? { name: record.attachmentName, hash: record.attachmentHash, uploadedAt: record.attachmentUploadedAt.toISOString() } : null });
     const created = await createContract(tx, { quoteId: id, version: record.version, tier: body.tier, actor, sheet, acceptances: { terms: true, orderSheet: true, earlyStart: body.earlyStart, marketing: body.marketingConsent }, consumer, evidence });
     // Il consenso alle comunicazioni facoltative è separato dal contratto: si registra solo se dato.
     if (body.marketingConsent) {

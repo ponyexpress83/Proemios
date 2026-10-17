@@ -279,6 +279,11 @@ export const quoteRecords = pgTable("platform_quote_records", {
   discountBy: text("discount_by").references(() => user.id),
   discountNote: text("discount_note"),
   discountApprovedBy: text("discount_approved_by").references(() => user.id),
+  /** Allegato specifico per lavori complessi (PDF del team): entra nella scheda d'ordine con la sua impronta. */
+  attachmentKey: text("attachment_key"),
+  attachmentName: text("attachment_name"),
+  attachmentHash: text("attachment_hash"),
+  attachmentUploadedAt: timestamp("attachment_uploaded_at", { withTimezone: true }),
 });
 export type PaymentPlan = {
   installments: number;
@@ -579,6 +584,8 @@ export type OrderSheet = {
   supplier: { name: string; legalForm: string; address: string; vat: string; email: string };
   earlyStartText: string;
   withdrawalText: string;
+  /** Allegato specifico per lavori complessi caricato dal team prima dell'accettazione. */
+  attachment?: { name: string; hash: string; uploadedAt: string } | null;
 };
 /** Dati di fatturazione dell'autore: senza, nessun incasso può diventare fattura. */
 export const billingProfiles = pgTable("platform_billing_profiles", {

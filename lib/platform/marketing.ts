@@ -2,7 +2,7 @@ import { and, desc, eq, gte, inArray, isNotNull, sql } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db";
 import { leads, quotes } from "@/db/schema";
-import { campaigns, campaignSpend, quoteRecords, paymentOrders, ledgerEntries, invoices, contracts, funnelEvents, emailOutbox, leadOwnership, leadActivities, platformSettings } from "@/db/platform-schema";
+import { campaigns, campaignSpend, quoteRecords, paymentOrders, ledgerEntries, invoices, contracts, funnelEvents, emailOutbox, leadOwnership, leadActivities, platformSettings, webhookEvents } from "@/db/platform-schema";
 import { user } from "@/db/auth-schema";
 import { demand, demandRecent, audit, type Actor } from "./access";
 import { can } from "./permissions";
@@ -252,6 +252,11 @@ export async function marketingDashboard(request: Request, actor: Actor) {
     getDb().select({ total: sql<number>`coalesce(sum(${invoices.grossCents}),0)::integer` }).from(invoices).where(and(gte(invoices.createdAt, since), inArray(invoices.status, ["created", "sent"]))),
   ]) : null;
   const sent = mail.filter((m) => m.status === "accepted").reduce((n, m) => n + m.count, 0), failed = mail.filter((m) => m.status === "failed").reduce((n, m) => n + m.count, 0);
+  // Eventi Brevo ricevuti dal webhook (consegne, aperture, clic, disiscrizioni): contano solo quelli arrivati, mai stime.
+  const brevoRows = await getDb().select({ type: webhookEvents.type, count: sql<number>`count(*)::integer`, last: sql<string | Date | null>`max(${webhookEvents.createdAt})` }).from(webhookEvents).where(and(gte(webhookEvents.createdAt, since), sql`${webhookEvents.type} like 'brevo.%'`)).groupBy(webhookEvents.type);
+  const brevoCount = (...types: string[]) => brevoRows.filter((r) => types.includes(r.type.slice(6))).reduce((n, r) => n + r.count, 0);
+  const brevoLast = brevoRows.map((r) => (r.last ? new Date(r.last) : null)).filter((d): d is Date => Boolean(d) && !Number.isNaN(d!.getTime())).sort((a, b) => b.getTime() - a.getTime())[0] ?? null;
+  const brevoSummary = brevoRows.length ? `consegnate ${brevoCount("delivered")} · aperte ${brevoCount("opened", "unique_opened", "uniqueOpened")} · clic ${brevoCount("click", "clicked")} · disiscritte ${brevoCount("unsubscribed", "unsubscribe")} · non recapitate ${brevoCount("hard_bounce", "hardBounce", "soft_bounce", "softBounce", "blocked", "invalid_email")}` : null;
   const totalSpend = spend[0]?.spend ?? 0, purchases = paidIds.length;
   const metrics: Metric[] = [
     metric({ key: "visits", label: "Visite e sorgenti", value: null, unit: "count", definition: "Sessioni sul sito per sorgente/mezzo.", source: integrations.analytics.configured ? `Analytics (${integrations.analytics.detail})` : "Analytics", status: integrations.analytics.configured ? "unavailable" : "to_connect" }),
@@ -274,7 +279,7 @@ export async function marketingDashboard(request: Request, actor: Actor) {
     metric({ key: "cost_per_purchase", label: "Costo per acquisto", value: totalSpend && purchases ? Math.round(totalSpend / purchases) : null, unit: "cents", definition: "Spesa del periodo / acquisti conclusi (tutte le origini).", source: "Registro campagne + registro incassi", status: totalSpend && purchases ? "ok" : "unavailable" }),
     metric({ key: "email_sent", label: "Email operative inviate", value: sent, unit: "count", definition: "Email accettate dal provider transazionale nel periodo (tutte le tipologie).", source: integrations.resend.configured ? "Resend (outbox)" : "Outbox (provider da collegare)", status: integrations.resend.configured ? "ok" : "to_connect" }),
     metric({ key: "email_failed", label: "Email non recapitate", value: failed, unit: "count", definition: "Email fallite dopo i tentativi previsti.", source: "Outbox", status: "ok" }),
-    metric({ key: "email_campaigns", label: "Andamento campagne email", value: null, unit: "count", definition: "Aperture, clic e disiscrizioni delle campagne.", source: integrations.brevo.configured ? "Brevo" : "Brevo (da collegare)", status: integrations.brevo.configured ? "unavailable" : "to_connect" }),
+    metric({ key: "email_campaigns", label: "Andamento campagne email", value: brevoSummary, unit: "text", definition: "Consegne, aperture, clic, disiscrizioni e mancati recapiti riportati dal webhook di Brevo nel periodo (eventi ricevuti, non stime).", source: integrations.brevo.configured ? "Brevo (webhook)" : "Brevo (da collegare)", updatedAt: brevoLast?.toISOString() ?? null, status: integrations.brevo.configured ? (brevoSummary ? "ok" : "unavailable") : "to_connect" }),
   ];
   return json({ days, demo, metrics, integrations: Object.fromEntries(Object.entries(integrations).map(([k, v]) => [k, { configured: v.configured, label: v.label }])) });
 }

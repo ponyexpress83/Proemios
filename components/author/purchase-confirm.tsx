@@ -14,6 +14,7 @@ type Detail = {
   record: { version: number; acceptedAt: string | null; selectedTier: string | null; termsVersion: string | null; expiresAt: string | null; commercialState: string; reviewRequestedAt: string | null; offeredAt: string | null; preferredTier: string | null; paymentPlan: { installments: number } | null };
   contract: { id: string; version: number; termsVersion: string; acceptedAt: string; acceptances: { earlyStart: boolean; marketing: boolean }; consumer: boolean; withdrawalDeadline: string | null; withdrawalRequestedAt: string | null; stableCopy: boolean; pdfUrl: string } | null;
   terms: { version: string; updated: string; status: string };
+  attachment: { name: string; hash: string; uploadedAt: string } | null;
   paymentPolicy: { version: string; vatMode: string; vatRateBps: number; termsVersion: string } | null;
   journey: JourneyStage;
   purchasePath: PurchasePath;
@@ -154,7 +155,7 @@ export function PurchaseConfirm({ quoteId, user, initialTier, payment }: { quote
               <ul className="author-amounts"><li>Da pagare ora (acconto) <strong>{cents(pkg.depositMoney.grossCents)}</strong></li>{payments.schedule.filter((i) => i.kind === "balance").length > 1 ? payments.schedule.filter((i) => i.kind === "balance").map((i) => <li key={i.sequence}>{i.label} <strong>{cents(i.amountCents)}</strong></li>) : <li>Residuo alla consegna <strong>{cents(pkg.money.grossCents - pkg.depositMoney.grossCents)}</strong></li>}</ul>
               {payments.schedule.filter((i) => i.kind === "balance").length > 1 && <small>Rateizzazione del saldo concessa da Proemios, senza interessi: è distinta dalle eventuali rate offerte dal metodo di pagamento (Klarna, Scalapay) sulla singola operazione.</small>}
             </dd></div>
-            <div><dt>Documenti</dt><dd>Scheda d’ordine con i dati qui sopra e <Link href="/termini" target="_blank" rel="noopener">condizioni generali versione {detail.terms.version}</Link> (aggiornate il {detail.terms.updated}). <a href={`/api/platform/quotes/${quoteId}/pdf`}>Scarica la proposta in PDF</a>. Dopo la conferma ricevi il contratto via email e lo trovi sempre qui.</dd></div>
+            <div><dt>Documenti</dt><dd>Scheda d’ordine con i dati qui sopra e <Link href="/termini" target="_blank" rel="noopener">condizioni generali versione {detail.terms.version}</Link> (aggiornate il {detail.terms.updated}). <a href={`/api/platform/quotes/${quoteId}/pdf`}>Scarica la proposta in PDF</a>.{detail.attachment ? <> Allegato specifico per questo lavoro: <a href={`/api/platform/quotes/${quoteId}/attachment`}>{detail.attachment.name}</a> (fa parte della scheda d’ordine).</> : null} Dopo la conferma ricevi il contratto via email e lo trovi sempre qui.</dd></div>
             <div><dt>Recesso</dt><dd>Se acquisti come persona fisica puoi recedere entro 14 giorni dalla conferma, dalla tua area o per email. Se chiedi di iniziare subito, in caso di recesso paghi solo il lavoro già svolto.</dd></div>
           </dl>
           <section className="author-billing">
@@ -166,7 +167,7 @@ export function PurchaseConfirm({ quoteId, user, initialTier, payment }: { quote
           <label className="author-terms"><input type="checkbox" checked={earlyStart} onChange={(e) => setEarlyStart(e.target.checked)} /> Facoltativo: chiedo che la lavorazione inizi subito, anche durante i 14 giorni di recesso. So che in caso di recesso pagherò il lavoro già svolto e che, a servizio completato, il recesso non sarà più esercitabile.</label>
           <label className="author-terms"><input type="checkbox" checked={marketing} onChange={(e) => setMarketing(e.target.checked)} /> Facoltativo: voglio ricevere guide e comunicazioni informative di Proemios. Posso revocare quando voglio; non incide sul contratto.</label>
           <div className="author-approval">
-            <button className="author-cta" disabled={busy || !terms || !sheet}>{payments.checkoutAvailable ? `Accetta e paga ${cents(pkg.depositMoney.grossCents)} ora` : "Accetta la proposta"} <ArrowRight size={16} /></button>
+            <button className="author-cta" disabled={busy || !terms || !sheet}>{payments.checkoutAvailable ? `Ordine con obbligo di pagare: ${cents(pkg.depositMoney.grossCents)} ora` : "Ordine con obbligo di pagare"} <ArrowRight size={16} /></button>
             <small>{payments.checkoutAvailable ? "Pagamento sulla pagina sicura di Stripe con i metodi disponibili. La conferma arriva da Stripe, non dal ritorno a questa pagina." : "Il pagamento online non è ancora attivo: dopo l’accettazione il team ti indica come procedere."}</small>
           </div>
         </form>

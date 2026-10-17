@@ -9,7 +9,7 @@ Descrive il comportamento effettivo dal ramo `claude/proemios-complete-v1-w78xtx
 | Commerciale | `platform_quote_records.commercial_state` | `estimate` (stima indicativa) · `review` (richiesta in valutazione) · `offer` (proposta definitiva acquistabile, con eventuale `expires_at`) · `accepted` |
 | Contratto | `platform_contracts` | scheda d'ordine + condizioni versionate, accettazioni separate, prova, recesso (vedi `docs/CONTRATTO_E_ACCETTAZIONE.md`) |
 | Pagamento | `platform_payment_orders` | `pending` (in elaborazione) · `paid` · `expired` · `failed` · `disputed` · `review_required` · `partially_refunded` · `refunded`; `kind` + `sequence` per acconto e rate del saldo |
-| Progetto | `platform_projects.stage` | `materials` → `editing` → `review` → `approved` → `delivered`; nasce solo con l'acconto verificato (vincolo unico su `quote_id`), `started_at` quando l'incasso previsto dal servizio (`startAfter`) è confermato |
+| Progetto | `platform_projects.stage` | `materials` → `intake` (verifica iniziale, facoltativa) → `editing` → `review` → `approved` → `delivered`; nasce solo con l'acconto verificato (vincolo unico su `quote_id`), `started_at` quando l'incasso previsto dal servizio (`startAfter`) è confermato |
 | Pipeline CRM | derivata (`lib/platform/pipeline.ts`) | lead ricevuto → preventivo in compilazione → proposta pronta/inviata → accettata → checkout avviato / pagamento fallito → acquisto concluso; stati manuali: da recuperare, negoziazione, perso, non contattabile |
 
 `journeyStage()` (`lib/platform/commercial.ts`) combina i primi due per l'autore: stima → in valutazione → acquistabile/scaduta → accettata in attesa di pagamento → pagamento in elaborazione → acconto confermato → pagamento completato.

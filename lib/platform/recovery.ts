@@ -50,7 +50,7 @@ export const defaultRecoveryRules: RecoveryRules = {
   enabled: true,
   triggers: ["checkout_started", "payment_failed"],
   steps: [
-    { key: "reminder", afterHours: 2, channel: "email", purpose: "cart", subject: "Il tuo pagamento è rimasto in sospeso · Proemios", body: "il pagamento della tua proposta non è andato a buon fine o è rimasto a metà. Nessun importo è stato addebitato: puoi riprenderlo dalla tua area quando vuoi." },
+    { key: "reminder", afterHours: 2, channel: "email", purpose: "assistance", subject: "Il tuo pagamento è rimasto in sospeso · Proemios", body: "il pagamento della proposta che hai accettato non è andato a buon fine o è rimasto a metà. Nessun importo è stato addebitato: puoi riprenderlo dalla tua area quando vuoi, oppure rispondere a questa email se qualcosa non ha funzionato." },
     { key: "clarify", afterHours: 24, channel: "email", purpose: "assistance", subject: "Serve una mano con il pagamento? · Proemios", body: "se qualcosa non ha funzionato o hai un dubbio su importi, rate o tempi, rispondi a questa email: ti aiutiamo noi, senza impegno." },
     { key: "sales", afterHours: 60, channel: "task", purpose: "assistance" },
   ],
@@ -67,14 +67,17 @@ const HOUR = 3600_000, DAY = 86400_000;
 type Lead = typeof leads.$inferSelect;
 /**
  * Un'email si può mandare solo se lo scopo lo consente per questo contatto:
- * - assistance/contractual/cart: pratica aperta chiesta dalla persona, con
- *   informativa accettata (consensoPrivacy) e canale email non escluso;
- * - marketing: serve il consenso esplicito, non revocato.
+ * - assistance/contractual: pratica aperta chiesta dalla persona (misure
+ *   precontrattuali o contratto), con informativa accettata e canale email
+ *   non escluso;
+ * - cart/marketing: sollecito commerciale, serve il consenso esplicito non
+ *   revocato (il "soft spam" dell'art. 130 c. 4 Codice Privacy copre solo i
+ *   clienti già acquisiti, non chi ha abbandonato un pagamento).
  * L'indirizzo email da solo non basta mai.
  */
 export function emailAllowed(lead: Pick<Lead, "consensoPrivacy" | "consensoMarketing" | "marketingRevokedAt" | "contactPreferences">, purpose: RecoveryPurpose): boolean {
   if (lead.contactPreferences && lead.contactPreferences.email === false) return false;
-  if (purpose === "marketing") return lead.consensoMarketing && !lead.marketingRevokedAt;
+  if (purpose === "marketing" || purpose === "cart") return lead.consensoMarketing && !lead.marketingRevokedAt;
   return lead.consensoPrivacy;
 }
 export function unsubscribeToken(leadId: string): string {
@@ -132,7 +135,7 @@ export async function runRecovery(now = new Date()): Promise<RecoveryResult> {
           continue;
         }
         const href = row.ownership?.authorId ? `/area-autore/conferma/${row.quote.id}` : `/area-autore?preventivo=${row.quote.id}`;
-        const footer = step.purpose === "marketing" ? `<p><small>Ricevi questo messaggio perché hai acconsentito alle comunicazioni di Proemios. <a href="${esc(unsubscribeLink(row.lead.id))}">Non ricevere più comunicazioni facoltative</a>.</small></p>` : `<p><small>Messaggio relativo alla tua richiesta aperta. Se hai già concluso, ignoralo: non riceverai altri promemoria.</small></p>`;
+        const footer = step.purpose === "marketing" || step.purpose === "cart" ? `<p><small>Ricevi questo messaggio perché hai acconsentito alle comunicazioni di Proemios. <a href="${esc(unsubscribeLink(row.lead.id))}">Non ricevere più comunicazioni facoltative</a>.</small></p>` : `<p><small>Messaggio relativo alla tua richiesta aperta. Se hai già concluso, ignoralo: non riceverai altri promemoria.</small></p>`;
         const inserted = await getDb().insert(emailOutbox).values({
           eventKey: `${eventKey}:${row.lead.email}`,
           recipient: row.lead.email,
