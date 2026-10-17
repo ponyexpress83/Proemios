@@ -34,6 +34,7 @@ import { recordFunnel } from "./funnel";
 import { billingProfiles, invoices, projects, tasks, contracts, leadActivities } from "@/db/platform-schema";
 import { crmDeals } from "@/db/crm-schema";
 import { commissionBeneficiaries } from "./crm-attribution";
+import { createHandoff } from "./crm-handoff";
 import { emitEvent } from "./crm-relations";
 
 /**
@@ -388,6 +389,8 @@ async function ensureProject(tx: Tx, input: { quoteId: string; authorId: string;
   await tx.insert(tasks).values({ projectId: project.id, assignedTo: input.authorId, createdBy: input.authorId, title: "Carica il manoscritto e i materiali nell'area autore", internal: false, dueAt: new Date(Date.now() + 7 * 86400_000) });
   await tx.insert(notifications).values({ userId: input.authorId, title: "Il tuo progetto è aperto", body: started ? "Carica il manoscritto e i materiali: la lavorazione parte da lì." : "Carica intanto il manoscritto: la lavorazione parte con il saldo, come previsto per questo servizio.", href: `/area-autore?progetto=${project.id}` });
   if (input.referentId) await tx.insert(notifications).values({ userId: input.referentId, title: "Nuovo progetto da seguire", body: `${author?.name ?? "L'autore"} ha pagato: il progetto è aperto in fase materiali.`, href: `/spazio?progetto=${project.id}` });
+  // Pacchetto di passaggio alla produzione: una volta sola, dai fatti registrati (contratto, ordine, incasso).
+  await createHandoff(tx, project.id);
   return project;
 }
 async function recordRefund(tx: Tx, refund: Stripe.Refund) {

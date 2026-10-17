@@ -44,7 +44,8 @@ import { acceptanceEvidence, buildOrderSheet, createContract, customerForSheet, 
 import { attachLead, emitEvent } from "./crm-relations";
 import { snapshotAttribution } from "./crm-attribution";
 import { markFirstResponse, routeLead, setOwner } from "./crm-routing";
-import { crmDeals } from "@/db/crm-schema";
+import { crmDeals, crmApprovals, teamProfiles } from "@/db/crm-schema";
+import { notify } from "./crm-notify";
 
 type Db = Pick<ReturnType<typeof getDb>, "select">;
 export async function getSetting(key: string, db: Db = getDb()) {
@@ -67,6 +68,29 @@ export function applyDiscount(packages: QuotePackage[], discountBps: number): Qu
     const discount = Math.round((Math.max(p.total, base) * discountBps) / 10000);
     const total = Math.max(0, p.total - discount);
     return { ...p, lineItems: [...p.lineItems.filter((li) => li.key !== "negotiatedDiscount"), { key: "negotiatedDiscount", label: `Sconto commerciale ${discountBps / 100}%`, amount: -discount }], total, deposit: Math.round(total * DEPOSIT_RATE) };
+  });
+}
+/** Voci personalizzate autorizzate, aggiunte a ogni pacchetto prima dell'eventuale sconto. */
+export function applyCustomLines(packages: QuotePackage[], lines: Array<{ label: string; amount: number; quantity: number }>): QuotePackage[] {
+  if (!lines.length) return packages;
+  return packages.map((p) => {
+    const extra = lines.reduce((n, l) => n + l.amount * l.quantity, 0);
+    const total = Math.max(0, p.total + extra);
+    return { ...p, lineItems: [...p.lineItems.filter((li) => !li.key.startsWith("custom:")), ...lines.map((l, i) => ({ key: `custom:${i}`, label: l.quantity > 1 ? `${l.label} × ${l.quantity}` : l.label, amount: l.amount * l.quantity }))], total, deposit: Math.round(total * DEPOSIT_RATE) };
+  });
+}
+/** Ricostruisce i pacchetti dal listino: calcolo, voci personalizzate, sconto. Il browser non manda prezzi. */
+export function rebuildPackages(input: Parameters<typeof computeQuote>[0], lines: Array<{ label: string; amount: number; quantity: number }>, discountBps: number) {
+  return applyDiscount(applyCustomLines(computeQuote(input).packages, lines), discountBps);
+}
+async function notifyApprovers(approvalId: string, body: string) {
+  const { memberships } = await import("@/db/platform-schema");
+  const { effectiveGrants } = await import("./permissions");
+  const rows = await getDb().select().from(memberships).where(eq(memberships.active, true));
+  const byUser = new Map<string, typeof rows>();
+  for (const r of rows) byUser.set(r.userId, [...(byUser.get(r.userId) ?? []), r]);
+  await getDb().transaction(async (tx) => {
+    for (const [userId, list] of byUser) if (can(effectiveGrants(list), "quote.approve")) await notify(tx, userId, "approval_requested", { key: approvalId, title: "Eccezione da approvare", body, href: `/spazio?tab=approvals` });
   });
 }
 /** La policy approvata dall'owner, oppure quella predefinita. */
@@ -521,18 +545,28 @@ async function quoteAttribution(access: Awaited<ReturnType<typeof quoteAccess>>)
 export async function quoteDetail(request: Request, actor: Actor, id: string) {
   if (request.method === "PATCH") {
     const access = await quoteAccess(actor, id, "quote.write");
-    const body = await readBody(request, z.object({ input: pricingInputSchema, version: z.number().int().positive(), expiresAt: z.string().datetime().optional(), discountBps: z.number().int().min(0).max(5000).optional(), discountNote: z.string().trim().max(500).optional() }).strict());
+    const body = await readBody(request, z.object({ input: pricingInputSchema, version: z.number().int().positive(), expiresAt: z.string().datetime().optional(), discountBps: z.number().int().min(0).max(5000).optional(), discountNote: z.string().trim().max(500).optional(), requestApproval: z.boolean().default(false) }).strict());
     const result = computeQuote(body.input), recommended = result.packages.find(p => p.recommended)!;
     const tax = await resolvePaymentPolicy();
     const rule = commissionRuleSchema.safeParse(await getSetting("commission-rule"));
-    // Sconto commerciale: mai dal browser, solo entro le soglie della regola;
-    // oltre la soglia del venditore serve chi gestisce le regole economiche.
+    // Sconto commerciale: mai dal browser, solo entro le soglie della regola e del
+    // limite personale; oltre serve chi approva le eccezioni.
     const purchase = await resolvePurchaseRule();
     const discountBps = body.discountBps ?? access.record.discountBps ?? 0;
-    const exception = discountBps > purchase.maxSellerDiscountBps;
+    const [profile] = await getDb().select({ maxDiscountBps: teamProfiles.maxDiscountBps }).from(teamProfiles).where(eq(teamProfiles.userId, actor.id));
+    const personalLimit = profile?.maxDiscountBps ?? purchase.maxSellerDiscountBps;
+    const approver = can(actor.grants, "settings.manage") || can(actor.grants, "quote.approve");
+    const exception = discountBps > personalLimit;
     if (discountBps > purchase.maxDiscountBps) throw new PlatformError(422, "DISCOUNT_TOO_HIGH", `Lo sconto massimo ammesso è ${purchase.maxDiscountBps / 100}%.`);
-    if (body.discountBps !== undefined && exception && !can(actor.grants, "settings.manage")) throw new PlatformError(409, "APPROVAL_REQUIRED", `Fino al ${purchase.maxSellerDiscountBps / 100}% decidi tu; oltre serve l'approvazione di chi gestisce le regole economiche. Prima dello sconto valuta rate, servizio a fasi o un pacchetto più essenziale.`);
-    const packages = applyDiscount(result.packages, discountBps);
+    if (body.discountBps !== undefined && exception && !approver) {
+      if (body.requestApproval) {
+        const [approval] = await getDb().insert(crmApprovals).values({ kind: "discount", quoteId: id, dealId: access.record.dealId, requestedBy: actor.id, payload: { discountBps, note: body.discountNote ?? null, version: body.version, input: body.input } }).returning();
+        await notifyApprovers(approval!.id, `Sconto del ${discountBps / 100}% richiesto da ${actor.name}`);
+        return json({ ok: false, approvalId: approval!.id, status: "pending" }, 202);
+      }
+      throw new PlatformError(409, "APPROVAL_REQUIRED", `Fino al ${personalLimit / 100}% decidi tu; oltre serve l'approvazione di chi gestisce le eccezioni. Prima dello sconto valuta rate, servizio a fasi o un pacchetto più essenziale.`);
+    }
+    const packages = applyDiscount(applyCustomLines(result.packages, access.record.customLines ?? []), discountBps);
     const chosen = packages.find(p => p.tier === recommended.tier)!;
     await getDb().transaction(async tx => {
       const [current] = await tx.select().from(quoteRecords).where(eq(quoteRecords.quoteId, id)).for("update");
@@ -699,7 +733,7 @@ export async function acceptQuote(actor: Actor, id: string, body: z.infer<typeof
     // invece nasce solo con l'acconto verificato (vedi payments.recordPayment).
     const customer = await customerForSheet(tx, actor.id);
     const consumer = customer ? customer.kind !== "business" : true;
-    const sheet = buildOrderSheet({ quoteId: id, version: record.version, pricingVersion: record.pricingVersion, policy: policy.data, pkg: selected, quoteInput: access.quote.input as Parameters<typeof buildOrderSheet>[0]["quoteInput"], plan: record.paymentPlan ?? null, customer, email: actor.email, attachment: record.attachmentKey && record.attachmentName && record.attachmentHash && record.attachmentUploadedAt ? { name: record.attachmentName, hash: record.attachmentHash, uploadedAt: record.attachmentUploadedAt.toISOString() } : null });
+    const sheet = buildOrderSheet({ workTerms: record.workTerms ?? null, quoteId: id, version: record.version, pricingVersion: record.pricingVersion, policy: policy.data, pkg: selected, quoteInput: access.quote.input as Parameters<typeof buildOrderSheet>[0]["quoteInput"], plan: record.paymentPlan ?? null, customer, email: actor.email, attachment: record.attachmentKey && record.attachmentName && record.attachmentHash && record.attachmentUploadedAt ? { name: record.attachmentName, hash: record.attachmentHash, uploadedAt: record.attachmentUploadedAt.toISOString() } : null });
     const created = await createContract(tx, { quoteId: id, version: record.version, tier: body.tier, actor, sheet, acceptances: { terms: true, orderSheet: true, earlyStart: body.earlyStart, marketing: body.marketingConsent }, consumer, evidence });
     // Il consenso alle comunicazioni facoltative è separato dal contratto: si registra solo se dato.
     if (body.marketingConsent) {

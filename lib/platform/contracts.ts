@@ -61,6 +61,8 @@ export function buildOrderSheet(input: {
   quoteInput: { projectType: string; textState: string; wordCount: number; singleService?: string; urgency?: string };
   plan: PaymentPlan | null;
   attachment?: { name: string; hash: string; uploadedAt: string } | null;
+  /** Condizioni di lavorazione concordate per questa proposta: sostituiscono i testi standard. */
+  workTerms?: { deliveries?: string; revisions?: string; timing?: string; exclusions?: string[] } | null;
   customer: { name: string; kind: string; taxCode: string | null; vatNumber: string | null; street: string; postcode: string; city: string; province: string | null; country: string } | null;
   email: string;
 }): OrderSheet {
@@ -81,10 +83,10 @@ export function buildOrderSheet(input: {
     quantity: { wordCount: input.quoteInput.wordCount, textState: textStates[input.quoteInput.textState] ?? input.quoteInput.textState, urgency: input.quoteInput.urgency === "prioritaria" ? "prioritaria" : "standard" },
     lines: input.pkg.lineItems.map((li) => ({ key: li.key, label: li.label, amount: li.amount })),
     includes: input.pkg.includes,
-    excludes: input.pkg.excludes,
-    revisions: `I giri di revisione indicati nelle voci della fornitura${extraRound ? ", con un giro aggiuntivo" : ""}. Ogni consegna passa dall'approvazione del cliente nell'area riservata; senza riscontro entro 15 giorni la consegna si intende approvata.`,
-    deliveries: "File di consegna caricati nell'area riservata, con versioni e approvazioni tracciate. File sorgente consegnati al termine della lavorazione.",
-    deadlines: `Tempi ${input.quoteInput.urgency === "prioritaria" ? "prioritari, con maggiorazione inclusa" : "standard"}: decorrono dalla conferma dell'acconto e dalla ricezione di tutti i materiali. Ritardi nei materiali o nei riscontri spostano di pari durata i termini successivi.`,
+    excludes: [...input.pkg.excludes, ...(input.workTerms?.exclusions ?? [])],
+    revisions: input.workTerms?.revisions ?? `I giri di revisione indicati nelle voci della fornitura${extraRound ? ", con un giro aggiuntivo" : ""}. Ogni consegna passa dall'approvazione del cliente nell'area riservata; senza riscontro entro 15 giorni la consegna si intende approvata.`,
+    deliveries: input.workTerms?.deliveries ?? "File di consegna caricati nell'area riservata, con versioni e approvazioni tracciate. File sorgente consegnati al termine della lavorazione.",
+    deadlines: input.workTerms?.timing ?? `Tempi ${input.quoteInput.urgency === "prioritaria" ? "prioritari, con maggiorazione inclusa" : "standard"}: decorrono dalla conferma dell'acconto e dalla ricezione di tutti i materiali. Ritardi nei materiali o nei riscontri spostano di pari durata i termini successivi.`,
     startConditions: ORDER_SHEET_TEXTS.startConditions,
     amounts: { vatMode: input.policy.vatMode, vatRateBps: input.policy.vatRateBps, netCents: money.netCents, taxCents: money.taxCents, grossCents: money.grossCents, depositCents: deposit, balanceCents: money.grossCents - deposit },
     installments: schedule.map((s) => ({ kind: s.kind, sequence: s.sequence, amountCents: s.amountCents, label: s.label })),

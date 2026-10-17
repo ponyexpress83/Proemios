@@ -17,6 +17,8 @@ import { demand, demandRecent, demandAvailable, audit, leadAccess, type Actor } 
 import { json, notFound, PlatformError, readBody } from "./http";
 import { DEFAULT_PIPELINE, pipelines, readSetting, writeVersionedSetting } from "./crm-relations";
 import { NOTIFICATION_EVENTS, CHANNELS } from "./crm-notify";
+import { pricingInputSchema } from "@/lib/validation";
+import { defaultCatalog } from "./crm-quotes";
 
 const SCHEMAS = {
   "assignment-rules": assignmentRulesSchema,
@@ -25,6 +27,7 @@ const SCHEMAS = {
   "loss-reasons": lossReasonsSchema,
   pipelines: z.object({ version: z.string().min(1).max(60), pipelines: z.array(pipelineSchema).max(20), approvedAt: z.string().optional(), approvedBy: z.string().optional() }).strict(),
   brand: brandSchema.extend({ approvedAt: z.string().optional(), approvedBy: z.string().optional() }),
+  catalog: z.object({ version: z.string().min(1).max(60), items: z.array(z.object({ key: z.string().regex(/^[a-z0-9_-]{2,40}$/), name: z.string().min(2).max(120), input: pricingInputSchema, active: z.boolean().default(true) }).strict()).max(100), approvedAt: z.string().optional(), approvedBy: z.string().optional() }).strict(),
 } as const;
 type Key = keyof typeof SCHEMAS;
 const DEFAULTS: Record<Key, unknown> = {
@@ -34,6 +37,7 @@ const DEFAULTS: Record<Key, unknown> = {
   "loss-reasons": defaultLossReasons,
   pipelines: { version: "pipeline-v1", pipelines: [DEFAULT_PIPELINE] },
   brand: { name: process.env.BRAND_NAME ?? "Proemios", supportEmail: null, version: "marchio-v1" },
+  catalog: defaultCatalog,
 };
 
 export async function crmSettings(request: Request, actor: Actor) {

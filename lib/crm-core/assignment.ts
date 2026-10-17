@@ -69,3 +69,21 @@ export function chooseAssignee(candidates: AssignmentCandidate[], request: Assig
     .sort((a, b) => a.at.getTime() - b.at.getTime() || byLoad(a.c, b.c));
   return { assignee: next[0]!.c.userId, reason: "next_shift", availableAt: next[0]!.at, considered: report };
 }
+/**
+ * Graduatoria per un suggerimento (lavori complessi): stessi filtri della
+ * scelta automatica, ma restituisce tutti gli idonei in ordine e chi è escluso
+ * con il motivo. La decisione resta a chi conferma.
+ */
+export function rankCandidates(candidates: AssignmentCandidate[], request: Omit<AssignmentRequest, "openDealOwner">) {
+  const ranked: Array<{ userId: string; load: number; capacity: number; inHours: boolean; availableAt: Date }> = [];
+  let pool = candidates;
+  for (let i = 0; i < candidates.length; i++) {
+    const decision = chooseAssignee(pool, { ...request, openDealOwner: null });
+    if (!decision.assignee) break;
+    const c = decision.considered.find((x) => x.userId === decision.assignee)!;
+    ranked.push({ userId: decision.assignee, load: c.load, capacity: c.capacity, inHours: c.inHours, availableAt: decision.availableAt });
+    pool = pool.filter((p) => p.userId !== decision.assignee);
+  }
+  const excluded = chooseAssignee(candidates, { ...request, openDealOwner: null }).considered.filter((c) => c.excluded);
+  return { ranked, excluded };
+}
