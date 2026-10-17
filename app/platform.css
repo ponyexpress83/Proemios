@@ -688,6 +688,10 @@
 .crm-fieldset > label { flex: 1 1 180px; min-width: 0; }
 .crm-days { display: flex; flex-wrap: wrap; gap: 8px 14px; flex: 1 1 100%; }
 .crm-table { display: grid; gap: 0; margin-bottom: 14px; }
+.crm-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 14px; }
+.crm-tab { font: inherit; font-size: 14px; min-height: 40px; padding: 6px 12px; border-radius: 20px; border: 1px solid #bdc3c4; background: #fffdf9; color: inherit; cursor: pointer; }
+.crm-tab-on { background: #233a45; border-color: #233a45; color: #fff; }
+.crm-tab:focus-visible { outline: 3px solid #8fb79c; outline-offset: 2px; }
 @media (max-width: 850px) {
   .crm-board { grid-auto-flow: row; grid-auto-columns: auto; overflow-x: visible; }
   .crm-toolbar > * { flex: 1 1 100%; }

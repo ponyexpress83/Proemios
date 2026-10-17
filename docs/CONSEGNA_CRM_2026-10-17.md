@@ -1,5 +1,7 @@
 # Consegna CRM, 17 ottobre 2026
 
+> Aggiornamento: la scheda «Regole CRM» è diventata **Impostazioni CRM**, affiancata dalla **Configurazione CRM** guidata; cron frequente, diagnostica e collaudo sono descritti in `docs/CRM_MESSA_IN_USO_2026-10-17.md`.
+
 Estende il lavoro su marketing, preventivatore, contratti, pagamenti e progetti senza duplicarlo. Tre documenti di riferimento:
 
 - `docs/CRM_ARCHITETTURA.md`: verifica iniziale, modello dei dati e scelta sull'isolamento;
@@ -81,7 +83,7 @@ Scenari richiesti e prova corrispondente in `tests/crm.integration.test.ts`:
 | Motivi di perdita, pipeline aggiuntive, campi personalizzati, modelli | proprietario | via API (`crm/settings`, `crm/fields`, `crm/templates`); non c'è ancora un modulo visuale |
 | Cron ogni 10–15 minuti | chi gestisce l'hosting | piano Vercel adeguato o scheduler esterno su `/api/cron` con `CRON_SECRET` |
 | Servizio email per inviti e notifiche | chi gestisce l'hosting | `RESEND_API_KEY`, `EMAIL_FROM` (già documentati) |
-| Chiavi API e webhook | amministratore con `integrations.manage` | Regole CRM → API e webhook |
+| Chiavi API e webhook | amministratore con `integrations.manage` | Impostazioni CRM → API e webhook |
 
 Nessuna credenziale è nel codice. Le chiavi API restano sul server come impronta; i segreti dei webhook sono cifrati.
 

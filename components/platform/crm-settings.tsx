@@ -22,12 +22,13 @@ function useVersioned(key: string, after: () => void) {
   const [pending, setPending] = useState<{ value: Record<string, unknown>; changes: Change[]; effect: string } | null>(null);
   const { run, busy, feedback } = useRun(after);
   const preview = (value: Record<string, unknown>) => run(async () => { const r = await api<{ changes: Change[]; effect: string }>("crm/settings", "PUT", { key, value, preview: true }); setPending({ value, changes: r.changes, effect: r.effect }); }, "Anteprima pronta: controlla e approva.");
+  const real = Boolean(pending?.changes.some((c) => c.path !== "version"));
   const panel = pending ? (
     <div className="crm-preview" role="region" aria-label="Anteprima delle modifiche">
       <h3>Cosa cambia</h3>
-      {pending.changes.length ? <ul>{pending.changes.map((c, i) => <li key={i}><code>{c.path}</code>: {show(c.from)} → <strong>{show(c.to)}</strong></li>)}</ul> : <p>Nessuna differenza.</p>}
-      <p>{pending.effect}</p>
-      <button className="platform-button" disabled={busy} onClick={() => run(async () => { await api("crm/settings", "PUT", { key, value: pending.value }); setPending(null); }, "Approvata e salvata come nuova versione.")}>Approva e salva</button> <button className="platform-text-button" onClick={() => setPending(null)}>Annulla</button>
+      {real ? <ul>{pending.changes.map((c, i) => <li key={i}><code>{c.path}</code>: {show(c.from)} → <strong>{show(c.to)}</strong></li>)}</ul> : <p>Nessuna modifica rispetto alla versione in vigore: non c&apos;è niente da approvare.</p>}
+      {real ? <p>{pending.effect}</p> : null}
+      {real ? <button className="platform-button" disabled={busy} onClick={() => run(async () => { await api("crm/settings", "PUT", { key, value: pending.value }); setPending(null); }, "Approvata e salvata come nuova versione.")}>Approva e salva</button> : null} <button className="platform-text-button" onClick={() => setPending(null)}>{real ? "Annulla" : "Chiudi"}</button>
     </div>
   ) : null;
   return { preview, panel, busy, feedback };
@@ -53,7 +54,7 @@ export function SetupView() {
         <p>I valori predefiniti sono proposte da verificare: finché non li approvi la sezione resta «da completare».</p>
       </Card>
       {feedback}
-      <Card title="1. Quali flussi userete">
+      <Card title="Quali flussi userete">
         <form className="platform-form" onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); run(() => api("crm/setup", "PUT", Object.fromEntries(FLOWS.map(([k]) => [k, f.get(k) === "on"]))), "Flussi salvati."); }}>
           {FLOWS.map(([k, label]) => <label key={k} className="platform-check"><input type="checkbox" name={k} defaultChecked={Boolean(d.flows[k])} disabled={!d.canEdit} />{label}</label>)}
           {d.canEdit ? <button className="platform-button" disabled={busy}>{d.flowsDecided ? "Aggiorna i flussi" : "Conferma i flussi"}</button> : null}
@@ -107,8 +108,8 @@ export function CrmSettingsView({ user }: { user: Profile }) {
   };
   return (
     <>
-      <nav className="crm-toolbar" aria-label="Sezioni delle impostazioni">
-        {SECTIONS.map(([k, label]) => <button key={k} className={section === k ? "platform-button" : "platform-text-button"} aria-current={section === k ? "page" : undefined} onClick={() => setSection(k)}>{label}{["brand", "catalog", "loss", "attribution", "assignment"].includes(k) && isDefault(({ brand: "brand", catalog: "catalog", loss: "loss-reasons", attribution: "attribution-rules", assignment: "assignment-rules" } as Record<string, string>)[k]!) ? " •" : ""}</button>)}
+      <nav className="crm-tabs" aria-label="Sezioni delle impostazioni">
+        {SECTIONS.map(([k, label]) => <button key={k} className={section === k ? "crm-tab crm-tab-on" : "crm-tab"} aria-current={section === k ? "page" : undefined} onClick={() => setSection(k)}>{label}{["brand", "catalog", "loss", "attribution", "assignment"].includes(k) && isDefault(({ brand: "brand", catalog: "catalog", loss: "loss-reasons", attribution: "attribution-rules", assignment: "assignment-rules" } as Record<string, string>)[k]!) ? " •" : ""}</button>)}
       </nav>
       {s && !s.canEdit ? <p className="platform-notice">Puoi consultare le impostazioni; per cambiarle serve il permesso sulle regole economiche.</p> : null}
       <p><small>• = valori ancora proposti, da verificare e approvare.</small></p>

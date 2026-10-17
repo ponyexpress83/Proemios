@@ -13,7 +13,8 @@ Per chi usa e configura il CRM ogni giorno. Il modello dei dati e la scelta sull
 | Coda libera | venditori che partecipano | Richieste da prendere in carico, con dati minimi fino alla presa. |
 | Eccezioni | chi scrive proposte | Sconti oltre soglia e voci personalizzate in attesa; chi ha `quote.approve` decide. |
 | Team e carichi | chi gestisce assegnazioni o team | Persone, ruoli, competenze, lingue, capacità, assenze, carico attuale; inviti con modello; disattivazione. |
-| Regole CRM | tutto il team (lettura), proprietario (modifica) | Assegnazione, scadenze, coda libera, attribuzione, storia delle versioni, API e webhook, report. |
+| Configurazione CRM | chi gestisce regole, team o assegnazioni | Percorso guidato in 8 sezioni con stato (configurata, da completare, non necessaria, errore) e l'elenco delle decisioni aziendali ancora aperte. |
+| Impostazioni CRM | tutto il team (lettura), chi ha `settings.manage` (modifica) | Marchio, catalogo, pipeline, campi, motivi di perdita, modelli e checklist, attribuzione, assegnazione e scadenze, prova assegnazione, attività automatiche, diagnostica, API e webhook (solo `integrations.manage`), storico. Ogni modifica passa da un'anteprima «cosa cambia» prima dell'approvazione. |
 | Progetto → Passaggio alla produzione | produzione e venditore della trattativa | Condizioni, mancanze, incongruenze, fatti contrattuali, promesse ed extra, domande e risposte, stato operativo, fasi e suggerimenti. |
 
 Il cliente vede la proposta da `/proposta/<link>` senza account. Accetta o compra dopo l'accesso con la sua email verificata. Chiede assistenza dalla sua area, dentro il progetto.
@@ -35,7 +36,7 @@ Nessuno può concedere più di ciò che ha: un modello con permessi che chi invi
 
 ## 3. Regole di assegnazione in vigore
 
-Versione predefinita `assegnazione-2026-10-v1`, modificabile in **Regole CRM** con una nuova versione. Ogni assegnazione registra regola e motivo.
+Versione predefinita `assegnazione-2026-10-v1`, modificabile in **Impostazioni CRM → Assegnazione e scadenze** con una nuova versione (anteprima delle conseguenze e prova con il simulatore prima di approvare). Ogni assegnazione registra regola e motivo.
 
 1. **Responsabile della trattativa aperta**: se la persona ha già una trattativa aperta, la nuova richiesta va lì, allo stesso responsabile.
 2. **Persone attive che partecipano**: per i venditori la partecipazione è attiva per impostazione; gli altri ruoli partecipano solo se lo dichiara il loro profilo.
@@ -109,14 +110,27 @@ Versione predefinita `attribuzione-2026-10-v1`. L'istantanea si prende **all'acc
 - **Note private**: visibili solo a chi le scrive, anche per il proprietario.
 - **Disattivazione**: chiude subito ruoli, sessioni e chiavi create dalla persona. Riassegna o rimette in coda richieste, trattative e compiti. Toglie l'accesso ai progetti. Non tocca vendite, attribuzioni e provvigioni passate. La riattivazione è possibile.
 
-## 7. Cron e tempi
+## 7. Attività automatiche (cron)
 
-Il cron di manutenzione (`/api/cron`, oggi una volta al giorno alle 5 UTC in `vercel.json`) esegue:
+Due lavori separati, entrambi protetti da `Authorization: Bearer CRON_SECRET`, con blocco contro le sovrapposizioni e registro di ogni esecuzione (tabelle `job_runs` e `job_locks`, migrazione `0013`):
 
-- scadenze ed escalation;
-- nuovi tentativi della coda;
-- rilascio delle prenotazioni scadute;
-- riepilogo del mattino;
-- consegna e ritentativi dei webhook.
+| Lavoro | Indirizzo | Frequenza attesa | Cosa fa |
+|---|---|---|---|
+| Manutenzione frequente | `/api/cron/frequent` | ogni 10–15 minuti | nuovi tentativi della coda, scadenze ed escalation, rilascio delle prenotazioni scadute, consegna e ritentativi dei webhook (max 20 per giro), invio della posta in coda (max 20), inviti scaduti |
+| Attività giornaliere | `/api/cron` | una volta al giorno (`vercel.json`, 5:00 UTC) | riepilogo del mattino, promemoria, fatture in coda, pulizie e tutto ciò che stava già nel cron giornaliero |
 
-Con un solo passaggio al giorno escalation e rilascio delle prenotazioni arrivano in ritardo. Per i tempi previsti dalle regole serve un passaggio ogni 10–15 minuti: un piano Vercel che lo consenta o uno scheduler esterno che chiami `/api/cron` con il segreto. I webhook partono comunque subito dopo ogni modifica fatta dallo spazio del team.
+- Chiamare `/api/cron` più volte nello stesso giorno **non ripete** il lavoro giornaliero: dopo la prima esecuzione riuscita le successive pianificate vengono registrate come «saltate». Anche un avvio manuale dalla scheda Operazioni non duplica riepiloghi, notifiche o provvigioni (chiavi evento e vincoli unici).
+- Una seconda chiamata mentre la precedente è ancora in corso viene registrata come «saltata (già in esecuzione)».
+- Un passo che fallisce non ferma gli altri: l'errore resta nel registro e compare in **Impostazioni CRM → Attività automatiche** (ultimo tentativo, ultima riuscita, ritardo rispetto alla frequenza attesa, ultimo errore, lavori in attesa).
+
+**Pianificatore.** Il piano Hobby di Vercel esegue i cron al massimo una volta al giorno: copre solo `/api/cron`. Per `/api/cron/frequent` le opzioni sono:
+
+1. **GitHub Actions** — file già pronto `.github/workflows/crm-frequent-cron.yml` (ogni 15 minuti). Per un repository pubblico i minuti sono gratuiti. Si attiva solo quando il file è sul ramo predefinito e sono impostati i segreti `CRON_URL` e `CRON_SECRET` del repository; GitHub esegue le pianificazioni al meglio (minimo 5 minuti, ritardi possibili).
+2. **cron-job.org** — servizio esterno gratuito: chiamata GET a `/api/cron/frequent` con l'intestazione `Authorization: Bearer <CRON_SECRET>`.
+3. **Vercel Pro** — cron fino a ogni minuto, a pagamento: non attivato, da decidere.
+
+Finché nessuno chiama `/api/cron/frequent`, escalation, rilascio delle prenotazioni e ritentativi arrivano solo con il passaggio giornaliero. I webhook e le email partono comunque subito dopo ogni modifica fatta dallo spazio del team.
+
+## 8. Diagnostica
+
+**Impostazioni CRM → Diagnostica** mostra per database e migrazioni, email, pagamenti, webhook Stripe, cron frequente e giornaliero, webhook in uscita, API, Fatture in Cloud, Brevo, archivio file e indirizzo dell'app uno stato tra: **verificata** (un fatto recente dimostra che funziona: per esempio una consegna email accettata o un evento Stripe ricevuto negli ultimi 30 giorni), **configurata** (le impostazioni ci sono, nessuna prova ancora), **non configurata**, **errore**. La sola presenza di una variabile d'ambiente non vale come «verificata». Nessun segreto viene mostrato e nessun test invasivo viene eseguito.
