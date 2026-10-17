@@ -86,7 +86,7 @@ Farlo a metà darebbe una falsa sicurezza. Il percorso previsto è nella sezione
 | Pipeline, campi personalizzati, regole versionate (`pipelines.ts`, `fields.ts`, `rules.ts`) | Fatture in Cloud, Stripe Checkout |
 | Firma dei webhook e ritentativi (`webhooks.ts`) | |
 
-Il nucleo è fatto di funzioni pure, verificate da test unitari senza database. I moduli in `lib/platform/crm-*.ts` le usano con il database. Nomi, catalogo, pipeline, ruoli, campi, modelli e regole stanno in impostazioni, non nel codice. Il testo delle email esistenti contiene ancora il nome del marchio. Va portato sull'impostazione `brand` quando si estrae il prodotto (sezione 6).
+Il nucleo è fatto di funzioni pure, verificate da test unitari senza database (`tests/crm-core.test.ts`). I moduli in `lib/platform/crm-*.ts` le usano con il database: `crm-relations` (contatto, richiesta, trattativa, eventi), `crm-routing` (instradamento, coda, scadenze), `crm-contacts`, `crm-deals`, `crm-team`, `crm-attribution`, `crm-quotes`, `crm-handoff`, `crm-work`, `crm-config`, `crm-notify`, `crm-api`. Nomi, catalogo, pipeline, ruoli, campi, modelli e regole stanno in impostazioni, non nel codice. Il testo delle email esistenti contiene ancora il nome del marchio. Va portato sull'impostazione `brand` quando si estrae il prodotto (sezione 6).
 
 ## 5. Interfacce di integrazione
 

@@ -5,7 +5,8 @@ import { quoteConfirm, quotePrefer } from "@/lib/platform/purchase";
 import { overviewCollection } from "@/lib/platform/overview";
 import { quoteReview, quoteOffer, quoteReminders } from "@/lib/platform/crm";
 import { invoiceCollection, invoicePdf, invoiceRetry, invoiceStatus } from "@/lib/platform/invoices";
-import { route, json, notFound, checkMutationOrigin } from "@/lib/platform/http";
+import { route, json, notFound, checkMutationOrigin, afterResponse } from "@/lib/platform/http";
+import { deliverWebhooks } from "@/lib/platform/crm-api";
 import { getActor } from "@/lib/platform/access";
 import { quotePdf } from "@/lib/platform/quote-pdf";
 import { contractDetail, contractCollection, contractPdf, contractWithdraw, contractWithdrawalHandle, quoteAttachment } from "@/lib/platform/contracts";
@@ -78,6 +79,8 @@ const handler = route(async (request) => {
     // Le email create da una mutazione (proposte, inviti, notifiche) partono
     // subito, non al cron del mattino dopo. La risposta non aspetta l'invio.
     flushMailAfterResponse(10);
+    // Gli eventi del CRM partono verso i webhook registrati subito dopo la risposta; il cron recupera i ritentativi.
+    afterResponse(() => deliverWebhooks(5));
   }
   const parts = new URL(request.url).pathname.split("/").filter(Boolean).slice(2),
     [area, id, action] = parts;

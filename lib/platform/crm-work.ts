@@ -123,11 +123,11 @@ export async function workSummary(request: Request, actor: Actor) {
   if (request.method !== "GET") throw notFound();
   return json({ summary: await morningSummary(actor) });
 }
-/** Dal cron: un riepilogo al giorno per persona del team, dopo le 8 nel fuso dell'ufficio. */
+/** Dal cron: un riepilogo al giorno per persona del team, dalle 6 nel fuso dell'ufficio (il cron quotidiano gira alle 5 UTC). */
 export async function runMorningSummaries(now = new Date()) {
   const rules = await assignmentRules();
   const local = localParts(now, rules.hours.timezone);
-  if (local.minutes < 8 * 60 || !rules.hours.days.includes(local.weekday)) return { sent: 0 };
+  if (local.minutes < 6 * 60 || !rules.hours.days.includes(local.weekday)) return { sent: 0 };
   const key = `morning-summary:${local.ymd}`;
   const claimed = await getDb().insert(platformSettings).values({ key, value: { at: now.toISOString() } }).onConflictDoNothing().returning();
   if (!claimed.length) return { sent: 0 };

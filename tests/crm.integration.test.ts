@@ -547,6 +547,13 @@ describe("configuration, integrations and boundaries", () => {
     expect((await db.select().from(crm.crmContacts).where(eq(crm.crmContacts.id, b.contactId)))[0]!.mergedIntoId).toBe(a.contactId);
     expect(await db.select().from(crm.crmMerges)).toHaveLength(1);
   });
+  it("previews a CSV import with certain and possible duplicates before writing anything", async () => {
+    const before = (await db.select().from(schema.leads)).length;
+    const preview = await data(await call("admin", "leads/import", "POST", { fonte: "import", sourceDetail: "Fiera test", preview: true, rows: [{ nome: "Ada Ads", email: "ada.ads@example.test" }, { nome: "Nuova Persona", email: "nuova.persona@example.test", telefono: "333 7770001" }, { nome: "Nuova Persona", email: "nuova.persona@example.test" }, { nome: "X", email: "non-valida" }] }));
+    expect(preview.totals).toEqual({ new: 1, duplicates: 2, invalid: 1 });
+    expect(preview.rows[1].possibleDuplicate).toContain("stesso telefono");
+    expect((await db.select().from(schema.leads)).length).toBe(before);
+  });
   it("validates custom fields, saves views, renders templates as drafts, links support to projects and reports without opaque scores", async () => {
     await data(await call("owner", "crm/fields", "POST", { entity: "deal", key: "genere", label: "Genere", type: "select", options: ["giallo", "saggio"] }), 201);
     expect((await call("sellerA", `crm/deals/${adsDeal}`, "PATCH", { custom: { genere: "horror" } })).status).toBe(422);

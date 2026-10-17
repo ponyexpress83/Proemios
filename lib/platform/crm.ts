@@ -1,5 +1,5 @@
 import { linkLeadsToAuthor } from "./lead-linking";
-import { and, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
+import { and, desc, eq, ilike, inArray, isNull, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { randomBytes } from "node:crypto";
 import { getDb } from "@/db";
@@ -44,7 +44,8 @@ import { acceptanceEvidence, buildOrderSheet, createContract, customerForSheet, 
 import { attachLead, emitEvent } from "./crm-relations";
 import { snapshotAttribution } from "./crm-attribution";
 import { markFirstResponse, routeLead, setOwner } from "./crm-routing";
-import { crmDeals, crmApprovals, teamProfiles } from "@/db/crm-schema";
+import { crmDeals, crmApprovals, teamProfiles, crmContacts } from "@/db/crm-schema";
+import { normalizePhone } from "@/lib/crm-core/dedup";
 import { notify } from "./crm-notify";
 
 type Db = Pick<ReturnType<typeof getDb>, "select">;
@@ -223,7 +224,7 @@ export async function leadImport(request: Request, actor: Actor) {
   demand(actor, "crm.import");
   await limitRequest("lead-import", actor.id, 10, 3600);
   const rowSchema = z.object({ nome: z.string().trim().min(2).max(200), email: z.string().trim().email().max(320), telefono: z.string().trim().max(40).optional(), note: z.string().trim().max(5000).optional(), externalRef: z.string().trim().max(200).optional(), consensoPrivacy: z.coerce.boolean().default(false) });
-  let payload: { fonte: "marketplace" | "import"; sourceDetail: string; rows: unknown[]; assign?: "none" | "rules" };
+  let payload: { fonte: "marketplace" | "import"; sourceDetail: string; rows: unknown[]; assign?: "none" | "rules"; preview?: boolean };
   if ((request.headers.get("content-type") ?? "").includes("text/csv")) {
     const url = new URL(request.url);
     const text = (await request.text()).slice(0, 2_000_000);
@@ -233,9 +234,26 @@ export async function leadImport(request: Request, actor: Actor) {
       const cells = line.match(/("([^"]|"")*"|[^,]*)(,|$)/g)?.map((c) => c.replace(/,$/, "").replace(/^"|"$/g, "").replace(/""/g, '"').trim()) ?? [];
       return Object.fromEntries(header.map((h, i) => [{ name: "nome", nome: "nome", email: "email", telefono: "telefono", phone: "telefono", note: "note", ref: "externalRef", externalref: "externalRef", external_ref: "externalRef", consenso: "consensoPrivacy", consensoprivacy: "consensoPrivacy", consenso_privacy: "consensoPrivacy" }[h] ?? h, cells[i] ?? ""]));
     });
-    payload = { fonte: url.searchParams.get("fonte") === "marketplace" ? "marketplace" : "import", sourceDetail: (url.searchParams.get("origine") ?? "file CSV").slice(0, 200), rows, assign: url.searchParams.get("assegna") === "regole" ? "rules" : "none" };
+    payload = { fonte: url.searchParams.get("fonte") === "marketplace" ? "marketplace" : "import", sourceDetail: (url.searchParams.get("origine") ?? "file CSV").slice(0, 200), rows, assign: url.searchParams.get("assegna") === "regole" ? "rules" : "none", preview: url.searchParams.get("anteprima") === "1" };
   } else {
-    payload = await readBody(request, z.object({ fonte: z.enum(["marketplace", "import"]), sourceDetail: z.string().trim().min(2).max(200), rows: z.array(z.unknown()).min(1).max(500), assign: z.enum(["none", "rules"]).default("none") }).strict());
+    payload = await readBody(request, z.object({ fonte: z.enum(["marketplace", "import"]), sourceDetail: z.string().trim().min(2).max(200), rows: z.array(z.unknown()).min(1).max(500), assign: z.enum(["none", "rules"]).default("none"), preview: z.boolean().default(false) }).strict());
+  }
+  // Anteprima: nessuna scrittura, solo l'esito previsto riga per riga (validi, non validi, doppioni certi e possibili).
+  if (payload.preview) {
+    const rows = [] as Array<{ row: number; status: "new" | "duplicate" | "invalid"; reason?: string; possibleDuplicate?: string | null }>;
+    const seen = new Set<string>();
+    for (const [i, raw] of payload.rows.slice(0, 500).entries()) {
+      const parsed = rowSchema.safeParse(raw);
+      if (!parsed.success) { rows.push({ row: i + 1, status: "invalid", reason: parsed.error.issues.map((x) => x.path.join(".")).join(", ") }); continue; }
+      const email = parsed.data.email.toLowerCase();
+      const [dup] = await getDb().select({ id: leads.id }).from(leads).where(or(eq(leads.email, email), parsed.data.externalRef ? eq(leads.externalRef, parsed.data.externalRef) : sql`false`)).limit(1);
+      if (dup || seen.has(email)) { rows.push({ row: i + 1, status: "duplicate", reason: dup ? "email o riferimento già presenti" : "ripetuta nel file" }); continue; }
+      seen.add(email);
+      const phone = normalizePhone(parsed.data.telefono);
+      const [samePhone] = phone ? await getDb().select({ name: crmContacts.name }).from(crmContacts).where(and(eq(crmContacts.phoneNormalized, phone), isNull(crmContacts.mergedIntoId))).limit(1) : [];
+      rows.push({ row: i + 1, status: "new", possibleDuplicate: samePhone ? `stesso telefono di ${samePhone.name}: verifica prima di unire` : null });
+    }
+    return json({ preview: true, rows, totals: { new: rows.filter((r) => r.status === "new").length, duplicates: rows.filter((r) => r.status === "duplicate").length, invalid: rows.filter((r) => r.status === "invalid").length } });
   }
   const result = { imported: 0, duplicates: 0, invalid: 0, leadIds: [] as string[] };
   for (const raw of payload.rows.slice(0, 500)) {
