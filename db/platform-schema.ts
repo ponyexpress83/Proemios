@@ -63,6 +63,9 @@ export const staffInvitations = pgTable("platform_invitations", {
   status: text("status").notNull().default("pending"),
   acceptedBy: text("accepted_by"),
   acceptedSellerId: text("accepted_seller_id").references(() => user.id),
+  /** Modello di ruolo usato («Aggiungi venditore») e profilo operativo da applicare all'accettazione. */
+  template: text("template"),
+  profile: jsonb("profile").$type<Record<string, unknown> | null>(),
   createdAt: created(),
 });
 export const projects = pgTable(
@@ -85,6 +88,13 @@ export const projects = pgTable(
     startCondition: text("start_condition").notNull().default("deposit"),
     /** Quando la condizione economica di avvio è stata soddisfatta. */
     startedAt: timestamp("started_at", { withTimezone: true }),
+    /** Stato operativo, distinto dalla fase editoriale: waiting_materials · ready_for_assignment · assigned · in_progress · quality_check · client_review · concluded */
+    opsStatus: text("ops_status").notNull().default("waiting_materials"),
+    opsLeadId: text("ops_lead_id").references(() => user.id),
+    qaOwnerId: text("qa_owner_id").references(() => user.id),
+    /** Data contrattuale (scheda d'ordine), separata dalla pianificazione interna dei compiti. */
+    contractualDueAt: timestamp("contractual_due_at", { withTimezone: true }),
+    dealId: uuid("deal_id"),
     createdAt: created(),
     updatedAt: updated(),
   },
@@ -188,9 +198,10 @@ export const tasks = pgTable("platform_tasks", {
   id: uuid("id").defaultRandom().primaryKey(),
   projectId: uuid("project_id").references(() => projects.id),
   leadId: uuid("lead_id"),
-  assignedTo: text("assigned_to")
-    .notNull()
-    .references(() => user.id),
+  dealId: uuid("deal_id"),
+  supportId: uuid("support_id"),
+  /** Vuoto solo per le fasi in coda reclamabile. */
+  assignedTo: text("assigned_to").references(() => user.id),
   createdBy: text("created_by")
     .notNull()
     .references(() => user.id),
@@ -198,6 +209,15 @@ export const tasks = pgTable("platform_tasks", {
   done: boolean("done").notNull().default(false),
   internal: boolean("internal").notNull().default(true),
   dueAt: timestamp("due_at", { withTimezone: true }),
+  /** todo · in_progress · blocked · done (done resta allineato a `done`). */
+  status: text("status").notNull().default("todo"),
+  priority: text("priority").notNull().default("normal"),
+  /** Fase di produzione e competenza richiesta (es. editing, proofreading, layout, qa). */
+  phase: text("phase"),
+  skill: text("skill"),
+  dependsOn: uuid("depends_on"),
+  claimable: boolean("claimable").notNull().default(false),
+  completedAt: timestamp("completed_at", { withTimezone: true }),
   createdAt: created(),
 });
 export const leadOwnership = pgTable("platform_lead_ownership", {
@@ -224,6 +244,9 @@ export const leadActivities = pgTable(
     body: text("body"),
     outcome: text("outcome"),
     eventKey: text("event_key").unique(),
+    /** Telefonata strutturata: sintesi, decisioni, prossimi passi. Una sintesi automatica sarebbe solo una bozza. */
+    structured: jsonb("structured").$type<{ summary?: string; decisions?: string[]; nextSteps?: string[]; draft?: boolean } | null>(),
+    dealId: uuid("deal_id"),
     createdAt: created(),
   },
   (t) => [index("lead_activity_lead_idx").on(t.leadId, t.createdAt)],
@@ -235,6 +258,8 @@ export const leadNotes = pgTable("platform_lead_notes", {
     .notNull()
     .references(() => user.id),
   body: text("body").notNull(),
+  /** team: visibile a chi vede il contatto · private: solo a chi l'ha scritta. */
+  visibility: text("visibility").notNull().default("team"),
   createdAt: created(),
 });
 export const quoteRecords = pgTable("platform_quote_records", {
@@ -284,6 +309,12 @@ export const quoteRecords = pgTable("platform_quote_records", {
   attachmentName: text("attachment_name"),
   attachmentHash: text("attachment_hash"),
   attachmentUploadedAt: timestamp("attachment_uploaded_at", { withTimezone: true }),
+  /** Trattativa della proposta e link da cui è nato l'acquisto (pacchetto standard). */
+  dealId: uuid("deal_id"),
+  originLinkId: uuid("origin_link_id"),
+  /** Voci personalizzate autorizzate e condizioni di lavorazione (consegne, revisioni, tempi, esclusioni). */
+  customLines: jsonb("custom_lines").$type<Array<{ label: string; amount: number; quantity: number; approvedBy: string | null }>>().notNull().default([]),
+  workTerms: jsonb("work_terms").$type<{ deliveries?: string; revisions?: string; timing?: string; exclusions?: string[] } | null>(),
 });
 export type PaymentPlan = {
   installments: number;

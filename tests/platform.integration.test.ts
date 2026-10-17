@@ -225,6 +225,9 @@ describe("financial events, affiliate privacy and recovery", () => {
     await data(await call("owner", "settings", "PUT", { key: "commission-rule", value: rule }));
     await data(await call("sellerA", `quotes/${quoteId}`, "PATCH", { version: 2, input: priceInput }));
     const body = { tier: "consigliato", version: 3, policyVersion: policy.version, termsAccepted: true, orderSheetAccepted: true };
+    // Il codice affiliato è sulla proposta prima della vendita: l'istantanea di attribuzione lo registra all'accettazione.
+    await db.insert(platform.affiliateProfiles).values([{ userId: actors.affiliateA!.id, code: "aaaaaaaaaaaaaaaa", active: true }, { userId: actors.affiliateB!.id, code: "bbbbbbbbbbbbbbbb", active: true }]);
+    await db.insert(platform.affiliateConversions).values({ affiliateId: actors.affiliateA!.id, quoteId, ruleVersion: rule.version });
     expect((await call("authorA", `quotes/${quoteId}/accept`, "POST", { ...body, version: 2 })).status).toBe(409);
     const accepted = await data(await call("authorA", `quotes/${quoteId}/accept`, "POST", body));
     const again = await data(await call("authorA", `quotes/${quoteId}/accept`, "POST", body));
@@ -243,8 +246,6 @@ describe("financial events, affiliate privacy and recovery", () => {
     expect((await call("sellerA", `quotes/${quoteId}`, "PATCH", { version: 3, input: priceInput })).status).toBe(409);
   });
   it("keeps affiliate data separate and never discloses customer contact details", async () => {
-    await db.insert(platform.affiliateProfiles).values([{ userId: actors.affiliateA!.id, code: "aaaaaaaaaaaaaaaa", active: true }, { userId: actors.affiliateB!.id, code: "bbbbbbbbbbbbbbbb", active: true }]);
-    await db.insert(platform.affiliateConversions).values({ affiliateId: actors.affiliateA!.id, quoteId, ruleVersion: rule.version });
     const a = await data(await call("affiliateA", "affiliates")), b = await data(await call("affiliateB", "affiliates"));
     expect(a.conversions).toHaveLength(1); expect(b.conversions).toHaveLength(0);
     expect(JSON.stringify(a)).not.toContain(actors.authorA!.email);

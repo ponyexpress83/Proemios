@@ -41,6 +41,10 @@ import { paymentOrders, affiliateConversions, contracts, leadActivities } from "
 import { pipelineState, normalizeStage, manualTransitionAllowed, PIPELINE_STATES, MANUAL_STATES, PAID_STATUSES, type PipelineState } from "./pipeline";
 import { can } from "./permissions";
 import { acceptanceEvidence, buildOrderSheet, createContract, customerForSheet, termsSnapshot } from "./contracts";
+import { attachLead, emitEvent } from "./crm-relations";
+import { snapshotAttribution } from "./crm-attribution";
+import { markFirstResponse, routeLead, setOwner } from "./crm-routing";
+import { crmDeals } from "@/db/crm-schema";
 
 type Db = Pick<ReturnType<typeof getDb>, "select">;
 export async function getSetting(key: string, db: Db = getDb()) {
@@ -176,7 +180,9 @@ export async function leadCollection(request: Request, actor: Actor) {
         consensoMarketing: false,
       })
       .returning();
-    await tx.insert(leadOwnership).values({ leadId: saved!.id, assignedTo: actor.id });
+    await tx.update(leads).set({ sourceKind: body.fonte === "marketplace" ? "marketplace" : actor.roles.includes("seller") ? "seller" : "manual", sourcedBy: actor.id, firstResponseAt: new Date() }).where(eq(leads.id, saved!.id));
+    const linked = await attachLead(tx, saved!.id, { createdBy: actor.id });
+    await setOwner(tx, { leadId: saved!.id, dealId: linked.deal.id, to: actor.id, method: "manual", reason: "seller_sourced", actorId: actor.id });
     await tx.insert(leadActivities).values({ leadId: saved!.id, actorId: actor.id, kind: "created", channel: body.fonte, body: body.sourceDetail ? `Inserito da ${body.sourceDetail}` : "Inserito dal team", direction: "inbound" });
     return saved!;
   });
@@ -193,7 +199,7 @@ export async function leadImport(request: Request, actor: Actor) {
   demand(actor, "crm.import");
   await limitRequest("lead-import", actor.id, 10, 3600);
   const rowSchema = z.object({ nome: z.string().trim().min(2).max(200), email: z.string().trim().email().max(320), telefono: z.string().trim().max(40).optional(), note: z.string().trim().max(5000).optional(), externalRef: z.string().trim().max(200).optional(), consensoPrivacy: z.coerce.boolean().default(false) });
-  let payload: { fonte: "marketplace" | "import"; sourceDetail: string; rows: unknown[] };
+  let payload: { fonte: "marketplace" | "import"; sourceDetail: string; rows: unknown[]; assign?: "none" | "rules" };
   if ((request.headers.get("content-type") ?? "").includes("text/csv")) {
     const url = new URL(request.url);
     const text = (await request.text()).slice(0, 2_000_000);
@@ -203,9 +209,9 @@ export async function leadImport(request: Request, actor: Actor) {
       const cells = line.match(/("([^"]|"")*"|[^,]*)(,|$)/g)?.map((c) => c.replace(/,$/, "").replace(/^"|"$/g, "").replace(/""/g, '"').trim()) ?? [];
       return Object.fromEntries(header.map((h, i) => [{ name: "nome", nome: "nome", email: "email", telefono: "telefono", phone: "telefono", note: "note", ref: "externalRef", externalref: "externalRef", external_ref: "externalRef", consenso: "consensoPrivacy", consensoprivacy: "consensoPrivacy", consenso_privacy: "consensoPrivacy" }[h] ?? h, cells[i] ?? ""]));
     });
-    payload = { fonte: url.searchParams.get("fonte") === "marketplace" ? "marketplace" : "import", sourceDetail: (url.searchParams.get("origine") ?? "file CSV").slice(0, 200), rows };
+    payload = { fonte: url.searchParams.get("fonte") === "marketplace" ? "marketplace" : "import", sourceDetail: (url.searchParams.get("origine") ?? "file CSV").slice(0, 200), rows, assign: url.searchParams.get("assegna") === "regole" ? "rules" : "none" };
   } else {
-    payload = await readBody(request, z.object({ fonte: z.enum(["marketplace", "import"]), sourceDetail: z.string().trim().min(2).max(200), rows: z.array(z.unknown()).min(1).max(500) }).strict());
+    payload = await readBody(request, z.object({ fonte: z.enum(["marketplace", "import"]), sourceDetail: z.string().trim().min(2).max(200), rows: z.array(z.unknown()).min(1).max(500), assign: z.enum(["none", "rules"]).default("none") }).strict());
   }
   const result = { imported: 0, duplicates: 0, invalid: 0, leadIds: [] as string[] };
   for (const raw of payload.rows.slice(0, 500)) {
@@ -220,6 +226,13 @@ export async function leadImport(request: Request, actor: Actor) {
       }
       const [saved] = await tx.insert(leads).values({ nome: row.nome, email, telefono: row.telefono ?? null, note: row.note ?? null, fonte: payload.fonte, sourceDetail: payload.sourceDetail, externalRef: row.externalRef ?? null, consensoPrivacy: row.consensoPrivacy, consensoMarketing: false }).returning({ id: leads.id });
       await tx.insert(leadActivities).values({ leadId: saved!.id, actorId: actor.id, kind: "import", channel: payload.fonte, direction: "inbound", body: `Importato da ${payload.sourceDetail}${row.externalRef ? ` (rif. ${row.externalRef})` : ""}.`, outcome: row.consensoPrivacy ? "contactable" : "no-consent" });
+      await tx.update(leads).set({ sourceKind: payload.fonte === "marketplace" ? "marketplace" : "manual" }).where(eq(leads.id, saved!.id));
+      // Contatto e trattativa sempre collegati; l'assegnazione segue le regole solo se richiesto, senza email per riga.
+      if (payload.assign === "rules") await routeLead(tx, saved!.id, { actorId: actor.id, notifyAssignee: false });
+      else {
+        await attachLead(tx, saved!.id, { createdBy: actor.id });
+        await tx.update(leads).set({ assignmentStatus: "manual" }).where(eq(leads.id, saved!.id));
+      }
       result.leadIds.push(saved!.id);
       return "imported" as const;
     });
@@ -239,13 +252,17 @@ export async function leadActivity(request: Request, actor: Actor, id: string) {
     outcome: z.enum(["reached", "no-answer", "callback", "replied", "declined", "other"]).default("other"),
     nextAction: z.string().trim().max(300).optional(),
     nextActionAt: z.string().datetime().optional(),
+    /** Telefonata strutturata: sintesi, decisioni e prossimi passi (base per il passaggio alla produzione). */
+    structured: z.object({ summary: z.string().trim().max(2000).optional(), decisions: z.array(z.string().trim().min(1).max(500)).max(20).optional(), nextSteps: z.array(z.string().trim().min(1).max(500)).max(20).optional() }).strict().optional(),
   }).strict());
   const [lead] = await getDb().select().from(leads).where(eq(leads.id, id));
   if (!lead) throw notFound();
   const prefs = lead.contactPreferences;
   if (body.direction === "outbound" && prefs && ((body.kind === "whatsapp" && !prefs.whatsapp) || (body.kind === "sms" && !prefs.sms) || (body.kind === "call" && !prefs.phone)))
     throw new PlatformError(409, "CHANNEL_NOT_ALLOWED", "La persona non ha autorizzato questo canale: usa un canale ammesso o aggiorna le preferenze con il suo consenso.");
-  const [activity] = await getDb().insert(leadActivities).values({ leadId: id, actorId: actor.id, kind: body.kind, channel: body.kind, direction: body.direction, body: body.body, outcome: body.outcome }).returning();
+  const [activity] = await getDb().insert(leadActivities).values({ leadId: id, dealId: lead.dealId, actorId: actor.id, kind: body.kind, channel: body.kind, direction: body.direction, body: body.body, outcome: body.outcome, structured: body.structured ?? null }).returning();
+  if (body.direction === "outbound") await markFirstResponse(getDb(), id, actor.id);
+  if (lead.dealId) await getDb().update(crmDeals).set({ lastActivityAt: new Date(), ...(body.nextAction ? { nextAction: body.nextAction } : {}), ...(body.nextActionAt ? { nextActionAt: new Date(body.nextActionAt) } : {}) }).where(eq(crmDeals.id, lead.dealId));
   await getDb().update(leads).set({ lastContactAt: new Date(), ...(body.nextAction !== undefined ? { nextAction: body.nextAction || null } : {}), ...(body.nextActionAt !== undefined ? { nextActionAt: new Date(body.nextActionAt) } : {}), updatedAt: new Date() }).where(eq(leads.id, id));
   await audit(actor, "lead.activity", "lead", id, { kind: body.kind, direction: body.direction });
   return json({ activity }, 201);
@@ -259,12 +276,14 @@ export async function leadDetail(request: Request, actor: Actor, id: string) {
       .select({
         id: leadNotes.id,
         body: leadNotes.body,
+        visibility: leadNotes.visibility,
         name: user.name,
         createdAt: leadNotes.createdAt,
       })
       .from(leadNotes)
       .innerJoin(user, eq(user.id, leadNotes.authorId))
-      .where(eq(leadNotes.leadId, id))
+      // Le note private restano di chi le ha scritte, anche per chi ha accesso a tutta l'organizzazione.
+      .where(and(eq(leadNotes.leadId, id), or(eq(leadNotes.visibility, "team"), eq(leadNotes.authorId, actor.id))))
       .orderBy(desc(leadNotes.createdAt));
     const facts = await leadFacts([id]);
     const savedQuotes = facts.quotes.map((r) => ({ id: r.quote.id, createdAt: r.quote.createdAt, stato: r.quote.stato, prezzoTotale: r.quote.prezzoTotale, commercialState: r.record?.commercialState ?? null, acceptedAt: r.record?.acceptedAt ?? null, journey: r.record ? journeyStage(r.record, facts.orders.filter((o) => o.quoteId === r.quote.id)) : null }));
@@ -314,13 +333,10 @@ export async function leadDetail(request: Request, actor: Actor, id: string) {
       .where(and(eq(user.id, body.assignedTo), eq(user.emailVerified, true)));
     if (!target)
       throw new PlatformError(422, "INVALID_ASSIGNEE", "Seleziona un utente verificato.");
-    await getDb()
-      .insert(leadOwnership)
-      .values({ leadId: id, assignedTo: body.assignedTo })
-      .onConflictDoUpdate({
-        target: leadOwnership.leadId,
-        set: { assignedTo: body.assignedTo, updatedAt: new Date() },
-      });
+    await getDb().transaction(async (tx) => {
+      await tx.update(leads).set({ assignmentStatus: "assigned", reservedBy: null, reservedUntil: null }).where(eq(leads.id, id));
+      await setOwner(tx, { leadId: id, dealId: lead.dealId, to: body.assignedTo!, method: "manual", reason: "manual_assignment", actorId: actor.id });
+    });
     await getDb().insert(leadActivities).values({ leadId: id, actorId: actor.id, kind: "assignment", body: `Assegnato a ${target.id === actor.id ? "sé stesso" : "un altro responsabile"}.`, outcome: body.assignedTo });
   }
   if (body.marketingConsent !== undefined) {
@@ -342,6 +358,10 @@ export async function leadDetail(request: Request, actor: Actor, id: string) {
       updatedAt: new Date(),
     })
     .where(eq(leads.id, id));
+  if (next !== undefined && lead.dealId)
+    await getDb().update(crmDeals).set({ stage: next, closedAt: closing ? new Date() : null, lostNote: closing ? body.lostReason ?? null : null, lastActivityAt: new Date(), updatedAt: new Date() }).where(and(eq(crmDeals.id, lead.dealId), eq(crmDeals.originLeadId, id)));
+  if ((body.nextAction !== undefined || body.nextActionAt !== undefined) && lead.dealId)
+    await getDb().update(crmDeals).set({ ...(body.nextAction !== undefined ? { nextAction: body.nextAction } : {}), ...(body.nextActionAt !== undefined ? { nextActionAt: body.nextActionAt ? new Date(body.nextActionAt) : null } : {}) }).where(eq(crmDeals.id, lead.dealId));
   if (next !== undefined && next !== current)
     await getDb().insert(leadActivities).values({ leadId: id, actorId: actor.id, kind: "state", body: `Stato: ${current} → ${next}${closing ? ` · ${body.lostReason}` : ""}`, outcome: next });
   if (body.lostReason && closing)
@@ -360,11 +380,11 @@ export async function leadNote(request: Request, actor: Actor, id: string) {
   await leadAccess(actor, id, "crm.write");
   const body = await readBody(
     request,
-    z.object({ body: z.string().trim().min(1).max(5000) }).strict(),
+    z.object({ body: z.string().trim().min(1).max(5000), visibility: z.enum(["team", "private"]).default("team") }).strict(),
   );
   const [note] = await getDb()
     .insert(leadNotes)
-    .values({ leadId: id, authorId: actor.id, body: body.body })
+    .values({ leadId: id, authorId: actor.id, body: body.body, visibility: body.visibility })
     .returning();
   return json({ note }, 201);
 }
@@ -377,6 +397,7 @@ export async function createQuoteForLead(request: Request, actor: Actor, id: str
   const tax = await resolvePaymentPolicy(),
     commissions = commissionRuleSchema.safeParse(await getSetting("commission-rule"));
   const quote = await getDb().transaction(async (tx) => {
+    const { deal } = await attachLead(tx, id, { createdBy: actor.id });
     const [saved] = await tx
       .insert(quotes)
       .values({
@@ -392,6 +413,7 @@ export async function createQuoteForLead(request: Request, actor: Actor, id: str
       .insert(quoteRecords)
       .values({
         quoteId: saved!.id,
+        dealId: deal.id,
         createdBy: actor.id,
         pricingVersion,
         taxPolicy: tax,
@@ -660,6 +682,9 @@ export async function acceptQuote(actor: Actor, id: string, body: z.infer<typeof
       })
       .where(eq(quoteRecords.quoteId, id));
     await recordFunnel(tx, "quote_accepted", id, { tier: body.tier });
+    // Istantanea dell'attribuzione al momento della vendita: i cambi di responsabile successivi non la toccano.
+    const attribution = await snapshotAttribution(tx, id, { id: actor.id, email: actor.email });
+    await emitEvent(tx, "quote.accepted", id, id, { quoteId: id, dealId: record.dealId, tier: body.tier, version: record.version, attribution: attribution ? { path: attribution.path, status: attribution.status, closing: attribution.closing, ruleVersion: attribution.ruleVersion } : null });
     await tx
       .update(quotes)
       .set({
@@ -812,6 +837,7 @@ export async function quoteSend(request: Request, actor: Actor, id: string) {
       .update(quoteRecords)
       .set({ salesAssisted: true, commercialState: "offer", offeredAt: access.record.offeredAt ?? new Date(), offeredBy: access.record.offeredBy ?? actor.id })
       .where(eq(quoteRecords.quoteId, id));
+  await markFirstResponse(getDb(), access.quote.leadId, actor.id);
   await audit(actor, "quote.sent", "quote", id);
   return json({ ok: true, emailStatus: "queued" });
 }

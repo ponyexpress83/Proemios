@@ -140,10 +140,12 @@ export async function operationsCollection(request: Request, actor: Actor) {
     jobs: await getDb().select({ id: analysisJobs.id, status: analysisJobs.status, attempts: analysisJobs.attempts, errorCode: analysisJobs.errorCode, createdAt: analysisJobs.createdAt }).from(analysisJobs).orderBy(desc(analysisJobs.createdAt)).limit(100),
   });
 }
+import { runAssignmentJobs } from "./crm-routing";
 export async function maintenance() {
   const invoicing = await issueQueuedInvoices(10);
   const reminders = await runReminders().catch((error) => ({ sent: 0, skipped: true, error: error instanceof Error ? error.message : "errore" }));
   const recovery = await runRecovery().catch((error) => ({ sent: 0, tasks: 0, stopped: 0, skipped: true, error: error instanceof Error ? error.message : "errore" }));
+  const assignment = await runAssignmentJobs().catch((error) => ({ escalated: 0, routed: 0, released: 0, error: error instanceof Error ? error.message : "errore" }));
   const mail = await flushMail(20);
   const quarantined = await getDb()
     .select()
@@ -202,7 +204,7 @@ export async function maintenance() {
   if (pending[0]) await runAnalysisJob(pending[0].id);
   await getDb().update(staffInvitations).set({ status: "expired" }).where(and(eq(staffInvitations.status, "pending"), lt(staffInvitations.expiresAt, new Date())));
   await getDb().delete(quoteClaims).where(lt(quoteClaims.expiresAt, new Date()));
-  return { ...mail, scanned, deleted, invoices: invoicing, reminders, recovery };
+  return { ...mail, scanned, deleted, invoices: invoicing, reminders, recovery, assignment };
 }
 export async function mailRetry(request: Request, actor: Actor, id: string) {
   if (request.method !== "POST") throw notFound();

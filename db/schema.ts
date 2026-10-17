@@ -20,6 +20,7 @@ import {
 
 export * from "./auth-schema";
 export * from "./platform-schema";
+export * from "./crm-schema";
 
 export const leadSourceEnum = pgEnum("lead_source", [
   "preventivo",
@@ -74,10 +75,30 @@ export const leads = pgTable(
     lostReason: text("lost_reason"),
     closedAt: timestamp("closed_at", { withTimezone: true }),
     note: text("note"),
+    /** Persona e trattativa a cui appartiene la richiesta: una richiesta non è un contatto né un'opportunità. */
+    contactId: uuid("contact_id"),
+    dealId: uuid("deal_id"),
+    /** Tipo di origine (modulo, campagna, social, inserimento, venditore, marketplace, partner, API). */
+    sourceKind: varchar("source_kind", { length: 20 }),
+    /** Chi ha portato il contatto (venditore o partner), distinto da chi lo segue. */
+    sourcedBy: text("sourced_by"),
+    priority: varchar("priority", { length: 10 }).notNull().default("normal"),
+    language: varchar("language", { length: 8 }).notNull().default("it"),
+    requiredSkill: varchar("required_skill", { length: 40 }),
+    /** assigned · queued (nessuno idoneo, coda monitorata) · pool (coda a scelta libera) · reserved · manual */
+    assignmentStatus: varchar("assignment_status", { length: 12 }).notNull().default("assigned"),
+    reservedBy: text("reserved_by"),
+    reservedUntil: timestamp("reserved_until", { withTimezone: true }),
+    slaDueAt: timestamp("sla_due_at", { withTimezone: true }),
+    firstResponseAt: timestamp("first_response_at", { withTimezone: true }),
+    escalatedAt: timestamp("escalated_at", { withTimezone: true }),
+    custom: jsonb("custom").$type<Record<string, string | number | boolean | null>>().notNull().default({}),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => ({
+    contactIdx: index("leads_contact_idx").on(t.contactId),
+    assignmentIdx: index("leads_assignment_idx").on(t.assignmentStatus, t.slaDueAt),
     emailIdx: index("leads_email_idx").on(t.email),
     externalRefIdx: index("leads_external_ref_idx").on(t.externalRef),
     nextActionIdx: index("leads_next_action_idx").on(t.nextActionAt),

@@ -85,6 +85,13 @@
       "when": 1792234302626,
       "tag": "0011_quote_attachment",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1792256885914,
+      "tag": "0012_crm_relations",
+      "breakpoints": true
     }
   ]
 }

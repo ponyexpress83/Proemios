@@ -11,6 +11,7 @@ import { quotePdf } from "@/lib/platform/quote-pdf";
 import { contractDetail, contractCollection, contractPdf, contractWithdraw, contractWithdrawalHandle, quoteAttachment } from "@/lib/platform/contracts";
 import { campaignCollection, campaignDetail, campaignSpendImport, marketingContacts, marketingDashboard, automationDrafts } from "@/lib/platform/marketing";
 import { integrationCollection } from "@/lib/platform/integrations";
+import { crmRoute } from "@/lib/platform/crm-router";
 import {
   projectCollection,
   projectDetail,
@@ -80,7 +81,7 @@ const handler = route(async (request) => {
   }
   const parts = new URL(request.url).pathname.split("/").filter(Boolean).slice(2),
     [area, id, action] = parts;
-  if (parts.length > 3) throw notFound();
+  if (parts.length > (area === "crm" ? 4 : 3)) throw notFound();
   const actor = await getActor(request, {
     allowUnenrolled: area === "me" || area === "invite-accept",
   });
@@ -97,6 +98,7 @@ const handler = route(async (request) => {
       },
     });
   if (area === "me" && id === "billing" && !action) return billingProfile(request, actor);
+  if (area === "crm") return crmRoute(request, actor, parts.slice(1));
   if (
     id &&
     !["export", "reconcile", "run", "status", "import", "contacts", "activate"].includes(id) &&
