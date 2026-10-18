@@ -10,6 +10,7 @@ import Link from "next/link";
 import type { Route } from "next";
 import { hasPermission, ROLE_NAMES, type Grant, type Role } from "@/lib/platform/permissions";
 import { PIPELINE_LABELS } from "@/lib/platform/pipeline";
+import { SalesAssistant } from "./seller-views";
 
 type Profile = { id: string; name: string; roles: Role[]; grants: Grant[]; staff: boolean };
 export async function api<T>(path: string, method = "GET", body?: unknown): Promise<T> {
@@ -242,6 +243,7 @@ function DealDetail({ id, user }: { id: string; user: Profile }) {
           </details>
         </Card>
       ) : null}
+      {open && hasPermission(user.grants, "crm.write") ? <SalesAssistant dealId={id} /> : null}
       {open && hasPermission(user.grants, "quote.send") ? (
         <Card title="Link a un pacchetto standard">
           <p>Il link porta al pacchetto del catalogo, senza dati personali. Per comprare il cliente accede con la sua email verificata.</p>

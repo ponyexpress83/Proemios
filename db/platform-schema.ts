@@ -95,6 +95,9 @@ export const projects = pgTable(
     /** Data contrattuale (scheda d'ordine), separata dalla pianificazione interna dei compiti. */
     contractualDueAt: timestamp("contractual_due_at", { withTimezone: true }),
     dealId: uuid("deal_id"),
+    /** Cicli di revisione inclusi, indicati da una persona leggendo il contratto (null = non ancora indicati). */
+    revisionRounds: integer("revision_rounds"),
+    revisionRoundsSetBy: text("revision_rounds_set_by"),
     createdAt: created(),
     updatedAt: updated(),
   },

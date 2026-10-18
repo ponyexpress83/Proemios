@@ -8,6 +8,7 @@ import { platformApi } from "@/components/platform/workspace";
 import type { Grant } from "@/lib/platform/permissions";
 import { JOURNEY_LABELS, type JourneyStage } from "@/lib/platform/commercial";
 import { BillingSection } from "./billing";
+import { ClientDocuments } from "./documents";
 type Props = { user: { id: string; name: string; email: string; grants: Grant[] } };
 type Project = { id: string; title: string; type: string; description: string | null; stage: string; updatedAt: string; quoteId: string | null; dueAt: string | null; members: { id: string; name: string }[]; referent?: { id: string; name: string } | null; materialsCount: number; materialsPending: number; deliveriesAwaiting: { id: string; name: string; version: number }[]; lastDeliveryAt: string | null; unreadMessages: number };
 type Quote = { id: string; stato: string; prezzoTotale: number | null; pacchettoScelto: string | null; acceptedAt: string | null; expiresAt: string | null; commercialState: string; preferredTier: string | null; selectedTier: string | null; journey: JourneyStage; depositPaid: boolean; balancePaid: boolean; paymentPending: boolean; name?: string; version?: number; input?: { singleService?: string; requestedServices?: string[] } };
@@ -219,6 +220,7 @@ function ProjectDetail({ detail, linkedQuote, busy, action, onPayments, onMessag
         <h2>Attività</h2>{detail.tasks.length ? detail.tasks.map(t => <p key={t.id}>{t.done ? "✓" : "○"} {t.title}</p>) : <p>Non ci sono attività aperte.</p>}
         <button className="author-text-link" onClick={onMessages}><MessageSquare size={16} /> Scrivi al team su questo progetto →</button></article>
     </div>
+    <ClientDocuments projectId={detail.project.id} />
     <SupportRequest projectId={detail.project.id} busy={busy} action={action} />
   </>;
 }

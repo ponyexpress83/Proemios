@@ -25,6 +25,12 @@ import { DEFAULT_PIPELINE, pipelines, readSetting, writeVersionedSetting } from 
 import { NOTIFICATION_EVENTS, CHANNELS } from "./crm-notify";
 import { pricingInputSchema } from "@/lib/validation";
 import { defaultCatalog } from "./crm-quotes";
+import { aiRulesSchema, AI_RULES_PROPOSAL } from "./ai-client";
+
+/** Cambio usato per esprimere in euro i costi AI fatturati in dollari: lo indica chi gestisce le regole economiche. */
+export const costRulesSchema = z.object({ version: z.string().min(1).max(60), usdToEurRate: z.number().positive().max(10), approvedAt: z.string().optional(), approvedBy: z.string().optional() }).strict();
+/** Cicli di revisione inclusi per servizio: senza un numero indicato da una persona la richiesta del cliente va valutata a mano. */
+export const revisionRulesSchema = z.object({ version: z.string().min(1).max(60), roundsIncludedByService: z.record(z.string().max(60), z.number().int().min(0).max(10)), autoStartIncluded: z.boolean(), approvedAt: z.string().optional(), approvedBy: z.string().optional() }).strict();
 
 const SCHEMAS = {
   "assignment-rules": assignmentRulesSchema,
@@ -34,6 +40,9 @@ const SCHEMAS = {
   pipelines: z.object({ version: z.string().min(1).max(60), pipelines: z.array(pipelineSchema).max(20), approvedAt: z.string().optional(), approvedBy: z.string().optional() }).strict(),
   brand: brandSchema.extend({ approvedAt: z.string().optional(), approvedBy: z.string().optional() }),
   catalog: z.object({ version: z.string().min(1).max(60), items: z.array(z.object({ key: z.string().regex(/^[A-Za-z0-9_-]{2,40}$/), name: z.string().min(2).max(120), input: pricingInputSchema, active: z.boolean().default(true) }).strict()).max(100), approvedAt: z.string().optional(), approvedBy: z.string().optional() }).strict(),
+  "ai-rules": aiRulesSchema,
+  "cost-rules": costRulesSchema,
+  "revision-rules": revisionRulesSchema,
 } as const;
 type Key = keyof typeof SCHEMAS;
 const DEFAULTS: Record<Key, unknown> = {
@@ -44,6 +53,9 @@ const DEFAULTS: Record<Key, unknown> = {
   pipelines: { version: "pipeline-v1", pipelines: [DEFAULT_PIPELINE] },
   brand: { name: process.env.BRAND_NAME ?? "Proemios", supportEmail: null, version: "marchio-v1" },
   catalog: defaultCatalog,
+  "ai-rules": AI_RULES_PROPOSAL,
+  "cost-rules": { version: "costi-proposta-v1", usdToEurRate: 0 },
+  "revision-rules": { version: "revisioni-proposta-v1", roundsIncludedByService: {}, autoStartIncluded: true },
 };
 
 /** Differenze leggibili tra due valori (percorso → prima/dopo), senza i campi di approvazione. */
@@ -76,6 +88,9 @@ const EFFECTS: Record<Key, string> = {
   pipelines: "Le trattative esistenti restano nella loro fase; una pipeline archiviata non accetta nuove trattative.",
   brand: "Il nuovo nome compare nei modelli e nelle comunicazioni preparate da ora in poi.",
   catalog: "I link già inviati mostrano il pacchetto aggiornato; le proposte già create, accettate o pagate restano invariate.",
+  "ai-rules": "Vale per le lavorazioni AI avviate da ora in poi. Quelle in corso finiscono con le regole con cui sono partite; i costi già registrati non cambiano.",
+  "cost-rules": "Il cambio serve solo a esprimere in euro i costi AI nei report di marginalità: non tocca prezzi, incassi o fatture.",
+  "revision-rules": "Vale per le richieste di revisione inviate da ora in poi; i cicli già registrati mantengono il loro tipo.",
 };
 /** Controlli che impediscono di togliere ciò che i record esistenti usano: si archivia, non si elimina. */
 async function guardRemovals(key: Key, value: Record<string, unknown>) {
