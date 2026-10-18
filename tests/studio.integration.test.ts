@@ -473,6 +473,12 @@ describe("seller home and sales assistant (drafts only)", () => {
     expect(home.commissions.accrued.cents).toBeGreaterThan(0);
     expect(JSON.stringify(home)).not.toContain("paola.prospect@example.test");
     expect((await call("writer", "crm/seller")).status).toBe(404);
+    // Soglie configurabili: versione approvata, effetto solo sul raggruppamento.
+    expect((await call("seller", "crm/settings", "PUT", { key: "seller-rules", value: { version: "venditore-v2", newLeadHours: 1, unansweredDays: 5, abandonedCheckoutHours: 12, expiringDays: 10 } })).status).not.toBe(200);
+    await data(await call("owner", "crm/settings", "PUT", { key: "seller-rules", value: { version: "venditore-v2", newLeadHours: 1, unansweredDays: 5, abandonedCheckoutHours: 12, expiringDays: 10 } }));
+    const tuned = await data(await call("seller", "crm/seller"));
+    expect(tuned.buckets.find((b: { key: string }) => b.key === "unanswered").hint).toContain("5 giorni");
+    expect(tuned.buckets.find((b: { key: string }) => b.key === "new").deals.map((d: { id: string }) => d.id)).toContain(deal.deal.id);
   });
   it("drafts only when enabled, never sends, keeps contact details out of the prompt and flags discounts", async () => {
     const [deal] = await db.select().from(schema.crmDeals).where(eq(schema.crmDeals.title, "Romanzo di Paola"));
@@ -540,5 +546,31 @@ describe("control room: real indicators, AI costs and margins, production dashbo
     const items = diag.items as Array<{ key: string; state: string }>;
     expect(items.find((i) => i.key === "anthropic")).toBeTruthy();
     expect(items.find((i) => i.key === "google")?.state).toBe("error");
+  });
+});
+
+describe("direct upload of large files (Blob simulated by the local file store)", () => {
+  it("accepts only this project's and this person's paths, re-checks the file and never registers it twice", async () => {
+    const { directPathAllowed, directKeyAllowed } = await import("@/lib/platform/direct-upload");
+    const me = actors.writer!.id, other = actors.stranger!.id, file = randomUUID();
+    expect(directPathAllowed(`projects/${projectId}/direct/${me}/${file}.docx`, projectId, me)).toBe(true);
+    expect(directPathAllowed(`projects/${projectId}/direct/${other}/${file}.docx`, projectId, me)).toBe(false);
+    expect(directPathAllowed(`projects/${randomUUID()}/direct/${me}/${file}.docx`, projectId, me)).toBe(false);
+    expect(directPathAllowed(`projects/${projectId}/direct/${me}/${file}.exe`, projectId, me)).toBe(false);
+    expect(directKeyAllowed(`https://abc.private.blob.vercel-storage.com/projects/${projectId}/direct/${me}/${file}.pdf`, projectId, me)).toBe(true);
+    expect(directKeyAllowed(`https://evil.example.com/projects/${projectId}/direct/${me}/${file}.pdf`, projectId, me)).toBe(false);
+    expect(directKeyAllowed(`https://abc.private.blob.vercel-storage.com/projects/${projectId}/direct/${other}/${file}.pdf`, projectId, me)).toBe(false);
+    // Senza archivio Blob configurato il token non viene emesso.
+    expect((await call("writer", `projects/${projectId}/files/direct`, "POST", { type: "blob.generate-client-token", payload: { pathname: `projects/${projectId}/direct/${me}/${file}.txt`, clientPayload: null, multipart: false } })).status).toBe(503);
+    const { writeFile, mkdir, access: exists } = await import("node:fs/promises");
+    const dir = process.env.PROEMIOS_TEST_FILE_DIR!; await mkdir(dir, { recursive: true });
+    const big = randomUUID(); await writeFile(join(dir, big), Buffer.from("Testo lungo di prova. ".repeat(250_000)));
+    expect((await call("stranger", `projects/${projectId}/files/register`, "POST", { key: `test:${big}`, name: "lungo.txt" })).status).toBe(404);
+    const saved = await data(await call("writer", `projects/${projectId}/files/register`, "POST", { key: `test:${big}`, name: "lungo.txt" }), 201);
+    expect(saved.file.status).toBe("ready"); expect(saved.file.size).toBeGreaterThan(4 * 1024 * 1024);
+    expect((await call("writer", `projects/${projectId}/files/register`, "POST", { key: `test:${big}`, name: "lungo.txt" })).status).toBe(409);
+    const bad = randomUUID(); await writeFile(join(dir, bad), Buffer.from("non è un pdf"));
+    expect((await call("writer", `projects/${projectId}/files/register`, "POST", { key: `test:${bad}`, name: "falso.pdf" })).status).toBe(422);
+    await expect(exists(join(dir, bad))).rejects.toThrow();
   });
 });

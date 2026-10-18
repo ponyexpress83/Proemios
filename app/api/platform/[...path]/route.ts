@@ -72,6 +72,7 @@ import {
   mailRetry,
   analysisRetry,
 } from "@/lib/platform/operations";
+import { directUploadToken, registerDirectUpload } from "@/lib/platform/direct-upload";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 const handler = route(async (request) => {
@@ -85,7 +86,7 @@ const handler = route(async (request) => {
   }
   const parts = new URL(request.url).pathname.split("/").filter(Boolean).slice(2),
     [area, id, action] = parts;
-  if (parts.length > (area === "crm" || area === "studio" ? 4 : 3)) throw notFound();
+  if (parts.length > (area === "crm" || area === "studio" || (area === "projects" && action === "files") ? 4 : 3)) throw notFound();
   const actor = await getActor(request, {
     allowUnenrolled: area === "me" || area === "invite-accept",
   });
@@ -116,7 +117,9 @@ const handler = route(async (request) => {
       if (!action) return projectDetail(request, actor, id);
       if (action === "members") return projectAssignment(request, actor, id);
       if (action === "messages") return projectMessages(request, actor, id);
-      if (action === "files") return projectUpload(request, actor, id);
+      if (action === "files" && parts[3] === "direct") return directUploadToken(request, actor, id);
+      if (action === "files" && parts[3] === "register") return registerDirectUpload(request, actor, id);
+      if (action === "files" && !parts[3]) return projectUpload(request, actor, id);
       if (action === "reminders") return projectReminders(request, actor, id);
       break;
     case "files":

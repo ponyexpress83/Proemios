@@ -18,7 +18,7 @@ Scheda «Le mie vendite» in `/spazio`, alimentata da `GET /api/platform/crm/sel
 | Da ricontattare | fase «Da recuperare» |
 | Proposte in scadenza | scadenza della proposta entro 7 giorni |
 
-Le soglie di 48 ore, 3 giorni, un giorno e 7 giorni sono fisse nel codice (`lib/platform/crm-seller.ts`). Se servono diverse si possono rendere configurabili.
+Le soglie (proposta: 48 ore, 3 giorni, 24 ore, 7 giorni) sono una regola versionata `seller-rules` in Impostazioni CRM → Home venditori, con anteprima, approvazione e storico. Cambiano solo il raggruppamento nella home, non i record.
 
 **Provvigioni per stato** (dal registro, nessuna stima):
 

@@ -32,6 +32,10 @@ export const costRulesSchema = z.object({ version: z.string().min(1).max(60), us
 /** Cicli di revisione inclusi per servizio: senza un numero indicato da una persona la richiesta del cliente va valutata a mano. */
 export const revisionRulesSchema = z.object({ version: z.string().min(1).max(60), roundsIncludedByService: z.record(z.string().max(60), z.number().int().min(0).max(10)), autoStartIncluded: z.boolean(), approvedAt: z.string().optional(), approvedBy: z.string().optional() }).strict();
 
+/** Soglie della home del venditore: quando un contatto è «nuovo», una proposta «senza risposta», un checkout «abbandonato», una proposta «in scadenza». */
+export const sellerRulesSchema = z.object({ version: z.string().min(1).max(60), newLeadHours: z.number().int().min(1).max(336), unansweredDays: z.number().int().min(1).max(60), abandonedCheckoutHours: z.number().int().min(1).max(336), expiringDays: z.number().int().min(1).max(60), approvedAt: z.string().optional(), approvedBy: z.string().optional() }).strict();
+export const defaultSellerRules = { version: "venditore-proposta-v1", newLeadHours: 48, unansweredDays: 3, abandonedCheckoutHours: 24, expiringDays: 7 };
+
 const SCHEMAS = {
   "assignment-rules": assignmentRulesSchema,
   "attribution-rules": attributionRulesSchema,
@@ -43,6 +47,7 @@ const SCHEMAS = {
   "ai-rules": aiRulesSchema,
   "cost-rules": costRulesSchema,
   "revision-rules": revisionRulesSchema,
+  "seller-rules": sellerRulesSchema,
 } as const;
 type Key = keyof typeof SCHEMAS;
 const DEFAULTS: Record<Key, unknown> = {
@@ -56,6 +61,7 @@ const DEFAULTS: Record<Key, unknown> = {
   "ai-rules": AI_RULES_PROPOSAL,
   "cost-rules": { version: "costi-proposta-v1", usdToEurRate: 0 },
   "revision-rules": { version: "revisioni-proposta-v1", roundsIncludedByService: {}, autoStartIncluded: true },
+  "seller-rules": defaultSellerRules,
 };
 
 /** Differenze leggibili tra due valori (percorso → prima/dopo), senza i campi di approvazione. */
@@ -91,6 +97,7 @@ const EFFECTS: Record<Key, string> = {
   "ai-rules": "Vale per le lavorazioni AI avviate da ora in poi. Quelle in corso finiscono con le regole con cui sono partite; i costi già registrati non cambiano.",
   "cost-rules": "Il cambio serve solo a esprimere in euro i costi AI nei report di marginalità: non tocca prezzi, incassi o fatture.",
   "revision-rules": "Vale per le richieste di revisione inviate da ora in poi; i cicli già registrati mantengono il loro tipo.",
+  "seller-rules": "Cambia solo come vengono raggruppate le trattative nella home dei venditori: nessun record viene modificato.",
 };
 /** Controlli che impediscono di togliere ciò che i record esistenti usano: si archivia, non si elimina. */
 async function guardRemovals(key: Key, value: Record<string, unknown>) {

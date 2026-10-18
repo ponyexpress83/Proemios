@@ -79,7 +79,7 @@ export function SetupView() {
 
 // ── Impostazioni CRM ────────────────────────────────────────────────────────
 type SettingsData = { settings: Record<string, Record<string, unknown>>; defaults: string[]; canEdit: boolean; effects: Record<string, string> };
-const SECTIONS: Array<[string, string]> = [["brand", "Marchio"], ["catalog", "Catalogo"], ["pipelines", "Pipeline"], ["fields", "Campi personalizzati"], ["loss", "Motivi di perdita"], ["templates", "Modelli e checklist"], ["attribution", "Attribuzione"], ["assignment", "Assegnazione e scadenze"], ["simulator", "Prova assegnazione"], ["ai", "AI, costi e revisioni"], ["automation", "Attività automatiche"], ["diagnostics", "Diagnostica"], ["api", "API e webhook"], ["history", "Storico"]];
+const SECTIONS: Array<[string, string]> = [["brand", "Marchio"], ["catalog", "Catalogo"], ["pipelines", "Pipeline"], ["fields", "Campi personalizzati"], ["loss", "Motivi di perdita"], ["templates", "Modelli e checklist"], ["attribution", "Attribuzione"], ["assignment", "Assegnazione e scadenze"], ["simulator", "Prova assegnazione"], ["ai", "AI, costi e revisioni"], ["sellers", "Home venditori"], ["automation", "Attività automatiche"], ["diagnostics", "Diagnostica"], ["api", "API e webhook"], ["history", "Storico"]];
 export function CrmSettingsView({ user }: { user: Profile }) {
   const [section, setSection] = useState("brand");
   useEffect(() => { const s = new URLSearchParams(location.search).get("section"); if (s && SECTIONS.some(([k]) => k === s)) setSection(s); }, []);
@@ -100,6 +100,7 @@ export function CrmSettingsView({ user }: { user: Profile }) {
       case "assignment": return <AssignmentSection {...common} />;
       case "simulator": return <SimulatorSection current={s.settings["assignment-rules"]!} canAssign={hasPermission(user.grants, "crm.assign") || s.canEdit} />;
       case "ai": return <AiSection {...common} />;
+      case "sellers": return <SellerRulesSection {...common} />;
       case "automation": return <AutomationSection />;
       case "diagnostics": return <DiagnosticsSection />;
       case "api": return hasPermission(user.grants, "integrations.manage") ? <IntegrationKeys /> : <p className="platform-empty">Le chiavi API e i webhook li gestisce solo chi ha il permesso sulle integrazioni.</p>;
@@ -469,6 +470,26 @@ function AiSection({ data, reload }: SectionProps) {
     </>
   );
 }
+/** Soglie della home dei venditori: raggruppano le trattative, non cambiano alcun record. */
+function SellerRulesSection({ data, reload }: SectionProps) {
+  const r = data.settings["seller-rules"] as { version: string; newLeadHours: number; unansweredDays: number; abandonedCheckoutHours: number; expiringDays: number };
+  const v = useVersioned("seller-rules", reload);
+  return (
+    <Card title={`Home dei venditori · ${r.version}`} action={data.defaults.includes("seller-rules") ? <Tag tone="warn">Proposta da verificare</Tag> : <Tag tone="ok">Approvata</Tag>}>
+      <p>Quando una trattativa compare tra i nuovi contatti, le proposte senza risposta, i pagamenti abbandonati o le proposte in scadenza nella scheda «Le mie vendite».</p>
+      {v.feedback}
+      <form className="platform-form" onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); v.preview({ version: String(f.get("version")), newLeadHours: Number(f.get("newLeadHours")), unansweredDays: Number(f.get("unansweredDays")), abandonedCheckoutHours: Number(f.get("abandonedCheckoutHours")), expiringDays: Number(f.get("expiringDays")) }); }}>
+        <label>Un contatto è «nuovo» per (ore)<input name="newLeadHours" type="number" min={1} max={336} defaultValue={r.newLeadHours} disabled={!data.canEdit} /></label>
+        <label>Proposta «senza risposta» dopo (giorni senza attività)<input name="unansweredDays" type="number" min={1} max={60} defaultValue={r.unansweredDays} disabled={!data.canEdit} /></label>
+        <label>Checkout «abbandonato» dopo (ore)<input name="abandonedCheckoutHours" type="number" min={1} max={336} defaultValue={r.abandonedCheckoutHours} disabled={!data.canEdit} /></label>
+        <label>Proposta «in scadenza» entro (giorni)<input name="expiringDays" type="number" min={1} max={60} defaultValue={r.expiringDays} disabled={!data.canEdit} /></label>
+        <VersionField value={r.version} />
+        {data.canEdit ? <button className="platform-button" disabled={v.busy}>Vedi cosa cambia</button> : null}
+      </form>
+      {v.panel}
+    </Card>
+  );
+}
 function AutomationSection() {
   const st = useLoad<{ jobs: Array<{ job: string; label: string; expectedMinutes: number; lastAttempt: { at: string; status: string; trigger: string } | null; lastSuccess: string | null; lateMinutes: number | null; state: string; lastError: { at: string; error: string | null } | null }>; pending: Record<string, number> }>("crm/automation");
   const STATE: Record<string, [string, "ok" | "warn" | undefined]> = { ok: ["In regola", "ok"], late: ["In ritardo", "warn"], error: ["Errore", "warn"], never: ["Mai eseguito", "warn"] };
@@ -513,7 +534,7 @@ function HistorySection() {
   const h = useLoad<{ history: Array<{ key: string; version: string; approvedBy: string | null; createdAt: string; changes?: Change[] }> }>(`crm/settings/history?key=${key}`);
   return (
     <Card title="Storico delle regole">
-      <label>Regola<select value={key} onChange={(e) => setKey(e.target.value)}>{["assignment-rules", "attribution-rules", "catalog", "pipelines", "loss-reasons", "brand", "crm-flows", "ops-rules", "ai-rules", "cost-rules", "revision-rules"].map((k) => <option key={k} value={k}>{k}</option>)}</select></label>
+      <label>Regola<select value={key} onChange={(e) => setKey(e.target.value)}>{["assignment-rules", "attribution-rules", "catalog", "pipelines", "loss-reasons", "brand", "crm-flows", "ops-rules", "ai-rules", "cost-rules", "revision-rules", "seller-rules"].map((k) => <option key={k} value={k}>{k}</option>)}</select></label>
       {h.data?.history.length ? h.data.history.map((x) => <details key={x.version}><summary>{x.version} · {new Date(x.createdAt).toLocaleString("it-IT")} · {x.approvedBy ?? "—"}</summary><ul>{x.changes?.map((c, i) => <li key={i}><code>{c.path}</code>: {show(c.from)} → {show(c.to)}</li>)}</ul></details>) : <p className="platform-empty">Nessuna versione approvata: sono in uso i valori proposti.</p>}
     </Card>
   );

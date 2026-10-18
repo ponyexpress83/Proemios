@@ -120,7 +120,7 @@ export function RealAuthorWorkspace({ user }: Props) {
           </>}
           {view === "projects" && <>{selected ? <>
             <button className="author-text-link" onClick={() => setSelected(null)}>← Tutti i progetti</button>
-            {detail ? <ProjectDetail detail={detail} linkedQuote={detail.project.quoteId ? quotes.find(q => q.id === detail.project.quoteId) : undefined} busy={busy} action={action} onPayments={() => { const q = quotes.find(x => x.id === detail.project.quoteId); if (q) window.location.assign(`/area-autore/conferma/${q.id}`); }} onMessages={() => open("messages", detail.project.id)} /> : <p>Caricamento progetto…</p>}
+            {detail ? <ProjectDetail detail={detail} userId={user.id} linkedQuote={detail.project.quoteId ? quotes.find(q => q.id === detail.project.quoteId) : undefined} busy={busy} action={action} onPayments={() => { const q = quotes.find(x => x.id === detail.project.quoteId); if (q) window.location.assign(`/area-autore/conferma/${q.id}`); }} onMessages={() => open("messages", detail.project.id)} /> : <p>Caricamento progetto…</p>}
           </> : <div className="author-real-grid">{projects.map(p => <button className="workspace-card author-project-choice" key={p.id} onClick={() => setSelected(p.id)}><span className="status-pill peach">{labels[p.stage] ?? p.stage}</span><h2>{p.title}</h2><p>{p.description ?? "Il tuo progetto editoriale."}</p><small>{referent(p) ? `Ti segue ${referent(p)} · ` : ""}aggiornato il {date(p.updatedAt)}{p.unreadMessages ? ` · ${p.unreadMessages} messaggi nuovi` : ""}</small><strong>Apri il progetto →</strong></button>)}{!projects.length && <article className="workspace-card"><h2>Non hai ancora progetti.</h2><p>Una volta accettata una proposta, il tuo percorso comparirà qui.</p><Link className="author-cta" href="/preventivo">Richiedi un preventivo <ArrowRight size={16} /></Link></article>}</div>}</>}
           {view === "quotes" && <div className="author-real-grid">{quotes.map(q => <Link className="workspace-card author-project-choice" key={q.id} href={`/area-autore/conferma/${q.id}` as Route}><span className={`status-pill ${["paid", "deposit_paid"].includes(q.journey) ? "peach" : "lavender"}`}>{JOURNEY_LABELS[q.journey].label}</span><h2>{serviceSummary(q)}</h2><p>{q.prezzoTotale ? `${format(q.prezzoTotale)} + IVA` : "Importo da confermare"}{q.preferredTier && !q.acceptedAt ? ` · pacchetto scelto: ${q.preferredTier}` : q.selectedTier ? ` · ${q.selectedTier}` : ""}</p><small>{JOURNEY_LABELS[q.journey].hint}</small><strong>Apri la proposta →</strong></Link>)}{!quotes.length && <article className="workspace-card"><h2>Nessuna proposta.</h2><p>Vuoi una sola correzione bozze o un percorso completo? Puoi scegliere il servizio.</p><Link className="author-cta" href="/preventivo">Calcola il preventivo <PlusCircle size={16} /></Link></article>}</div>}
           {view === "payments" && <article className="workspace-card"><span className="eyebrow">PAGAMENTI E SCADENZE</span><h2>Acconto e saldo delle tue proposte.</h2><p>Il pagamento si apre dopo l’accettazione: prima l’acconto, poi il saldo alla consegna. Paghi sulla pagina sicura di Stripe con i metodi disponibili; lo stato è confermato da Stripe, non dal ritorno a questa pagina. A ogni incasso ricevi la fattura.</p>
@@ -159,6 +159,14 @@ function QuotePayments({ quote, title, highlighted, busy, action, reload }: { qu
 }
 
 /** Caricamento con avanzamento: XHR perché fetch non espone il progresso dell’invio. */
+/** File oltre i 4 MB: caricamento diretto nell'archivio privato, poi registrazione con gli stessi controlli. */
+async function uploadDirect(projectId: string, userId: string, file: File, onProgress: (ratio: number) => void) {
+  const extension = file.name.split(".").pop()?.toLowerCase() ?? "";
+  if (!["docx", "pdf", "txt"].includes(extension)) throw new Error("Carica un file TXT, DOCX o PDF.");
+  const { upload } = await import("@vercel/blob/client");
+  const blob = await upload(`projects/${projectId}/direct/${userId}/${crypto.randomUUID()}.${extension}`, file, { access: "private", handleUploadUrl: `/api/platform/projects/${projectId}/files/direct`, clientPayload: JSON.stringify({ kind: "manuscript" }), onUploadProgress: (e) => onProgress(e.percentage / 100) });
+  await platformApi(`projects/${projectId}/files/register`, "POST", { key: blob.url, name: file.name, kind: "manuscript" });
+}
 function uploadWithProgress(path: string, form: FormData, onProgress: (ratio: number) => void): Promise<void> {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
@@ -174,7 +182,7 @@ function uploadWithProgress(path: string, form: FormData, onProgress: (ratio: nu
   });
 }
 
-function ProjectDetail({ detail, linkedQuote, busy, action, onPayments, onMessages }: { detail: Detail; linkedQuote?: Quote; busy: boolean; action: (fn: () => Promise<unknown>) => Promise<void>; onPayments: () => void; onMessages: () => void }) {
+function ProjectDetail({ detail, userId, linkedQuote, busy, action, onPayments, onMessages }: { detail: Detail; userId: string; linkedQuote?: Quote; busy: boolean; action: (fn: () => Promise<unknown>) => Promise<void>; onPayments: () => void; onMessages: () => void }) {
   const [file, setFile] = useState<File | null>(null), [comment, setComment] = useState(""), [uploadKey, setUploadKey] = useState(0), [progress, setProgress] = useState<number | null>(null), [uploadError, setUploadError] = useState("");
   const current = stages.findIndex(x => x.id === detail.project.stage);
   const decided = new Map(detail.approvals.map(a => [a.fileId, a.decision]));
@@ -185,11 +193,15 @@ function ProjectDetail({ detail, linkedQuote, busy, action, onPayments, onMessag
   async function upload(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!file) return;
-    if (file.size > 4 * 1024 * 1024) { setUploadError("Il file supera i 4 MB. Riduci il file o dividilo in parti."); return; }
+    if (file.size > 40 * 1024 * 1024) { setUploadError("Il file supera i 40 MB. Riduci il file o dividilo in parti."); return; }
     const form = new FormData(); form.append("file", file); form.append("kind", "manuscript");
     setUploadError(""); setProgress(0);
     await action(async () => {
-      try { await uploadWithProgress(`projects/${detail.project.id}/files`, form, setProgress); setFile(null); setUploadKey(k => k + 1); }
+      try {
+        if (file.size > 4 * 1024 * 1024) await uploadDirect(detail.project.id, userId, file, setProgress);
+        else await uploadWithProgress(`projects/${detail.project.id}/files`, form, setProgress);
+        setFile(null); setUploadKey(k => k + 1);
+      }
       catch (e) { setUploadError(e instanceof Error ? e.message : "Caricamento non riuscito."); throw e; }
       finally { setProgress(null); }
     });
@@ -208,7 +220,7 @@ function ProjectDetail({ detail, linkedQuote, busy, action, onPayments, onMessag
         {materials.length ? materials.map(f => <div className="author-action-line" key={f.id}><FolderOpen size={18} /><span><strong>{f.name}</strong><small>Versione {f.version}{f.version === latestVersion(f.name, f.kind) ? " (attuale)" : ""} · {fileStatus[f.status] ?? f.status}</small></span>{f.status === "ready" && <a href={`/api/platform/files/${f.id}/download`}>Scarica</a>}</div>) : <p>Non hai ancora caricato il manoscritto.</p>}
         {paymentNeeded ? <p className="platform-notice">Il caricamento si attiva dopo la conferma dell’acconto.</p> : <form className="author-upload" onSubmit={upload}>
           <label>Carica il manoscritto o un nuovo materiale<input key={uploadKey} type="file" accept=".txt,.docx,.pdf,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={e => { setFile(e.target.files?.[0] ?? null); setUploadError(""); }} /></label>
-          <small>Fino a 4 MB. Una nuova versione dello stesso nome conserva la precedente. DOCX e PDF restano in controllo finché la verifica non è completata.</small>
+          <small>Fino a 40 MB (oltre i 4 MB il file va direttamente nell&apos;archivio protetto). Una nuova versione dello stesso nome conserva la precedente. DOCX e PDF restano in controllo finché la verifica non è completata.</small>
           {progress !== null && <progress value={progress} max={1} aria-label="Avanzamento del caricamento">{Math.round(progress * 100)}%</progress>}
           {uploadError && <p role="alert" className="platform-error">{uploadError}</p>}
           <button type="submit" className="author-cta" disabled={busy || !file}><Upload size={16} /> {progress !== null ? `Caricamento ${Math.round(progress * 100)}%` : "Invia al team"}</button>
