@@ -1,5 +1,5 @@
 {
-  "id": "6a071209-c6ca-4c44-bee0-4518d12fda14",
+  "id": "929e1e65-bedb-479d-84b5-48a4fff5bd25",
   "prevId": "cb09944e-5d1b-4397-9851-8b69431e0d5c",
   "version": "7",
   "dialect": "postgresql",
@@ -8380,7 +8380,14 @@
           "name": "author_id",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
+        },
+        "origin": {
+          "name": "origin",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'staff'"
         },
         "visibility": {
           "name": "visibility",

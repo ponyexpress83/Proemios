@@ -129,7 +129,10 @@ export const docComments = pgTable(
     paragraphId: text("paragraph_id"),
     quote: text("quote"),
     body: text("body").notNull(),
-    authorId: text("author_id").notNull().references(() => user.id),
+    /** Vuoto per le note prodotte dall'AI: l'origine lo dice. */
+    authorId: text("author_id").references(() => user.id),
+    /** staff | client | ai */
+    origin: text("origin").notNull().default("staff"),
     /** internal | client */
     visibility: text("visibility").notNull(),
     cycleId: uuid("cycle_id"),

@@ -93,8 +93,10 @@ export async function frequentWork() {
   const webhooks = await step("webhook", errors, () => deliverWebhooks(20));
   const mail = await step("posta", errors, () => flushMail(20));
   await step("inviti", errors, () => getDb().update(staffInvitations).set({ status: "expired" }).where(and(eq(staffInvitations.status, "pending"), lt(staffInvitations.expiresAt, new Date()))));
+  // Lavorazioni AI: un passo breve qui; il grosso gira su /api/jobs/ai, che ha una durata più lunga.
+  const ai = await step("lavorazioni AI", errors, async () => (await import("./documents/ai-engine")).processAiJobs({ deadlineMs: 25_000 }));
   if (errors.length) throw new Error(errors.join(" · "));
-  return { assignment, webhooks, mail };
+  return { assignment, webhooks, mail, ai };
 }
 export async function dailyWork(trigger: "cron" | "manual") {
   if (trigger === "cron") {

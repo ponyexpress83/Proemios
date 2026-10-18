@@ -26,6 +26,10 @@ export const NOTIFICATION_EVENTS = {
   support_request: { label: "Richiesta di assistenza", default: "both" },
   morning_summary: { label: "Riepilogo del mattino", default: "in_app" },
   attribution_conflict: { label: "Conflitto di attribuzione", default: "both" },
+  ai_review_ready: { label: "Revisione AI completata: controllo umano richiesto", default: "both" },
+  ai_job_problem: { label: "Lavorazione AI ferma o fallita", default: "both" },
+  revision_requested: { label: "Richiesta di revisione del cliente", default: "both" },
+  quality_check: { label: "Documento da controllare in qualità", default: "both" },
 } as const;
 export type NotificationEvent = keyof typeof NOTIFICATION_EVENTS;
 export const CHANNELS = ["in_app", "email", "both", "off"] as const;
