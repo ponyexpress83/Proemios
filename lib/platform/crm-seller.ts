@@ -17,7 +17,8 @@ import { commissions, leadActivities, paymentOrders, refundRequests } from "@/db
 import { audit, demandAvailable, type Actor } from "./access";
 import { can } from "./permissions";
 import { json, notFound, PlatformError, readBody } from "./http";
-import { dealFacts, dealStage, pipelineFor, DEFAULT_PIPELINE } from "./crm-relations";
+import { dealFacts, dealStage, pipelineFor, readSetting, DEFAULT_PIPELINE } from "./crm-relations";
+import { defaultSellerRules, sellerRulesSchema } from "./crm-config";
 import { PIPELINE_LABELS, type PipelineState } from "./pipeline";
 import { dealAccess } from "./crm-deals";
 import { aiBlocker, approvedAiRules, callModel } from "./ai-client";
@@ -30,6 +31,8 @@ export async function sellerHome(actor: Actor, now = new Date()) {
   const db = getDb();
   const rows = await db.select({ deal: crmDeals, contact: crmContacts.name }).from(crmDeals).innerJoin(crmContacts, eq(crmContacts.id, crmDeals.contactId)).where(and(eq(crmDeals.ownerId, actor.id), eq(crmDeals.pipelineKey, DEFAULT_PIPELINE.key))).orderBy(crmDeals.nextActionAt).limit(500);
   const pipeline = await pipelineFor(DEFAULT_PIPELINE.key);
+  const rules = await readSetting("seller-rules", sellerRulesSchema, defaultSellerRules, db);
+  const HOUR = 3600_000;
   const facts = await dealFacts(db, rows.map((r) => r.deal.id));
   const startToday = new Date(now); startToday.setHours(0, 0, 0, 0);
   const endToday = new Date(startToday.getTime() + DAY);
@@ -44,16 +47,16 @@ export async function sellerHome(actor: Actor, now = new Date()) {
   const bucket = (key: string, label: string, hint: string, filter: (d: (typeof list)[number]) => boolean): Bucket => ({ key, label, hint, deals: open.filter(filter).map(card) });
   const quietSince = (d: (typeof list)[number]) => (d.deal.lastActivityAt ?? d.deal.updatedAt).getTime();
   const buckets: Bucket[] = [
-    bucket("new", "Nuovi contatti", "Ricevuti nelle ultime 48 ore e ancora senza proposta", (d) => d.stage === "received" && d.deal.createdAt.getTime() > now.getTime() - 2 * DAY),
+    bucket("new", "Nuovi contatti", `Ricevuti nelle ultime ${rules.newLeadHours} ore e ancora senza proposta`, (d) => d.stage === "received" && d.deal.createdAt.getTime() > now.getTime() - rules.newLeadHours * HOUR),
     bucket("urgent", "Urgenti", "Priorità alta o urgente", (d) => ["urgent", "high"].includes(d.deal.priority)),
     bucket("today", "Da fare oggi", "Prossima azione in scadenza oggi", (d) => Boolean(d.deal.nextActionAt && d.deal.nextActionAt >= startToday && d.deal.nextActionAt < endToday)),
     bucket("overdue", "In ritardo", "Prossima azione già scaduta", (d) => Boolean(d.deal.nextActionAt && d.deal.nextActionAt < startToday)),
     bucket("no_next", "Senza prossima azione", "Ogni trattativa aperta deve averne una", (d) => !d.deal.nextAction || !d.deal.nextActionAt),
-    bucket("unanswered", "Proposte senza risposta", "Proposta inviata, nessuna attività da almeno 3 giorni", (d) => d.stage === "quote_sent" && quietSince(d) < now.getTime() - 3 * DAY),
+    bucket("unanswered", "Proposte senza risposta", `Proposta inviata, nessuna attività da almeno ${rules.unansweredDays} giorni`, (d) => d.stage === "quote_sent" && quietSince(d) < now.getTime() - rules.unansweredDays * DAY),
     bucket("to_pay", "Contratti da pagare", "Proposta accettata, acconto non ancora incassato", (d) => d.stage === "accepted"),
-    bucket("abandoned", "Pagamenti abbandonati o falliti", "Checkout avviato da più di un giorno o pagamento non riuscito", (d) => d.stage === "payment_failed" || (d.stage === "checkout_started" && d.orders.every((o) => o.createdAt.getTime() < now.getTime() - DAY))),
+    bucket("abandoned", "Pagamenti abbandonati o falliti", `Checkout avviato da più di ${rules.abandonedCheckoutHours} ore o pagamento non riuscito`, (d) => d.stage === "payment_failed" || (d.stage === "checkout_started" && d.orders.every((o) => o.createdAt.getTime() < now.getTime() - rules.abandonedCheckoutHours * HOUR))),
     bucket("recovery", "Da ricontattare", "Segnati da recuperare", (d) => d.stage === "recovery"),
-    bucket("expiring", "Proposte in scadenza", "La proposta scade entro 7 giorni", (d) => Boolean(d.expiresAt && d.expiresAt > now && d.expiresAt.getTime() < now.getTime() + 7 * DAY && !["won", "accepted"].includes(d.stage))),
+    bucket("expiring", "Proposte in scadenza", `La proposta scade entro ${rules.expiringDays} giorni`, (d) => Boolean(d.expiresAt && d.expiresAt > now && d.expiresAt.getTime() < now.getTime() + rules.expiringDays * DAY && !["won", "accepted"].includes(d.stage))),
   ];
   // Provvigioni dal registro: stato e motivo quando sono trattenute.
   const mine = await db.select({ c: commissions, order: paymentOrders }).from(commissions).innerJoin(paymentOrders, eq(paymentOrders.id, commissions.orderId)).where(eq(commissions.beneficiaryId, actor.id)).orderBy(desc(commissions.createdAt)).limit(500);

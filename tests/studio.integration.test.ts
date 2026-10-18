@@ -473,6 +473,12 @@ describe("seller home and sales assistant (drafts only)", () => {
     expect(home.commissions.accrued.cents).toBeGreaterThan(0);
     expect(JSON.stringify(home)).not.toContain("paola.prospect@example.test");
     expect((await call("writer", "crm/seller")).status).toBe(404);
+    // Soglie configurabili: versione approvata, effetto solo sul raggruppamento.
+    expect((await call("seller", "crm/settings", "PUT", { key: "seller-rules", value: { version: "venditore-v2", newLeadHours: 1, unansweredDays: 5, abandonedCheckoutHours: 12, expiringDays: 10 } })).status).not.toBe(200);
+    await data(await call("owner", "crm/settings", "PUT", { key: "seller-rules", value: { version: "venditore-v2", newLeadHours: 1, unansweredDays: 5, abandonedCheckoutHours: 12, expiringDays: 10 } }));
+    const tuned = await data(await call("seller", "crm/seller"));
+    expect(tuned.buckets.find((b: { key: string }) => b.key === "unanswered").hint).toContain("5 giorni");
+    expect(tuned.buckets.find((b: { key: string }) => b.key === "new").deals.map((d: { id: string }) => d.id)).toContain(deal.deal.id);
   });
   it("drafts only when enabled, never sends, keeps contact details out of the prompt and flags discounts", async () => {
     const [deal] = await db.select().from(schema.crmDeals).where(eq(schema.crmDeals.title, "Romanzo di Paola"));
