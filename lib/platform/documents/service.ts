@@ -68,6 +68,7 @@ export async function saveRevision(tx: Tx, doc: typeof documents.$inferSelect, e
 
 /** Importa un manoscritto caricato: originale immutabile, revisione 1 e versione «Originale». Una volta sola per file. */
 export async function createDocument(actor: Actor, projectId: string, fileId: string) {
+  if (!actor.staff) throw notFound();
   await projectAccess(actor, projectId, "project.write");
   const [file] = await getDb().select().from(projectFiles).where(and(eq(projectFiles.id, fileId), eq(projectFiles.projectId, projectId)));
   if (!file || file.kind !== "manuscript") throw notFound();
