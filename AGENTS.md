@@ -45,7 +45,12 @@ Proemios è un'app Next.js 15 (App Router, React 19, TypeScript) con Postgres vi
 | Diagnostica delle integrazioni e stato delle migrazioni | `lib/platform/diagnostics.ts` |
 | Build su Vercel con migrazioni solo in anteprima (opt-in `RUN_MIGRATIONS_ON_PREVIEW=1`) | `scripts/vercel-build.mjs` (script `vercel-build`) |
 | Collaudo A–F su un'anteprima con account di prova | `scripts/collaudo-crm.mjs`, `docs/CRM_COLLAUDO.md`, prompt operativo `docs/PROMPT_COWORK_CRM.md` |
-| Documentazione operativa | `docs/*.md`, in particolare `docs/CONSEGNA_CRM_2026-10-17.md`, `docs/CRM_OPERATIVO.md`, `docs/CRM_ARCHITETTURA.md` |
+| Proemios 2.0: Document Studio (documento di lavoro, revisioni, versioni, consegne, DOCX con revisioni native) | `lib/platform/documents/service.ts`, `text.ts`, `ooxml.ts`, `router.ts` (`/api/platform/studio/...`), `db/document-schema.ts`, migrazione `drizzle/0014_document_studio.sql` |
+| Proemios 2.0: motore editoriale AI (coda, porzioni, costi, budget) e client Anthropic | `lib/platform/documents/ai-engine.ts`, `lib/platform/ai-client.ts` (trasporto sostituibile nei test), `app/api/jobs/ai/route.ts` |
+| Proemios 2.0: revisioni del cliente, cicli inclusi, controllo qualità | `lib/platform/documents/revisions.ts` |
+| Proemios 2.0: cruscotto di produzione, adattatore Google Docs | `lib/platform/documents/production.ts`, `lib/platform/documents/google.ts`, `app/api/integrations/google/callback/route.ts` |
+| Proemios 2.0: cabina di regia, marginalità, costi di progetto, home del venditore e assistente | `lib/platform/admin-dashboard.ts`, `lib/platform/crm-seller.ts`; interfacce `components/platform/studio-views.tsx`, `seller-views.tsx`, `components/author/documents.tsx` |
+| Documentazione operativa | `docs/*.md`, per Proemios 2.0 `docs/PROEMIOS_*.md`; , in particolare `docs/CONSEGNA_CRM_2026-10-17.md`, `docs/CRM_OPERATIVO.md`, `docs/CRM_ARCHITETTURA.md` |
 
 ## Regole che non si cambiano senza autorizzazione
 
@@ -63,6 +68,9 @@ Proemios è un'app Next.js 15 (App Router, React 19, TypeScript) con Postgres vi
 - Un link a pacchetto non sottrae un cliente seguito da un altro venditore: la vendita diventa un conflitto da decidere.
 - Un'azienda per installazione: non aggiungere `tenant_id` a metà e non presentare il prodotto come multi-azienda (vedi `docs/CRM_ARCHITETTURA.md`).
 - Le migrazioni girano tutte in una transazione su un database nuovo: nei dati di migrazione confrontare i valori enum aggiunti nella stessa serie come testo (`"colonna"::text`).
+
+- AI editoriale: Claude produce solo proposte; il testo cambia solo per decisione di una persona (nuova revisione con blocco ottimistico). Nessuna lavorazione parte senza `EDITORIAL_AI_ENABLED=1`, regole `ai-rules` approvate, incasso verificato e contratto; una richiesta di revisione fuori contratto o senza cicli indicati non avvia mai lavorazioni. Il cliente non vede lavorazioni AI, costi, note interne o proposte del team. L'assistente commerciale restituisce solo bozze. Ogni chiamata registra il costo in `ai_usage`.
+- Nei test i servizi esterni restano simulati (`setAiTransport`, `setGoogleFetch`): non dichiararli verificati finché non sono provati con il servizio reale.
 
 ## Convenzioni
 
