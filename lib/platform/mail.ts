@@ -4,7 +4,8 @@ import { emailOutbox } from "@/db/platform-schema";
 import { inviaEmail, type Messaggio } from "@/lib/email";
 import { CompactEncrypt, compactDecrypt } from "jose";
 import { createHash } from "node:crypto";
-import { unavailable } from "./http";
+import { unavailable, afterResponse } from "./http";
+import { readPrivate } from "./storage";
 
 function encryptionKey() {
   if ((process.env.BETTER_AUTH_SECRET?.length ?? 0) < 32) throw unavailable();
@@ -13,7 +14,7 @@ function encryptionKey() {
 export async function protectMailHtml(html: string) {
   return `jwe:${await new CompactEncrypt(new TextEncoder().encode(html)).setProtectedHeader({ alg: "dir", enc: "A256GCM" }).encrypt(encryptionKey())}`;
 }
-async function revealMailHtml(html: string) {
+export async function revealMailHtml(html: string) {
   if (!html.startsWith("jwe:")) return html;
   const result = await compactDecrypt(html.slice(4), encryptionKey());
   return new TextDecoder().decode(result.plaintext);
@@ -60,12 +61,22 @@ export async function flushMail(limit = 20) {
     });
     if (!item) break;
     try {
+      // Gli allegati (es. contratto) si leggono dallo storage privato al momento
+      // dell'invio: nell'outbox restano solo i riferimenti.
+      const attachments = [] as Array<{ filename: string; content: Buffer; mime: string }>;
+      for (const a of item.attachments ?? []) {
+        const chunks: Uint8Array[] = [];
+        const reader = (await readPrivate(a.storageKey)).getReader();
+        for (;;) { const { done, value } = await reader.read(); if (done) break; chunks.push(value); }
+        attachments.push({ filename: a.filename, content: Buffer.concat(chunks), mime: a.mime });
+      }
       await inviaEmail({
         to: item.recipient,
         subject: item.subject,
         html: await revealMailHtml(item.html),
         replyTo: item.replyTo ?? undefined,
         idempotencyKey: `proemios-mail-${item.id}`,
+        attachments: attachments.length ? attachments : undefined,
       });
       await getDb()
         .update(emailOutbox)
@@ -87,4 +98,12 @@ export async function flushMail(limit = 20) {
     }
   }
   return { accepted, failed };
+}
+/**
+ * Fa partire la posta in coda appena la risposta è stata inviata, senza
+ * trattenerla. Fuori da una richiesta Next (test, script) non fa nulla: lì la
+ * coda si svuota con una chiamata esplicita a flushMail o con il cron.
+ */
+export function flushMailAfterResponse(limit = 10) {
+  afterResponse(() => flushMail(limit));
 }

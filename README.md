@@ -2,7 +2,7 @@
 
 Sito editoriale Next.js/React e candidato operativo per autori e team. Identità pubblica conservata: barra avorio, footer blu scuro, logo attuale, libro interattivo, sei scene e cinque percorsi.
 
-**Stato: candidato bloccato per l’uso reale.** Auth personale/TOTP, progetti, CRM, proposte/PDF, ledger, outbox e jobs persistenti sono implementati. Le prove locali non certificano provider, dominio o account reali. Vedere [stato e requisiti](docs/production/STATUS.md) e [checklist](docs/production/RELEASE.md).
+**Stato: candidato bloccato per l’uso reale; percorso completo scritto e verificato in test, da attivare con le configurazioni esterne** (vedi `docs/CONSEGNA_2026-10-16.md`, `AGENTS.md`). Auth personale/TOTP, progetti, CRM, proposte/PDF, ledger, outbox e jobs persistenti sono implementati. Le prove locali non certificano provider, dominio o account reali. Vedere [stato e requisiti](docs/production/STATUS.md) e [checklist](docs/production/RELEASE.md).
 
 ## Avvio
 

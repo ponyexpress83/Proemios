@@ -159,6 +159,29 @@ describe("computeQuote — casi limite", () => {
     expect(hasCover).toBe(true);
   });
 
+  it("editing richiesto su testo già revisionato: niente doppia revisione nell'Essenziale", () => {
+    const q = computeQuote({ ...base, textState: "finito-revisionato", requestedServices: ["editing"] });
+    const ess = q.packages[0]!.lineItems.map((li) => li.key);
+    expect(ess).toContain("editing");
+    expect(ess).not.toContain("proofreading");
+    expect(q.packages[2]!.lineItems.map((li) => li.key)).toEqual(expect.arrayContaining(["editing", "proofreading"]));
+  });
+
+  it("editing e correzione richiesti insieme restano entrambi in ogni pacchetto", () => {
+    const q = computeQuote({ ...base, requestedServices: ["editing", "proofreading"] });
+    for (const p of q.packages) {
+      const keys = p.lineItems.map((li) => li.key);
+      expect(keys).toContain("editing");
+      expect(keys).toContain("proofreading");
+    }
+  });
+
+  it("un servizio singolo costa solo il listino di quel servizio", () => {
+    const q = computeQuote({ ...base, singleService: "proofreading" });
+    expect(q.packages[0]!.lineItems.map((li) => li.key)).toEqual(["proofreading"]);
+    expect(q.packages[0]!.total).toBe(Math.max(149, proofreadingCost(base.wordCount)));
+  });
+
   it("solo-grafica non include revisione del testo", () => {
     const q = computeQuote({
       projectType: "solo-grafica",

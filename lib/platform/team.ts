@@ -13,6 +13,7 @@ import {
   auditEvents,
   accountPreferences,
 } from "@/db/platform-schema";
+import { teamProfiles } from "@/db/crm-schema";
 import {
   PERMISSIONS,
   ROLES,
@@ -24,7 +25,10 @@ import {
 } from "./permissions";
 import { demand, demandRecent, projectAccess, audit, type Actor } from "./access";
 import { readBody, json, hashToken, PlatformError, forbidden, notFound } from "./http";
-import { mailConfigured, appOrigin, paymentPolicySchema, commissionRuleSchema } from "./config";
+import { mailConfigured, appOrigin, paymentPolicySchema, commissionRuleSchema, defaultPaymentPolicy } from "./config";
+import { purchaseRuleSchema, defaultPurchaseRule } from "./commercial";
+import { reminderRulesSchema, defaultReminderRules } from "./reminders";
+import { recoveryRulesSchema, defaultRecoveryRules } from "./recovery";
 import { impaginaEmail, esc } from "@/lib/email";
 import { enqueueMail } from "./mail";
 import { limitRequest } from "./rate-limit";
@@ -36,7 +40,7 @@ const membershipInput = z.object({
   role: z.enum(ROLES),
   grants: z.array(grantSchema).max(100).nullable().default(null),
 });
-function validateDelegation(actor: Actor, role: Role, grants: Grant[] | null) {
+export function validateDelegation(actor: Actor, role: Role, grants: Grant[] | null) {
   if (role === "admin" && grants === null) throw new PlatformError(422, "EXPLICIT_GRANTS_REQUIRED", "Scegli esplicitamente moduli e ambiti per questo admin.");
   if (role === "owner" && !actor.roles.includes("owner")) throw forbidden();
   if (role === "owner" && grants !== null)
@@ -107,14 +111,29 @@ export async function invitationCollection(request: Request, actor: Actor) {
       })
       .strict(),
   );
+  const created = await createInvitation(actor, { ...body, template: null, profile: null });
+  return json(created, 201);
+}
+/** Crea e spedisce un invito personale: stessi controlli per l'invito libero e per i modelli di ruolo. */
+export async function createInvitation(actor: Actor, body: { email: string; role: Role; grants: Grant[] | null; projectIds: string[]; template: string | null; profile: Record<string, unknown> | null; label?: string }) {
   validateDelegation(actor, body.role, body.grants);
   for (const id of body.projectIds) await projectAccess(actor, id, "project.assign");
+  // Nessun doppione: un invito valido per la stessa email e lo stesso ruolo basta, e chi ha già il ruolo non va reinvitato.
+  const email = body.email.toLowerCase();
+  const [open] = await getDb().select({ id: staffInvitations.id }).from(staffInvitations).where(and(eq(staffInvitations.email, email), eq(staffInvitations.role, body.role), eq(staffInvitations.status, "pending"), sql`${staffInvitations.expiresAt} > now()`)).limit(1);
+  if (open) throw new PlatformError(409, "INVITE_PENDING", "C'è già un invito valido per questa persona e questo ruolo: revocalo prima di mandarne un altro.");
+  const [existing] = await getDb().select({ id: memberships.id }).from(memberships).innerJoin(user, eq(user.id, memberships.userId)).where(and(sql`lower(${user.email}) = ${email}`, eq(memberships.role, body.role), eq(memberships.active, true))).limit(1);
+  if (existing) throw new PlatformError(409, "ALREADY_MEMBER", "Questa persona ha già questo ruolo attivo.");
   const token = randomBytes(32).toString("base64url");
   const [invitation] = await getDb()
     .insert(staffInvitations)
     .values({
-      ...body,
       email: body.email.toLowerCase(),
+      role: body.role,
+      grants: body.grants,
+      projectIds: body.projectIds,
+      template: body.template,
+      profile: body.profile,
       tokenHash: hashToken(token),
       invitedBy: actor.id,
       expiresAt: new Date(Date.now() + 48 * 3600_000),
@@ -126,7 +145,7 @@ export async function invitationCollection(request: Request, actor: Actor) {
       subject: "Invito al team Proemios",
       html: impaginaEmail(
         "Il tuo invito a Proemios",
-        `<p>Hai ricevuto un invito personale per il ruolo ${esc(body.role)}.</p><p><a href="${esc(`${appOrigin()}/invito?token=${token}`)}">Accetta l'invito</a></p><p>Crea o usa il tuo account con questo indirizzo verificato. Il collegamento scade tra 48 ore. Per i ruoli del team è richiesta la verifica in due passaggi.</p>`,
+        `<p>Hai ricevuto un invito personale per il ruolo ${esc(body.label ?? body.role)}.</p><p><a href="${esc(`${appOrigin()}/invito?token=${token}`)}">Accetta l'invito</a></p><p>Crea o usa il tuo account con questo indirizzo verificato. Il collegamento scade tra 48 ore. Per i ruoli del team è richiesta la verifica in due passaggi.</p>`,
       ),
     });
   } catch {
@@ -136,9 +155,10 @@ export async function invitationCollection(request: Request, actor: Actor) {
       .where(eq(staffInvitations.id, invitation!.id));
     throw new PlatformError(503, "MAIL_FAILED", "L'invito non è stato inviato. Riprova.");
   }
-  await audit(actor, "invitation.created", "invitation", invitation!.id, { role: body.role });
-  return json({ id: invitation!.id, emailStatus: "queued" }, 201);
+  await audit(actor, "invitation.created", "invitation", invitation!.id, { role: body.role, template: body.template });
+  return { id: invitation!.id, emailStatus: "queued" };
 }
+
 export async function invitationRevoke(request: Request, actor: Actor, id: string) {
   if (request.method !== "DELETE") throw notFound();
   demand(actor, "invite.manage");
@@ -195,6 +215,11 @@ export async function invitationAccept(request: Request, actor: Actor) {
       });
     for (const projectId of invitation.projectIds)
       await tx.insert(projectMembers).values({ projectId, userId: actor.id }).onConflictDoNothing();
+    // Profilo operativo scelto con il modello di ruolo (team, lingue, competenze, capacità).
+    if (invitation.profile) {
+      const profile = invitation.profile as Partial<typeof teamProfiles.$inferInsert>;
+      await tx.insert(teamProfiles).values({ ...profile, userId: actor.id, updatedBy: invitation.invitedBy }).onConflictDoUpdate({ target: teamProfiles.userId, set: { ...profile, deactivatedAt: null, deactivationReason: null, updatedBy: invitation.invitedBy, updatedAt: new Date() } });
+    }
     if (invitation.role === "affiliate")
       await tx
         .insert(affiliateProfiles)
@@ -269,18 +294,19 @@ export async function settingsCollection(request: Request, actor: Actor) {
   if (request.method === "GET")
     return json({
       settings: (await getDb().select().from(platformSettings)).filter((s) =>
-        ["payment-policy", "commission-rule"].includes(s.key),
+        ["payment-policy", "commission-rule", "purchase-rule", "reminder-rules", "recovery-rules"].includes(s.key),
       ),
+      defaults: { "purchase-rule": defaultPurchaseRule, "reminder-rules": defaultReminderRules, "payment-policy": defaultPaymentPolicy, "recovery-rules": defaultRecoveryRules },
     });
   if (request.method !== "PUT") throw notFound();
   demandRecent(actor);
   const body = await readBody(
     request,
     z
-      .object({ key: z.enum(["payment-policy", "commission-rule"]), value: z.record(z.unknown()) })
+      .object({ key: z.enum(["payment-policy", "commission-rule", "purchase-rule", "reminder-rules", "recovery-rules"]), value: z.record(z.unknown()) })
       .strict(),
   );
-  const schema = body.key === "payment-policy" ? paymentPolicySchema : commissionRuleSchema;
+  const schema = { "payment-policy": paymentPolicySchema, "commission-rule": commissionRuleSchema, "purchase-rule": purchaseRuleSchema, "reminder-rules": reminderRulesSchema, "recovery-rules": recoveryRulesSchema }[body.key];
   const result = schema.safeParse({
     ...body.value,
     approvedAt: new Date().toISOString(),

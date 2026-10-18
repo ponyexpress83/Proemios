@@ -1,13 +1,26 @@
 import { z } from "zod";
-import { route, json, notFound, checkMutationOrigin } from "@/lib/platform/http";
+import { flushMailAfterResponse } from "@/lib/platform/mail";
+import { billingProfile } from "@/lib/platform/billing";
+import { quoteConfirm, quotePrefer } from "@/lib/platform/purchase";
+import { overviewCollection } from "@/lib/platform/overview";
+import { quoteReview, quoteOffer, quoteReminders } from "@/lib/platform/crm";
+import { invoiceCollection, invoicePdf, invoiceRetry, invoiceStatus } from "@/lib/platform/invoices";
+import { route, json, notFound, checkMutationOrigin, afterResponse } from "@/lib/platform/http";
+import { deliverWebhooks } from "@/lib/platform/crm-api";
 import { getActor } from "@/lib/platform/access";
 import { quotePdf } from "@/lib/platform/quote-pdf";
+import { contractDetail, contractCollection, contractPdf, contractWithdraw, contractWithdrawalHandle, quoteAttachment } from "@/lib/platform/contracts";
+import { campaignCollection, campaignDetail, campaignSpendImport, marketingContacts, marketingDashboard, automationDrafts } from "@/lib/platform/marketing";
+import { integrationCollection } from "@/lib/platform/integrations";
+import { crmRoute } from "@/lib/platform/crm-router";
+import { studioRoute } from "@/lib/platform/documents/router";
 import {
   projectCollection,
   projectDetail,
   projectAssignment,
   projectMessages,
   projectUpload,
+  projectReminders,
   fileDownload,
   fileApproval,
   taskCollection,
@@ -24,6 +37,8 @@ import {
   quoteSend,
   quoteClaim,
   crmExport,
+  leadImport,
+  leadActivity,
 } from "@/lib/platform/crm";
 import {
   teamCollection,
@@ -37,12 +52,15 @@ import {
 } from "@/lib/platform/team";
 import {
   checkout,
+  quotePayments,
   financeCollection,
   financeExport,
   commissionCollection,
   commissionPaid,
   reconcile,
   refundPrepare,
+  refundAuthorize,
+  quotePlan,
 } from "@/lib/platform/payments";
 import {
   notificationCollection,
@@ -57,10 +75,17 @@ import {
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 const handler = route(async (request) => {
-  if (request.method !== "GET") checkMutationOrigin(request);
+  if (request.method !== "GET") {
+    checkMutationOrigin(request);
+    // Le email create da una mutazione (proposte, inviti, notifiche) partono
+    // subito, non al cron del mattino dopo. La risposta non aspetta l'invio.
+    flushMailAfterResponse(10);
+    // Gli eventi del CRM partono verso i webhook registrati subito dopo la risposta; il cron recupera i ritentativi.
+    afterResponse(() => deliverWebhooks(5));
+  }
   const parts = new URL(request.url).pathname.split("/").filter(Boolean).slice(2),
     [area, id, action] = parts;
-  if (parts.length > 3) throw notFound();
+  if (parts.length > (area === "crm" || area === "studio" ? 4 : 3)) throw notFound();
   const actor = await getActor(request, {
     allowUnenrolled: area === "me" || area === "invite-accept",
   });
@@ -76,9 +101,12 @@ const handler = route(async (request) => {
         mfaEnabled: actor.mfaEnabled,
       },
     });
+  if (area === "me" && id === "billing" && !action) return billingProfile(request, actor);
+  if (area === "crm") return crmRoute(request, actor, parts.slice(1));
+  if (area === "studio") return studioRoute(request, actor, parts.slice(1));
   if (
     id &&
-    !["export", "reconcile", "run"].includes(id) &&
+    !["export", "reconcile", "run", "status", "import", "contacts", "activate"].includes(id) &&
     !z.string().uuid().safeParse(id).success
   )
     throw notFound();
@@ -89,6 +117,7 @@ const handler = route(async (request) => {
       if (action === "members") return projectAssignment(request, actor, id);
       if (action === "messages") return projectMessages(request, actor, id);
       if (action === "files") return projectUpload(request, actor, id);
+      if (action === "reminders") return projectReminders(request, actor, id);
       break;
     case "files":
       if (id && action === "download" && request.method === "GET") return fileDownload(actor, id);
@@ -99,8 +128,10 @@ const handler = route(async (request) => {
     case "leads":
       if (!id) return leadCollection(request, actor);
       if (id === "export" && request.method === "GET") return crmExport(actor);
+      if (id === "import" && !action) return leadImport(request, actor);
       if (!action) return leadDetail(request, actor, id);
       if (action === "notes") return leadNote(request, actor, id);
+      if (action === "activities") return leadActivity(request, actor, id);
       if (action === "quotes") return createQuoteForLead(request, actor, id);
       break;
     case "quotes":
@@ -109,12 +140,36 @@ const handler = route(async (request) => {
       if (action === "accept") return quoteAccept(request, actor, id);
       if (action === "send") return quoteSend(request, actor, id);
       if (action === "pdf" && request.method === "GET") return quotePdf(actor, id);
+      if (action === "payments") return quotePayments(request, actor, id);
+      if (action === "confirm") return quoteConfirm(request, actor, id);
+      if (action === "prefer") return quotePrefer(request, actor, id);
+      if (action === "review") return quoteReview(request, actor, id);
+      if (action === "offer") return quoteOffer(request, actor, id);
+      if (action === "reminders") return quoteReminders(request, actor, id);
+      if (action === "plan") return quotePlan(request, actor, id);
+      if (action === "attachment") return quoteAttachment(request, actor, id);
+      break;
+    case "contracts":
+      if (!id) return contractCollection(request, actor);
+      if (!action) return contractDetail(request, actor, id);
+      if (action === "pdf" && request.method === "GET") return contractPdf(actor, id);
+      if (action === "withdraw") return contractWithdraw(request, actor, id);
+      if (action === "withdrawal") return contractWithdrawalHandle(request, actor, id);
       break;
     case "quote-claim":
       if (!id) return quoteClaim(request, actor);
       break;
     case "checkout":
       if (!id && request.method === "POST") return checkout(request, actor);
+      break;
+    case "overview":
+      if (!id) return overviewCollection(request, actor);
+      break;
+    case "invoices":
+      if (!id) return invoiceCollection(request, actor);
+      if (id === "status" && !action) return invoiceStatus(request, actor);
+      if (action === "pdf" && request.method === "GET") return invoicePdf(actor, id);
+      if (action === "retry") return invoiceRetry(request, actor, id);
       break;
     case "team":
       if (!id) return teamCollection(request, actor);
@@ -151,8 +206,25 @@ const handler = route(async (request) => {
       if (id === "export" && request.method === "GET") return financeExport(actor);
       if (id === "reconcile") return reconcile(request, actor);
       break;
+    case "marketing":
+      if (!id) return marketingDashboard(request, actor);
+      if (id === "contacts") return marketingContacts(request, actor, action && z.string().uuid().safeParse(action).success ? action : undefined);
+      break;
+    case "campaigns":
+      if (!id) return campaignCollection(request, actor);
+      if (!action) return campaignDetail(request, actor, id);
+      if (action === "spend") return campaignSpendImport(request, actor, id);
+      break;
+    case "automations":
+      if (!id) return automationDrafts(request, actor);
+      if (id === "activate" && !action) return automationDrafts(request, actor, "activate");
+      break;
+    case "integrations":
+      if (!id) return integrationCollection(request, actor);
+      break;
     case "refunds":
       if (!id) return refundPrepare(request, actor);
+      if (action === "authorize") return refundAuthorize(request, actor, id);
       break;
     case "operations":
       if (!id) return operationsCollection(request, actor);
