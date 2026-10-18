@@ -110,10 +110,11 @@ export async function staffDocumentView(actor: Actor, id: string) {
   const comments = await getDb().select({ c: docComments, author: user.name }).from(docComments).leftJoin(user, eq(user.id, docComments.authorId)).where(eq(docComments.documentId, id)).orderBy(asc(docComments.createdAt));
   const versions = await getDb().select().from(docVersions).where(eq(docVersions.documentId, id)).orderBy(asc(docVersions.number));
   const cycles = await getDb().select().from(revisionCycles).where(eq(revisionCycles.documentId, id)).orderBy(desc(revisionCycles.number));
+  const contract = await projectContract(project);
   const jobs = await getDb().select({ id: aiJobs.id, service: aiJobs.service, status: aiJobs.status, statusReason: aiJobs.statusReason, chunksDone: aiJobs.chunksDone, chunksTotal: aiJobs.chunksTotal, suggestions: aiJobs.suggestions, discarded: aiJobs.discarded, spentMicros: aiJobs.spentMicros, budgetMicros: aiJobs.budgetMicros, createdAt: aiJobs.createdAt, cycleId: aiJobs.cycleId }).from(aiJobs).where(eq(aiJobs.documentId, id)).orderBy(desc(aiJobs.createdAt));
   return {
     document: { ...doc, words: wordCount(rev.paragraphs) },
-    project: { id: project.id, title: project.title, opsStatus: project.opsStatus, qaOwnerId: project.qaOwnerId, revisionRounds: project.revisionRounds },
+    project: { id: project.id, title: project.title, opsStatus: project.opsStatus, qaOwnerId: project.qaOwnerId, revisionRounds: project.revisionRounds, contractRevisions: contract?.orderSheet.revisions ?? null, contractService: contract?.orderSheet.service ?? null },
     revision: { id: rev.id, number: rev.number, hash: rev.hash, paragraphs: rev.paragraphs },
     proposals,
     comments: comments.map((r) => ({ ...r.c, authorName: r.c.origin === "ai" ? "Nota automatica" : r.author })),

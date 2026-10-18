@@ -79,7 +79,7 @@ export function SetupView() {
 
 // ── Impostazioni CRM ────────────────────────────────────────────────────────
 type SettingsData = { settings: Record<string, Record<string, unknown>>; defaults: string[]; canEdit: boolean; effects: Record<string, string> };
-const SECTIONS: Array<[string, string]> = [["brand", "Marchio"], ["catalog", "Catalogo"], ["pipelines", "Pipeline"], ["fields", "Campi personalizzati"], ["loss", "Motivi di perdita"], ["templates", "Modelli e checklist"], ["attribution", "Attribuzione"], ["assignment", "Assegnazione e scadenze"], ["simulator", "Prova assegnazione"], ["automation", "Attività automatiche"], ["diagnostics", "Diagnostica"], ["api", "API e webhook"], ["history", "Storico"]];
+const SECTIONS: Array<[string, string]> = [["brand", "Marchio"], ["catalog", "Catalogo"], ["pipelines", "Pipeline"], ["fields", "Campi personalizzati"], ["loss", "Motivi di perdita"], ["templates", "Modelli e checklist"], ["attribution", "Attribuzione"], ["assignment", "Assegnazione e scadenze"], ["simulator", "Prova assegnazione"], ["ai", "AI, costi e revisioni"], ["automation", "Attività automatiche"], ["diagnostics", "Diagnostica"], ["api", "API e webhook"], ["history", "Storico"]];
 export function CrmSettingsView({ user }: { user: Profile }) {
   const [section, setSection] = useState("brand");
   useEffect(() => { const s = new URLSearchParams(location.search).get("section"); if (s && SECTIONS.some(([k]) => k === s)) setSection(s); }, []);
@@ -99,6 +99,7 @@ export function CrmSettingsView({ user }: { user: Profile }) {
       case "attribution": return <AttributionSection {...common} />;
       case "assignment": return <AssignmentSection {...common} />;
       case "simulator": return <SimulatorSection current={s.settings["assignment-rules"]!} canAssign={hasPermission(user.grants, "crm.assign") || s.canEdit} />;
+      case "ai": return <AiSection {...common} />;
       case "automation": return <AutomationSection />;
       case "diagnostics": return <DiagnosticsSection />;
       case "api": return hasPermission(user.grants, "integrations.manage") ? <IntegrationKeys /> : <p className="platform-empty">Le chiavi API e i webhook li gestisce solo chi ha il permesso sulle integrazioni.</p>;
@@ -109,7 +110,7 @@ export function CrmSettingsView({ user }: { user: Profile }) {
   return (
     <>
       <nav className="crm-tabs" aria-label="Sezioni delle impostazioni">
-        {SECTIONS.map(([k, label]) => <button key={k} className={section === k ? "crm-tab crm-tab-on" : "crm-tab"} aria-current={section === k ? "page" : undefined} onClick={() => setSection(k)}>{label}{["brand", "catalog", "loss", "attribution", "assignment"].includes(k) && isDefault(({ brand: "brand", catalog: "catalog", loss: "loss-reasons", attribution: "attribution-rules", assignment: "assignment-rules" } as Record<string, string>)[k]!) ? " •" : ""}</button>)}
+        {SECTIONS.map(([k, label]) => <button key={k} className={section === k ? "crm-tab crm-tab-on" : "crm-tab"} aria-current={section === k ? "page" : undefined} onClick={() => setSection(k)}>{label}{["brand", "catalog", "loss", "attribution", "assignment", "ai"].includes(k) && isDefault(({ brand: "brand", catalog: "catalog", loss: "loss-reasons", attribution: "attribution-rules", assignment: "assignment-rules", ai: "ai-rules" } as Record<string, string>)[k]!) ? " •" : ""}</button>)}
       </nav>
       {s && !s.canEdit ? <p className="platform-notice">Puoi consultare le impostazioni; per cambiarle serve il permesso sulle regole economiche.</p> : null}
       <p><small>• = valori ancora proposti, da verificare e approvare.</small></p>
@@ -417,6 +418,57 @@ function SimulatorSection({ current, canAssign }: { current: Record<string, unkn
   );
 }
 
+type AiRules = { version: string; model: string; effort: string; maxJobUsd: number; monthlyCapUsd: number; autoStartServices: string[]; salesAssistant: boolean };
+const MODELS: Array<[string, string]> = [["claude-opus-5-5", "Claude Opus 5.5 (consigliato per l'editing)"], ["claude-sonnet-5-5", "Claude Sonnet 5.5 (più economico)"], ["claude-haiku-5-5", "Claude Haiku 5.5 (solo correzioni semplici)"]];
+const EFFORT: Record<string, string> = { low: "Basso", medium: "Medio", high: "Alto", xhigh: "Molto alto", max: "Massimo" };
+/** Regole dell'AI editoriale, cambio per i costi e cicli di revisione: tre regole versionate, ognuna con anteprima e approvazione. */
+function AiSection({ data, reload }: SectionProps) {
+  const ai = data.settings["ai-rules"] as AiRules;
+  const cost = data.settings["cost-rules"] as { version: string; usdToEurRate: number };
+  const rev = data.settings["revision-rules"] as { version: string; roundsIncludedByService: Record<string, number>; autoStartIncluded: boolean };
+  const va = useVersioned("ai-rules", reload), vc = useVersioned("cost-rules", reload), vr = useVersioned("revision-rules", reload);
+  const state = (k: string) => (data.defaults.includes(k) ? <Tag tone="warn">Proposta da verificare</Tag> : <Tag tone="ok">Approvata</Tag>);
+  return (
+    <>
+      <Card title={`AI editoriale · ${ai.version}`} action={state("ai-rules")}>
+        <p>Finché queste regole non sono approvate nessuna lavorazione AI può partire. Serve anche <code>EDITORIAL_AI_ENABLED=1</code> e la chiave Anthropic nell&apos;ambiente (vedi Diagnostica). Claude produce solo proposte: il testo cambia quando una persona le accetta.</p>
+        {va.feedback}
+        <form className="platform-form" onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); va.preview({ ...ai, version: String(f.get("version")), model: String(f.get("model")), effort: String(f.get("effort")), maxJobUsd: Number(f.get("maxJobUsd")), monthlyCapUsd: Number(f.get("monthlyCapUsd")), autoStartServices: f.get("autoRevision") === "on" ? ["client_revision"] : [], salesAssistant: f.get("salesAssistant") === "on" }); }}>
+          <label>Modello<select name="model" defaultValue={ai.model} disabled={!data.canEdit}>{MODELS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></label>
+          <label>Impegno di ragionamento<select name="effort" defaultValue={ai.effort} disabled={!data.canEdit}>{Object.entries(EFFORT).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select><small>Più impegno = qualità maggiore e costo più alto.</small></label>
+          <label>Tetto per singola lavorazione (USD)<input name="maxJobUsd" type="number" step="0.5" min={0.5} max={500} defaultValue={ai.maxJobUsd} disabled={!data.canEdit} /><small>Raggiunto il tetto la lavorazione si ferma: le proposte già fatte restano, per continuare serve una ripresa approvata.</small></label>
+          <label>Tetto mensile complessivo (USD)<input name="monthlyCapUsd" type="number" step="1" min={1} max={20000} defaultValue={ai.monthlyCapUsd} disabled={!data.canEdit} /></label>
+          <label className="platform-check"><input type="checkbox" name="autoRevision" defaultChecked={ai.autoStartServices.includes("client_revision")} disabled={!data.canEdit} />Le revisioni richieste dal cliente e incluse nel contratto possono avviare l&apos;AI da sole</label>
+          <label className="platform-check"><input type="checkbox" name="salesAssistant" defaultChecked={ai.salesAssistant} disabled={!data.canEdit} />Assistente commerciale per i venditori (solo bozze, mai invii)</label>
+          <VersionField value={ai.version} />
+          {data.canEdit ? <button className="platform-button" disabled={va.busy}>Vedi cosa cambia</button> : null}
+        </form>
+        {va.panel}
+      </Card>
+      <Card title={`Cambio per i costi AI · ${cost.version}`} action={state("cost-rules")}>
+        <p>Anthropic fattura in dollari. Il cambio serve solo a esprimere in euro il costo AI nella marginalità dei progetti: senza un cambio approvato il margine dei progetti con lavorazioni AI non viene calcolato.</p>
+        {vc.feedback}
+        <form className="platform-form" onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); vc.preview({ version: String(f.get("version")), usdToEurRate: Number(f.get("rate")) }); }}>
+          <label>1 USD in EUR<input name="rate" type="number" step="0.0001" min={0.0001} required defaultValue={cost.usdToEurRate || ""} disabled={!data.canEdit} /></label>
+          <VersionField value={cost.version} />
+          {data.canEdit ? <button className="platform-button" disabled={vc.busy}>Vedi cosa cambia</button> : null}
+        </form>
+        {vc.panel}
+      </Card>
+      <Card title={`Cicli di revisione inclusi · ${rev.version}`} action={state("revision-rules")}>
+        <p>Quanti giri di revisione richiesti dal cliente sono inclusi per servizio. Il valore indicato sul singolo progetto prevale. Se per un servizio non è indicato nulla, ogni richiesta resta «da valutare» e decide una persona: nessuna lavorazione a pagamento parte da sola.</p>
+        {vr.feedback}
+        <form className="platform-form" onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); const rounds: Record<string, number> = {}; for (const line of String(f.get("rounds")).split("\n")) { const m = /^\s*([^=]+?)\s*=\s*(\d+)\s*$/.exec(line); if (m) rounds[m[1]!] = Number(m[2]); } vr.preview({ version: String(f.get("version")), roundsIncludedByService: rounds, autoStartIncluded: f.get("auto") === "on" }); }}>
+          <label>Servizio = cicli inclusi (uno per riga)<textarea name="rounds" rows={4} defaultValue={Object.entries(rev.roundsIncludedByService).map(([k, n]) => `${k} = ${n}`).join("\n")} disabled={!data.canEdit} placeholder={"editing = 2\nproofreading = 1"} /><small>Il nome del servizio è quello del foglio d&apos;ordine del contratto.</small></label>
+          <label className="platform-check"><input type="checkbox" name="auto" defaultChecked={rev.autoStartIncluded} disabled={!data.canEdit} />Avvia la revisione AI mirata quando la richiesta è inclusa (serve anche l&apos;opzione nelle regole dell&apos;AI)</label>
+          <VersionField value={rev.version} />
+          {data.canEdit ? <button className="platform-button" disabled={vr.busy}>Vedi cosa cambia</button> : null}
+        </form>
+        {vr.panel}
+      </Card>
+    </>
+  );
+}
 function AutomationSection() {
   const st = useLoad<{ jobs: Array<{ job: string; label: string; expectedMinutes: number; lastAttempt: { at: string; status: string; trigger: string } | null; lastSuccess: string | null; lateMinutes: number | null; state: string; lastError: { at: string; error: string | null } | null }>; pending: Record<string, number> }>("crm/automation");
   const STATE: Record<string, [string, "ok" | "warn" | undefined]> = { ok: ["In regola", "ok"], late: ["In ritardo", "warn"], error: ["Errore", "warn"], never: ["Mai eseguito", "warn"] };
@@ -446,17 +498,22 @@ function DiagnosticsSection() {
         <div className="platform-row" key={i.key}>
           <span><strong>{i.label}</strong>{i.optional ? <small> (facoltativa)</small> : null}<small>{i.detail}</small>{i.action ? <small>Da fare: {i.action}</small> : null}</span>
           <StateTag s={i.state} />
+          {i.key === "google" && !/non impostato/.test(i.detail) ? <GoogleConnect /> : null}
         </div>
       ))}
     </Card>
   );
+}
+function GoogleConnect() {
+  const { run, busy, feedback } = useRun();
+  return <span>{feedback}<button className="platform-text-button" disabled={busy} onClick={() => run(async () => { const r = await api<{ url: string }>("studio/google/connect", "POST", {}); location.href = r.url; }, "Apertura di Google…")}>Collega o ricollega l&apos;account Google</button></span>;
 }
 function HistorySection() {
   const [key, setKey] = useState("assignment-rules");
   const h = useLoad<{ history: Array<{ key: string; version: string; approvedBy: string | null; createdAt: string; changes?: Change[] }> }>(`crm/settings/history?key=${key}`);
   return (
     <Card title="Storico delle regole">
-      <label>Regola<select value={key} onChange={(e) => setKey(e.target.value)}>{["assignment-rules", "attribution-rules", "catalog", "pipelines", "loss-reasons", "brand", "crm-flows", "ops-rules"].map((k) => <option key={k} value={k}>{k}</option>)}</select></label>
+      <label>Regola<select value={key} onChange={(e) => setKey(e.target.value)}>{["assignment-rules", "attribution-rules", "catalog", "pipelines", "loss-reasons", "brand", "crm-flows", "ops-rules", "ai-rules", "cost-rules", "revision-rules"].map((k) => <option key={k} value={k}>{k}</option>)}</select></label>
       {h.data?.history.length ? h.data.history.map((x) => <details key={x.version}><summary>{x.version} · {new Date(x.createdAt).toLocaleString("it-IT")} · {x.approvedBy ?? "—"}</summary><ul>{x.changes?.map((c, i) => <li key={i}><code>{c.path}</code>: {show(c.from)} → {show(c.to)}</li>)}</ul></details>) : <p className="platform-empty">Nessuna versione approvata: sono in uso i valori proposti.</p>}
     </Card>
   );
