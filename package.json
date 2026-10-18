@@ -18,14 +18,16 @@
     "db:seed": "tsx db/seed.ts"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.32.1",
+    "@anthropic-ai/sdk": "^0.131.0",
     "@neondatabase/serverless": "^0.10.4",
     "@types/pg": "8.23.1",
     "@vercel/blob": "2.8.1",
+    "@xmldom/xmldom": "^0.8.13",
     "better-auth": "1.7.7",
     "drizzle-orm": "0.45.2",
     "gray-matter": "^4.0.3",
     "jose": "6.2.12",
+    "jszip": "^3.10.1",
     "lucide-react": "^1.52.0",
     "mammoth": "^1.12.0",
     "next": "^15.1.6",

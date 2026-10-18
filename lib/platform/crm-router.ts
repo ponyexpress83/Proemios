@@ -16,6 +16,7 @@ import { handoffAccept, handoffDetail, handoffItemCreate, handoffItemDecide, pro
 import { crmReports, supportCollection, workBoard, workMove, workSummary } from "./crm-work";
 import { apiKeyCollection, webhookCollection } from "./crm-api";
 import { automationStatus } from "./automation";
+import { adminDashboard, projectCostCollection } from "./admin-dashboard";
 import { diagnosticsCollection } from "./diagnostics";
 import { setupCollection, simulateAssignment } from "./crm-setup";
 import { teamDeactivate, teamDirectory, teamProfile, teamReactivate, templateInvite } from "./crm-team";
@@ -93,6 +94,7 @@ export async function crmRoute(request: Request, actor: Actor, parts: string[]):
       if (action === "ops") return projectOps(request, actor, id);
       if (action === "phases") return projectPhases(request, actor, id);
       if (action === "suggestions") return projectSuggestions(request, actor, id);
+      if (action === "costs") return projectCostCollection(request, actor, id);
       break;
     case "tasks":
       if (id === "queue" && !action) return taskQueue(request, actor);
@@ -127,9 +129,13 @@ export async function crmRoute(request: Request, actor: Actor, parts: string[]):
     case "assignment":
       if (id === "simulate" && !action) return simulateAssignment(request, actor);
       break;
+    case "admin":
+      if (!id) return adminDashboard(request, actor);
+      if (id === "margins" && !action) return adminDashboard(request, actor, "margins");
+      break;
     case "automation":
       if (!id) return automationStatus(request, actor);
-      break;
+      return automationStatus(request, actor, id, action);
     case "diagnostics":
       if (!id) return diagnosticsCollection(request, actor);
       break;

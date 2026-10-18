@@ -21,6 +21,7 @@ import {
 export * from "./auth-schema";
 export * from "./platform-schema";
 export * from "./crm-schema";
+export * from "./document-schema";
 
 export const leadSourceEnum = pgEnum("lead_source", [
   "preventivo",

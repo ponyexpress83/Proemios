@@ -36,10 +36,17 @@ export const ROLE_TEMPLATES: Record<string, { label: string; role: Role; grants:
   marketing: { label: "Marketing", role: "marketing", grants: null, team: "marketing", participates: false, asks: [] },
   operator: { label: "Operatore di produzione", role: "editor", grants: null, team: "produzione", participates: false, asks: ["skills", "languages", "capacity"] },
   collaborator: { label: "Collaboratore esterno", role: "editor", grants: null, team: "produzione", participates: false, external: true, asks: ["skills", "languages", "capacity"] },
-  ops_lead: { label: "Responsabile di produzione", role: "coordinator", grants: null, team: "produzione", participates: false, asks: ["skills", "capacity"] },
+  ops_lead: { label: "Coordinatore di produzione (progetti assegnati)", role: "coordinator", grants: null, team: "produzione", participates: false, asks: ["skills", "capacity"] },
+  /** Vede e assegna tutti i progetti, la coda AI e le revisioni; niente finanza, impostazioni o CRM. */
+  production_manager: { label: "Responsabile produzione", role: "coordinator", grants: org(["project.read", "project.write", "project.assign", "file.read", "file.upload", "file.deliver", "approval.read", "message.read", "message.write", "message.internal", "task.read", "task.write", "support.read", "support.write", "operations.read", "report.read"]), team: "produzione", participates: false, asks: ["skills", "capacity"] },
+  affiliate: { label: "Affiliato", role: "affiliate", grants: null, team: "partner", participates: false, external: true, asks: [] },
   finance: { label: "Finance", role: "finance", grants: null, team: "amministrazione", participates: false, asks: [] },
   /** «Admin 2»: CRM più l'area marketing, senza finanza, chiavi o ruoli. */
   admin_marketing: { label: "Admin con Marketing", role: "admin", grants: org([...adminBase, ...MARKETING_PERMISSIONS.filter((p) => p !== "integrations.manage" && p !== "export")]), team: "marketing", participates: false, asks: [] },
+  /** Admin generale: CRM, team, report e stato delle operazioni; niente finanza, chiavi, regole economiche. */
+  admin_general: { label: "Admin generale", role: "admin", grants: org([...adminBase, "invite.manage", "role.manage", "operations.read", "marketing.read", "crm.import"]), team: "direzione", participates: false, asks: [] },
+  /** Admin commerciale: CRM completo, eccezioni sugli sconti e provvigioni in lettura. */
+  admin_sales: { label: "Admin commerciale", role: "admin", grants: org([...adminBase, "quote.approve", "commission.read", "crm.import"]), team: "vendite", participates: false, asks: [] },
   /** «Admin 2»: gestione del team (inviti, profili, assegnazioni), senza diventare proprietario. */
   admin_team: { label: "Admin gestione team", role: "admin", grants: org([...adminBase, "invite.manage", "role.manage"]), team: "direzione", participates: false, asks: [] },
 };
