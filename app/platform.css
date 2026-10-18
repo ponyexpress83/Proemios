@@ -736,3 +736,6 @@
   .studio-layout { grid-template-columns: minmax(0, 1fr); }
   .studio-side { position: static; }
 }
+.seller-indicator { font: inherit; text-align: left; cursor: pointer; color: inherit; }
+.seller-indicator:hover, .seller-indicator-on { border-color: var(--studio-night); background: #f3f1ea; }
+.seller-indicator:focus-visible { outline: 3px solid #8fb79c; outline-offset: 2px; }

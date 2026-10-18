@@ -8,7 +8,8 @@ import { authClient } from "@/lib/auth-client";
 import { WorkView, DealsView, ContactsView, PoolView, ApprovalsView, PeopleView, HandoffPanel } from "./crm-views";
 import { SetupView, CrmSettingsView } from "./crm-settings";
 import { ControlRoomView, ProductionView, StudioView } from "./studio-views";
-const CRM_TABS = ["work", "deals", "contacts", "pool", "approvals", "people", "crm-setup", "crm-settings", "control", "production", "studio"];
+import { SellerHomeView } from "./seller-views";
+const CRM_TABS = ["work", "deals", "contacts", "pool", "approvals", "people", "crm-setup", "crm-settings", "control", "production", "studio", "sales-home"];
 import {
   can,
   hasPermission,
@@ -280,6 +281,7 @@ const tabRules: Array<{ id: string; label: string; permission?: Permission; anyO
   { id: "control", label: "Cabina di regia", anyOf: ["settings.manage", "finance.read", "operations.read"] },
   { id: "production", label: "Produzione", anyOf: ["project.assign", "operations.read"] },
   { id: "studio", label: "Studio", permission: "project.write", staffOnly: true },
+  { id: "sales-home", label: "Le mie vendite", permission: "crm.write", staffOnly: true },
   { id: "work", label: "Il mio lavoro", permission: "task.read" },
   { id: "deals", label: "Trattative", permission: "crm.read" },
   { id: "contacts", label: "Clienti", permission: "crm.read" },
@@ -627,6 +629,7 @@ export function PlatformWorkspace({ user }: { user: Profile }) {
             {tab === "people" ? <PeopleView user={user} /> : null}
             {tab === "crm-setup" ? <SetupView /> : null}
             {tab === "crm-settings" ? <CrmSettingsView user={user} /> : null}
+            {tab === "sales-home" ? <SellerHomeView /> : null}
             {tab === "control" ? <ControlRoomView user={user} /> : null}
             {tab === "production" ? <ProductionView /> : null}
             {tab === "studio" ? <StudioView user={user} /> : null}

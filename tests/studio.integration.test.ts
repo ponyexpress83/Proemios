@@ -464,6 +464,34 @@ describe("Google Docs adapter (simulated Google APIs)", () => {
   });
 });
 
+describe("seller home and sales assistant (drafts only)", () => {
+  it("shows clickable buckets from the derived pipeline and commissions from the register", async () => {
+    const deal = await data(await call("seller", "crm/deals", "POST", { contact: { name: "Paola Prospect", email: "paola.prospect@example.test" }, title: "Romanzo di Paola", priority: "urgent", nextAction: "Prima telefonata", nextActionAt: new Date(Date.now() - 86400_000).toISOString() }), 201);
+    const home = await data(await call("seller", "crm/seller"));
+    const ids = (key: string) => home.buckets.find((b: { key: string }) => b.key === key).deals.map((d: { id: string }) => d.id);
+    expect(ids("new")).toContain(deal.deal.id); expect(ids("urgent")).toContain(deal.deal.id); expect(ids("overdue")).toContain(deal.deal.id);
+    expect(home.commissions.accrued.cents).toBeGreaterThan(0);
+    expect(JSON.stringify(home)).not.toContain("paola.prospect@example.test");
+    expect((await call("writer", "crm/seller")).status).toBe(404);
+  });
+  it("drafts only when enabled, never sends, keeps contact details out of the prompt and flags discounts", async () => {
+    const [deal] = await db.select().from(schema.crmDeals).where(eq(schema.crmDeals.title, "Romanzo di Paola"));
+    expect((await call("seller", `crm/deals/${deal!.id}/assistant`, "POST", { purpose: "follow_up" })).status).toBe(409);
+    await data(await call("owner", "crm/settings", "PUT", { key: "ai-rules", value: { ...aiRules, version: "ai-test-v9", salesAssistant: true } }));
+    expect((await call("stranger", `crm/deals/${deal!.id}/assistant`, "POST", { purpose: "follow_up" })).status).not.toBe(200);
+    const outbox = (await db.select().from(platform.emailOutbox)).length;
+    ai.replies.push({ kind: "ok", fn: () => ({ channel: "email", subject: "Il tuo romanzo", draft: "Gentile Paola, posso offrirti uno sconto del 10% se confermi oggi.", points: ["Ricontatto"], cautions: [] }) });
+    const r = await data(await call("seller", `crm/deals/${deal!.id}/assistant`, "POST", { purpose: "follow_up", notes: "Ha chiesto i tempi" }));
+    expect(r.sent).toBe(false); expect(r.draft.cautions[0]).toMatch(/sconti/);
+    const prompt = ai.calls.at(-1)!;
+    expect(prompt.user).not.toContain("paola.prospect@example.test"); expect(prompt.user).toContain("Paola"); expect(prompt.user).not.toContain("Prospect");
+    expect(prompt.system).toMatch(/Non proporre sconti/);
+    expect((await db.select().from(platform.emailOutbox)).length).toBe(outbox);
+    const usage = await db.select().from(docs.aiUsage).where(eq(docs.aiUsage.dealId, deal!.id));
+    expect(usage[0]).toMatchObject({ purpose: "sales_assistant", outcome: "ok" });
+  });
+});
+
 describe("control room: real indicators, AI costs and margins, production dashboard", () => {
   it("shows sections by permission and explains unavailable indicators instead of inventing them", async () => {
     const owner = await data(await call("owner", "crm/admin"));

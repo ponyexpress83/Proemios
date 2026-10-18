@@ -18,6 +18,7 @@ import { apiKeyCollection, webhookCollection } from "./crm-api";
 import { automationStatus } from "./automation";
 import { adminDashboard, projectCostCollection } from "./admin-dashboard";
 import { diagnosticsCollection } from "./diagnostics";
+import { salesAssistant, sellerRoute } from "./crm-seller";
 import { setupCollection, simulateAssignment } from "./crm-setup";
 import { teamDeactivate, teamDirectory, teamProfile, teamReactivate, templateInvite } from "./crm-team";
 
@@ -49,6 +50,7 @@ export async function crmRoute(request: Request, actor: Actor, parts: string[]):
       if (!id) return dealCollection(request, actor);
       if (uuid(id) && !action) return dealDetail(request, actor, id);
       if (uuid(id) && action === "package-link") return dealPackageLink(request, actor, id);
+      if (uuid(id) && action === "assistant" && request.method === "POST") return salesAssistant(actor, id, request);
       break;
     case "quotes":
       if (!uuid(id)) break;
@@ -128,6 +130,9 @@ export async function crmRoute(request: Request, actor: Actor, parts: string[]):
       break;
     case "assignment":
       if (id === "simulate" && !action) return simulateAssignment(request, actor);
+      break;
+    case "seller":
+      if (!id) return sellerRoute(request, actor);
       break;
     case "admin":
       if (!id) return adminDashboard(request, actor);
