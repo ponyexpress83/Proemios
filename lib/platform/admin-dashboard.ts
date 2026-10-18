@@ -18,6 +18,10 @@ import { json, notFound, readBody, PlatformError } from "./http";
 import { costRulesSchema } from "./crm-config";
 import { approvedAiRules, monthSpentMicros } from "./ai-client";
 
+/** Stati mostrati in italiano: niente codici interni nella cabina di regia. */
+const STATE_LABEL: Record<string, string> = { pending: "in attesa", paid: "pagate", held: "trattenute", adjustment: "rettifiche", queued: "in coda", created: "emesse", sent: "inviate", failed: "non riuscite", draft: "bozze", cancelled: "annullate", requested: "richiesti", approved: "approvati", rejected: "respinti", executed: "eseguiti", verified: "Verificato", configured: "Configurato", not_configured: "Non configurato", error: "Errore" };
+const stateLabel = (s: string) => STATE_LABEL[s] ?? s;
+
 const DAY = 86400_000;
 export type Indicator = { key: string; label: string; value: number | string | null; unit: "count" | "cents" | "pct" | "usd_micros" | "text"; source: string; status: "ok" | "unavailable"; reason?: string; href?: string };
 const ok = (key: string, label: string, value: number | string, unit: Indicator["unit"], source: string, href?: string): Indicator => ({ key, label, value, unit, source, status: "ok", href });
@@ -56,16 +60,16 @@ async function finance(since: Date) {
   // IVA: verificata = fatture emesse; stimata = imposta delle schede d'ordine accettate nel periodo.
   const vatEstimate = await n(db.select({ n: sql<number>`coalesce(sum((${contracts.orderSheet}->'amounts'->>'taxCents')::bigint),0)::bigint` }).from(contracts).where(gte(contracts.acceptedAt, since)));
   const issued = inv.filter((i) => ["created", "sent"].includes(i.status));
-  const byStatus = (rows: Array<{ status: string; n: number }>) => rows.map((r) => `${r.status}: ${r.n}`).join(" · ") || "nessuna";
+  const byStatus = (rows: Array<{ status: string; n: number }>) => rows.map((r) => `${r.n} ${stateLabel(r.status)}`).join(" · ") || "nessuna";
   return [
     ok("collected", "Incassato", Number(collected), "cents", "Registro dei pagamenti verificati", "/spazio?tab=finance"),
     ok("refunded", "Rimborsato", -Number(refunded), "cents", "Registro (rimborsi eseguiti)", "/spazio?tab=finance"),
-    ok("installments_due", "Rate in sospeso", `${pendingRows[0]?.n ?? 0} rate · ${((Number(pendingRows[0]?.total ?? 0)) / 100).toFixed(2)} €`, "text", "Ordini di pagamento in attesa con scadenza", "/spazio?tab=finance"),
+    ok("installments_due", "Rate in sospeso", `${pendingRows[0]?.n ?? 0} rate · ${((Number(pendingRows[0]?.total ?? 0)) / 100).toLocaleString("it-IT", { minimumFractionDigits: 2 })} €`, "text", "Ordini di pagamento in attesa con scadenza", "/spazio?tab=finance"),
     ok("invoices", "Fatture nel periodo", byStatus(inv), "text", "Fatture in Cloud (coda)", "/spazio?tab=finance"),
     issued.length ? ok("vat_verified", "IVA delle fatture emesse (verificata)", issued.reduce((s, i) => s + Number(i.tax), 0), "cents", "Fatture emesse") : na("vat_verified", "IVA delle fatture emesse (verificata)", "cents", "Fatture in Cloud", "Nessuna fattura emessa nel periodo."),
     ok("vat_estimate", "IVA stimata sui contratti", vatEstimate, "cents", "Schede d'ordine accettate (stima, non fatturato)"),
     ok("refund_requests", "Richieste di rimborso", byStatus(refunds), "text", "Rimborsi", "/spazio?tab=finance"),
-    ok("commissions", "Provvigioni per stato", comm.map((c) => `${c.status}: ${c.n} (${(Number(c.total) / 100).toFixed(2)} €)`).join(" · ") || "nessuna", "text", "Registro provvigioni", "/spazio?tab=commissions"),
+    ok("commissions", "Provvigioni per stato", comm.map((c) => `${c.n} ${stateLabel(c.status)} (${(Number(c.total) / 100).toLocaleString("it-IT", { minimumFractionDigits: 2 })} €)`).join(" · ") || "nessuna", "text", "Registro provvigioni", "/spazio?tab=commissions"),
     ok("direct_costs", "Costi diretti registrati", costs, "cents", "Costi di progetto inseriti (compensi editor, altri)", "/spazio?tab=admin&section=margini"),
   ];
 }
@@ -79,7 +83,7 @@ async function production(now: Date) {
   const j = (...s: string[]) => jobs.filter((x) => s.includes(x.s)).reduce((t, x) => t + x.n, 0);
   const review = await n(db.select({ n: sql<number>`count(distinct ${docSuggestions.documentId})::int` }).from(docSuggestions).where(eq(docSuggestions.status, "pending")));
   const cycles = await db.select({ s: revisionCycles.status, n: sql<number>`count(*)::int` }).from(revisionCycles).groupBy(revisionCycles.status);
-  const load = await db.select({ name: user.name, n: sql<number>`count(*)::int` }).from(tasks).innerJoin(user, eq(user.id, tasks.assignedTo)).where(and(isNotNull(tasks.projectId), ne(tasks.status, "done"))).groupBy(user.name).orderBy(desc(sql`count(*)`)).limit(10);
+  const load = await db.select({ name: user.name, n: sql<number>`count(*)::int` }).from(tasks).innerJoin(user, eq(user.id, tasks.assignedTo)).innerJoin(projects, eq(projects.id, tasks.projectId)).where(and(isNotNull(tasks.projectId), ne(tasks.status, "done"), ne(tasks.assignedTo, projects.authorId))).groupBy(user.name).orderBy(desc(sql`count(*)`)).limit(10);
   return [
     ok("open_projects", "Progetti aperti", ops.filter((o) => o.s !== "concluded").reduce((t, o) => t + o.n, 0), "count", "Progetti", "/spazio?tab=production"),
     ok("to_assign", "Lavori da assegnare", c("ready_for_assignment"), "count", "Stato operativo", "/spazio?tab=production"),
@@ -103,7 +107,7 @@ async function technology(now: Date) {
   const rules = await approvedAiRules();
   const spent = await monthSpentMicros(now);
   return [
-    ...items.map((i) => ({ key: `svc_${i.key}`, label: i.label, value: i.state, unit: "text" as const, source: i.detail, status: "ok" as const, href: "/spazio?tab=crm-settings&section=diagnostics" })),
+    ...items.map((i) => ({ key: `svc_${i.key}`, label: i.label, value: stateLabel(i.state), unit: "text" as const, source: i.detail, status: "ok" as const, href: "/spazio?tab=crm-settings&section=diagnostics" })),
     ok("job_errors", "Attività automatiche con errore (24 h)", runsWithError, "count", "Registro delle esecuzioni", "/spazio?tab=crm-settings&section=automation"),
     ok("failures", "Operazioni fallite registrate (24 h)", failures, "count", "Registro di audit"),
     ok("ai_month", "Spesa AI del mese", spent, "usd_micros", rules ? `Tetto mensile approvato: ${rules.monthlyCapUsd} $` : "Regole AI non ancora approvate"),
