@@ -542,3 +542,29 @@ describe("control room: real indicators, AI costs and margins, production dashbo
     expect(items.find((i) => i.key === "google")?.state).toBe("error");
   });
 });
+
+describe("direct upload of large files (Blob simulated by the local file store)", () => {
+  it("accepts only this project's and this person's paths, re-checks the file and never registers it twice", async () => {
+    const { directPathAllowed, directKeyAllowed } = await import("@/lib/platform/direct-upload");
+    const me = actors.writer!.id, other = actors.stranger!.id, file = randomUUID();
+    expect(directPathAllowed(`projects/${projectId}/direct/${me}/${file}.docx`, projectId, me)).toBe(true);
+    expect(directPathAllowed(`projects/${projectId}/direct/${other}/${file}.docx`, projectId, me)).toBe(false);
+    expect(directPathAllowed(`projects/${randomUUID()}/direct/${me}/${file}.docx`, projectId, me)).toBe(false);
+    expect(directPathAllowed(`projects/${projectId}/direct/${me}/${file}.exe`, projectId, me)).toBe(false);
+    expect(directKeyAllowed(`https://abc.private.blob.vercel-storage.com/projects/${projectId}/direct/${me}/${file}.pdf`, projectId, me)).toBe(true);
+    expect(directKeyAllowed(`https://evil.example.com/projects/${projectId}/direct/${me}/${file}.pdf`, projectId, me)).toBe(false);
+    expect(directKeyAllowed(`https://abc.private.blob.vercel-storage.com/projects/${projectId}/direct/${other}/${file}.pdf`, projectId, me)).toBe(false);
+    // Senza archivio Blob configurato il token non viene emesso.
+    expect((await call("writer", `projects/${projectId}/files/direct`, "POST", { type: "blob.generate-client-token", payload: { pathname: `projects/${projectId}/direct/${me}/${file}.txt`, clientPayload: null, multipart: false } })).status).toBe(503);
+    const { writeFile, mkdir, access: exists } = await import("node:fs/promises");
+    const dir = process.env.PROEMIOS_TEST_FILE_DIR!; await mkdir(dir, { recursive: true });
+    const big = randomUUID(); await writeFile(join(dir, big), Buffer.from("Testo lungo di prova. ".repeat(250_000)));
+    expect((await call("stranger", `projects/${projectId}/files/register`, "POST", { key: `test:${big}`, name: "lungo.txt" })).status).toBe(404);
+    const saved = await data(await call("writer", `projects/${projectId}/files/register`, "POST", { key: `test:${big}`, name: "lungo.txt" }), 201);
+    expect(saved.file.status).toBe("ready"); expect(saved.file.size).toBeGreaterThan(4 * 1024 * 1024);
+    expect((await call("writer", `projects/${projectId}/files/register`, "POST", { key: `test:${big}`, name: "lungo.txt" })).status).toBe(409);
+    const bad = randomUUID(); await writeFile(join(dir, bad), Buffer.from("non è un pdf"));
+    expect((await call("writer", `projects/${projectId}/files/register`, "POST", { key: `test:${bad}`, name: "falso.pdf" })).status).toBe(422);
+    await expect(exists(join(dir, bad))).rejects.toThrow();
+  });
+});
