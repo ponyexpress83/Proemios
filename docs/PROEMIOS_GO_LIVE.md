@@ -55,3 +55,8 @@ Data: 18/10/2026. Nessuno di questi passi è stato eseguito: richiedono la tua a
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | per Google Docs | client OAuth «Web» |
 | `GOOGLE_REDIRECT_URI` | no | predefinito `<APP_URL>/api/integrations/google/callback` |
 | `CRON_SECRET` | sì | protegge anche `/api/jobs/ai` |
+| `BLOB_READ_WRITE_TOKEN` | sì | file privati; serve anche al caricamento diretto dei file oltre 4 MB |
+| `UPLOAD_DIRECT_MAX_MB` | no | predefinito 40, massimo 100 |
+| `FILE_SCANNER_URL`, `FILE_SCANNER_TOKEN` | sì per DOCX/PDF | senza scanner si accettano solo TXT; risposta attesa `{"clean": true\|false}` |
+
+Il prompt operativo per eseguire questi passi con Claude Cowork è in `docs/PROMPT_COWORK_LANCIO.md`. La PR di lancio (release → ramo predefinito) è aperta in bozza e va unita solo dopo il collaudo.
