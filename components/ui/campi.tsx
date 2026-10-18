@@ -103,7 +103,7 @@ export function Consenso({
   tono?: "carta" | "notte";
 }) {
   return (
-    <label htmlFor={id} className="flex cursor-pointer items-start gap-3">
+    <label htmlFor={id} className="flex min-h-11 cursor-pointer items-start gap-3 py-2">
       <input
         id={id}
         name={name}

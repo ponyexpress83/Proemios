@@ -49,6 +49,7 @@ export default function LibroProfessionistiPage() {
             nome: SERVIZIO.name,
             descrizione: SERVIZIO.claim,
             slug: SERVIZIO.slug,
+            path: "/libro-per-professionisti",
             prezzo: SERVIZIO.priceRange,
           }),
           faqJsonLd(SERVIZIO.faq),

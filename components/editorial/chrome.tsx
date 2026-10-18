@@ -12,7 +12,7 @@ const nav: [string, string][] = [
   ["Per agenzie", "/per-agenzie"],
   ["Guide", "/blog"],
 ];
-export function Header() {
+export function Header({ analysisReady = false }: { analysisReady?: boolean }) {
   const [open, setOpen] = useState(false);
   const menuButton = useRef<HTMLButtonElement>(null);
   useEffect(() => {
@@ -49,6 +49,7 @@ export function Header() {
             ))}
           </nav>
           <div className="nav-actions">
+            {analysisReady ? <Link href="/analisi-manoscritto" className="login-link">Analisi gratuita</Link> : null}
             <Link href="/accedi" className="login-link">
               Area autori
             </Link>
@@ -75,9 +76,9 @@ export function Header() {
                 <ArrowRight size={18} />
               </Link>
             ))}
-            <Link href="/analisi-manoscritto" onClick={() => setOpen(false)}>
+            {analysisReady ? <Link href="/analisi-manoscritto" onClick={() => setOpen(false)}>
               Analisi del testo →
-            </Link>
+            </Link> : null}
             <Link href="/preventivo" className="button" onClick={() => setOpen(false)}>
               Richiedi preventivo <ArrowRight size={18} />
             </Link>
@@ -120,7 +121,7 @@ export function Footer() {
             </p>
           </div>
           <Link href="/accedi" className="text-link">
-            Prova l’area autori <ArrowRight size={18} />
+            Accedi all’area autori <ArrowRight size={18} />
           </Link>
         </div>
         <div className="footer-columns">

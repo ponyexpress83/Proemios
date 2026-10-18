@@ -1,0 +1,1287 @@
+{
+  "date": "2026-10-08T08:28:47.067Z",
+  "origin": "http://127.0.0.1:3211",
+  "environment": "local production build, no configured providers",
+  "historicalPaths": 40,
+  "routes": [
+    {
+      "path": "/",
+      "status": 200,
+      "location": null,
+      "title": "Proemios — Dalle idee alle opere",
+      "h1": "Dai formaalla tua storia.",
+      "canonical": "https://proemios.it",
+      "robots": "noindex, nofollow",
+      "schemas": [
+        {
+          "valid": true,
+          "type": "Organization"
+        }
+      ],
+      "csp": true,
+      "cache": "s-maxage=31536000"
+    },
+    {
+      "path": "/_not-found",
+      "status": 404,
+      "location": null,
+      "title": "Pagina non trovata · Proemios",
+      "h1": "Questa pagina non esiste",
+      "canonical": "https://proemios.it",
+      "robots": "noindex",
+      "schemas": [
+        {
+          "valid": true,
+          "type": "Organization"
+        }
+      ],
+      "csp": true,
+      "cache": "s-maxage=31536000"
+    },
+    {
+      "path": "/accedi",
+      "status": 200,
+      "location": null,
+      "title": "Accedi alla tua area autore · Proemios",
+      "h1": "Bentornato, autore.",
+      "canonical": "https://proemios.it",
+      "robots": "noindex, nofollow",
+      "schemas": [
+        {
+          "valid": true,
+          "type": "Organization"
+        }
+      ],
+      "csp": true,
+      "cache": "private, no-store"
+    },
+    {
+      "path": "/accesso-team",
+      "status": 200,
+      "location": null,
+      "title": "Accesso personale del team · Proemios",
+      "h1": "Il tuo accesso al team",
+      "canonical": "https://proemios.it",
+      "robots": "noindex, nofollow",
+      "schemas": [
+        {
+          "valid": true,
+          "type": "Organization"
+        }
+      ],
+      "csp": true,
+      "cache": "private, no-store"
+    },
+    {
+      "path": "/admin",
+      "status": 307,
+      "location": "http://localhost:3211/accedi",
+      "schemas": [],
+      "csp": true,
+      "cache": null
+    },
+    {
+      "path": "/aiuto",
+      "status": 200,
+      "location": null,
+      "title": "Aiuto e assistenza · Proemios",
+      "h1": "Un passo alla volta.",
+      "canonical": "https://proemios.it/aiuto",
+      "robots": "noindex, nofollow",
+      "schemas": [
+        {
+          "valid": true,
+          "type": "Organization"
+        }
+      ],
+      "csp": true,
+      "cache": "s-maxage=31536000"
+    },
+    {
+      "path": "/analisi-manoscritto",
+      "status": 200,
+      "location": null,
+      "title": "Analisi gratuita del manoscritto · Proemios",
+      "h1": "Il tuo manoscritto.Un nuovo sguardo.",
+      "canonical": "https://proemios.it/analisi-manoscritto",
+      "robots": "noindex, nofollow",
+      "schemas": [
+        {
+          "valid": true,
+          "type": "Organization"
+        }
+      ],
+      "csp": true,
+      "cache": "s-maxage=31536000"
+    },
+    {
+      "path": "/area-autore",
+      "status": 307,
+      "location": "http://localhost:3211/accedi",
+      "schemas": [],
+      "csp": true,
+      "cache": null
+    },
+    {
+      "path": "/area-team",
+      "status": 307,
+      "location": "http://localhost:3211/accedi",
+      "schemas": [],
+      "csp": true,
+      "cache": null
+    },
+    {
+      "path": "/blog",
+      "status": 200,
+      "location": null,
+      "title": "Guide editoriali · Proemios",
+      "h1": "Fare un libro.Capire il percorso.",
+      "canonical": "https://proemios.it/blog",
+      "robots": "noindex, nofollow",
+      "schemas": [
+        {
+          "valid": true,
+          "type": "Organization"
+        }
+      ],
+      "csp": true,
+      "cache": "s-maxage=31536000"
+    },
+    {
+      "path": "/blog/come-impaginare-un-libro",
+      "status": 200,
+      "location": null,
+      "title": "Come impaginare un libro · Proemios",
+      "h1": "Come impaginare un libro",
+      "canonical": "https://proemios.it/blog/come-impaginare-un-libro",
+      "robots": "noindex, nofollow",
+      "schemas": [
+        {
+          "valid": true,
+          "type": "Organization"
+        },
+        {
+          "valid": true
+        }
+      ],
+      "csp": true,
+      "cache": "s-maxage=31536000"
+    },
+    {
+      "path": "/blog/come-ottenere-un-isbn",
+      "status": 200,
+      "location": null,
+      "title": "Come ottenere un ISBN · Proemios",
+      "h1": "Come ottenere un ISBN",
+      "canonical": "https://proemios.it/blog/come-ottenere-un-isbn",
+      "robots": "noindex, nofollow",
+      "schemas": [
+        {
+          "valid": true,
+          "type": "Organization"
+        },
+        {
+          "valid": true
+        }
+      ],
+      "csp": true,
+      "cache": "s-maxage=31536000"
+    },
+    {
+      "path": "/blog/come-pubblicare-su-amazon-kdp",
+      "status": 200,
+      "location": null,
+      "title": "Come pubblicare su Amazon KDP · Proemios",
+      "h1": "Come pubblicare su Amazon KDP",
+      "canonical": "https://proemios.it/blog/come-pubblicare-su-amazon-kdp",
+      "robots": "noindex, nofollow",
+      "schemas": [
+        {
+          "valid": true,
+          "type": "Organization"
+        },
+        {
+          "valid": true
+        }
+      ],
+      "csp": true,
+      "cache": "s-maxage=31536000"
+    },
+    {
+      "path": "/blog/come-pubblicare-un-memoir",
+      "status": 200,
+      "location": null,
+      "title": "Come pubblicare un memoir · Proemios",
+      "h1": "Come pubblicare un memoir",
+      "canonical": "https://proemios.it/blog/come-pubblicare-un-memoir",
+      "robots": "noindex, nofollow",
+      "schemas": [
+        {
+          "valid": true,
+          "type": "Organization"
+        },
+        {
+          "valid": true
+        }
+      ],
+      "csp": true,
+      "cache": "s-maxage=31536000"
+    },
+    {
+      "path": "/blog/come-trasformare-un-diario-in-un-libro",
+      "status": 200,
+      "location": null,
+      "title": "Come trasformare un diario in un libro · Proemios",
+      "h1": "Come trasformare un diario in un libro",
+      "canonical": "https://proemios.it/blog/come-trasformare-un-diario-in-un-libro",
+      "robots": "noindex, nofollow",
+      "schemas": [
+        {
+          "valid": true,
+          "type": "Organization"
+        },
+        {
+          "valid": true
+        }
+      ],
+      "csp": true,
+      "cache": "s-maxage=31536000"
+    },
+    {
+      "path": "/blog/dalla-bozza-ai-file-finali",
+      "status": 200,
+      "location": null,
+      "title": "Dalla bozza ai file finali: le approvazioni che contano · Proemios",
+      "h1": "Dalla bozza ai file finali: le approvazioni che contano",
+      "canonical": "https://proemios.it/blog/dalla-bozza-ai-file-finali",
+      "robots": "noindex, nofollow",
+      "schemas": [
+        {
+          "valid": true,
+          "type": "Organization"
+        }
+      ],
+      "csp": true,
+      "cache": "s-maxage=31536000"
+    },
+    {
+      "path": "/blog/editing-o-correzione-bozze",
+      "status": 200,
+      "location": null,
+      "title": "Editing o correzione bozze: da dove cominciare? · Proemios",
+      "h1": "Editing o correzione bozze: da dove cominciare?",
+      "canonical": "https://proemios.it/blog/editing-o-correzione-bozze",
+      "robots": "noindex, nofollow",
+      "schemas": [
+        {
+          "valid": true,
+          "type": "Organization"
+        }
+      ],
+      "csp": true,
+      "cache": "s-maxage=31536000"
+    },
+    {
+      "path": "/blog/il-formato-epub-spiegato",
+      "status": 200,
+      "location": null,
+      "title": "Il formato EPUB spiegato · Proemios",
+      "h1": "Il formato EPUB spiegato",
+      "canonical": "https://proemios.it/blog/il-formato-epub-spiegato",
+      "robots": "noindex, nofollow",
+      "schemas": [
+        {
+          "valid": true,
+          "type": "Organization"
+        },
+        {
+          "valid": true
+        }
+      ],
+      "csp": true,
+      "cache": "s-maxage=31536000"
+    },
+    {
+      "path": "/blog/isbn-amazon-o-isbn-proprio",
+      "status": 200,
+      "location": null,
+      "title": "ISBN di Amazon o ISBN proprio · Proemios",
+      "h1": "ISBN di Amazon o ISBN proprio",
+      "canonical": "https://proemios.it/blog/isbn-amazon-o-isbn-proprio",
+      "robots": "noindex, nofollow",
+      "schemas": [
+        {
+          "valid": true,
+          "type": "Organization"
+        },
+        {
+          "valid": true
+        }
+      ],
+      "csp": true,
+      "cache": "s-maxage=31536000"
+    },
+    {
+      "path": "/blog/preparare-il-manoscritto",
+      "status": 200,
+      "location": null,
+      "title": "Come preparare il manoscritto per un editor · Proemios",
+      "h1": "Come preparare il manoscritto per un editor",
+      "canonical": "https://proemios.it/blog/preparare-il-manoscritto",
+      "robots": "noindex, nofollow",
+      "schemas": [
+        {
+          "valid": true,
+          "type": "Organization"
+        }
+      ],
+      "csp": true,
+      "cache": "s-maxage=31536000"
+    },
+    {
+      "path": "/blog/quanto-costa-pubblicare-un-libro",
+      "status": 200,
+      "location": null,
+      "title": "Quanto costa pubblicare un libro · Proemios",
+      "h1": "Quanto costa pubblicare un libro",
+      "canonical": "https://proemios.it/blog/quanto-costa-pubblicare-un-libro",
+      "robots": "noindex, nofollow",
+      "schemas": [
+        {
+          "valid": true,
+          "type": "Organization"
+        },
+        {
+          "valid": true
+        }
+      ],
+      "csp": true,
+      "cache": "s-maxage=31536000"
+    },
+    {
+      "path": "/blog/quanto-costa-un-editor",
+      "status": 200,
+      "location": null,
+      "title": "Quanto costa un editor · Proemios",
+      "h1": "Quanto costa un editor",
+      "canonical": "https://proemios.it/blog/quanto-costa-un-editor",
+      "robots": "noindex, nofollow",
+      "schemas": [
+        {
+          "valid": true,
+          "type": "Organization"
+        },
+        {
+          "valid": true
+        }
+      ],
+      "csp": true,
+      "cache": "s-maxage=31536000"
+    },
+    {
+      "path": "/blog/quanto-costa-un-ghostwriter",
+      "status": 200,
+      "location": null,
+      "title": "Quanto costa un ghostwriter · Proemios",
+      "h1": "Quanto costa un ghostwriter",
+      "canonical": "https://proemios.it/blog/quanto-costa-un-ghostwriter",
+      "robots": "noindex, nofollow",
+      "schemas": [
+        {
+          "valid": true,
+          "type": "Organization"
+        },
+        {
+          "valid": true
+        }
+      ],
+      "csp": true,
+      "cache": "s-maxage=31536000"
+    },
+    {
+      "path": "/blog/scrivere-un-libro-per-la-propria-professione",
+      "status": 200,
+      "location": null,
+      "title": "Scrivere un libro per la propria professione · Proemios",
+      "h1": "Scrivere un libro per la propria professione",
+      "canonical": "https://proemios.it/blog/scrivere-un-libro-per-la-propria-professione",
+      "robots": "noindex, nofollow",
+      "schemas": [
+        {
+          "valid": true,
+          "type": "Organization"
+        },
+        {
+          "valid": true
+        }
+      ],
+      "csp": true,
+      "cache": "s-maxage=31536000"
+    },
+    {
+      "path": "/casi-studio",
+      "status": 307,
+      "location": "/come-funziona",
+      "title": "Il percorso editoriale · Proemios",
+      "canonical": "https://proemios.it",
+      "robots": "noindex, nofollow",
+      "schemas": [],
+      "csp": true,
+      "cache": "s-maxage=31536000"
+    },
+    {
+      "path": "/casi-studio/dal-diario-di-una-vita-a-un-romanzo",
+      "status": 404,
+      "location": null,
+      "title": "Pagina non trovata · Proemios",
+      "canonical": "https://proemios.it",
+      "robots": "noindex",
+      "schemas": [],
+      "csp": true,
+      "cache": "private, no-cache, no-store, max-age=0, must-revalidate"
+    },
+    {
+      "path": "/casi-studio/manuale-di-un-professionista",
+      "status": 404,
+      "location": null,
+      "title": "Pagina non trovata · Proemios",
+      "canonical": "https://proemios.it",
+      "robots": "noindex",
+      "schemas": [],
+      "csp": true,
+      "cache": "private, no-cache, no-store, max-age=0, must-revalidate"
+    },
+    {
+      "path": "/casi-studio/revisione-e-pubblicazione-con-isbn-proprio",
+      "status": 404,
+      "location": null,
+      "title": "Pagina non trovata · Proemios",
+      "canonical": "https://proemios.it",
+      "robots": "noindex",
+      "schemas": [],
+      "csp": true,
+      "cache": "private, no-cache, no-store, max-age=0, must-revalidate"
+    },
+    {
+      "path": "/chi-siamo",
+      "status": 200,
+      "location": null,
+      "title": "Chi siamo · Proemios",
+      "h1": "Le storie contano.La cura, anche.",
+      "canonical": "https://proemios.it/chi-siamo",
+      "robots": "noindex, nofollow",
+      "schemas": [
+        {
+          "valid": true,
+          "type": "Organization"
+        }
+      ],
+      "csp": true,
+      "cache": "s-maxage=31536000"
+    },
+    {
+      "path": "/collega-preventivo",
+      "status": 200,
+      "location": null,
+      "title": "Accesso personale · Proemios",
+      "h1": "La tua proposta ti aspetta.",
+      "canonical": "https://proemios.it",
+      "robots": "noindex, nofollow",
+      "schemas": [
+        {
+          "valid": true,
+          "type": "Organization"
+        }
+      ],
+      "csp": true,
+      "cache": "private, no-store"
+    },
+    {
+      "path": "/come-funziona",
+      "status": 200,
+      "location": null,
+      "title": "Come funziona · Proemios",
+      "h1": "Un percorso chiaro.Dall’inizio alla fine.",
+      "canonical": "https://proemios.it/come-funziona",
+      "robots": "noindex, nofollow",
+      "schemas": [
+        {
+          "valid": true,
+          "type": "Organization"
+        }
+      ],
+      "csp": true,
+      "cache": "s-maxage=31536000"
+    },
+    {
+      "path": "/contatti",
+      "status": 200,
+      "location": null,
+      "title": "Contatti · Proemios",
+      "h1": "Ogni libro iniziacon un dialogo.",
+      "canonical": "https://proemios.it/contatti",
+      "robots": "noindex, nofollow",
+      "schemas": [
+        {
+          "valid": true,
+          "type": "Organization"
+        }
+      ],
+      "csp": true,
+      "cache": "private, no-cache, no-store, max-age=0, must-revalidate"
+    },
+    {
+      "path": "/cookie",
+      "status": 200,
+      "location": null,
+      "title": "Cookie policy · Proemios",
+      "h1": "Cookie policy",
+      "canonical": "https://proemios.it/cookie",
+      "robots": "noindex, nofollow",
+      "schemas": [
+        {
+          "valid": true,
+          "type": "Organization"
+        }
+      ],
+      "csp": true,
+      "cache": "s-maxage=31536000"
+    },
+    {
+      "path": "/dal-diario-al-libro",
+      "status": 200,
+      "location": null,
+      "title": "Dal diario al libro · Proemios",
+      "h1": "Una vita raccontatanon è ancora un libro.",
+      "canonical": "https://proemios.it/dal-diario-al-libro",
+      "robots": "noindex, nofollow",
+      "schemas": [
+        {
+          "valid": true,
+          "type": "Organization"
+        },
+        {
+          "valid": true
+        }
+      ],
+      "csp": true,
+      "cache": "s-maxage=31536000"
+    },
+    {
+      "path": "/demo-venditore.html",
+      "status": 404,
+      "location": null,
+      "title": "Pagina non trovata · Proemios",
+      "h1": "Questa pagina non esiste",
+      "canonical": "https://proemios.it",
+      "robots": "noindex",
+      "schemas": [
+        {
+          "valid": true,
+          "type": "Organization"
+        }
+      ],
+      "csp": true,
+      "cache": "private, no-cache, no-store, max-age=0, must-revalidate"
+    },
+    {
+      "path": "/icon",
+      "status": 200,
+      "location": null,
+      "schemas": [],
+      "csp": true,
+      "cache": "public, immutable, no-transform, max-age=31536000"
+    },
+    {
+      "path": "/invito",
+      "status": 200,
+      "location": null,
+      "title": "Accesso personale · Proemios",
+      "h1": "Unisciti al team.",
+      "canonical": "https://proemios.it",
+      "robots": "noindex, nofollow",
+      "schemas": [
+        {
+          "valid": true,
+          "type": "Organization"
+        }
+      ],
+      "csp": true,
+      "cache": "private, no-store"
+    },
+    {
+      "path": "/libro-per-professionisti",
+      "status": 200,
+      "location": null,
+      "title": "Il libro per professionisti · Proemios",
+      "h1": "Sai già abbastanzaper scrivere un libro.",
+      "canonical": "https://proemios.it/libro-per-professionisti",
+      "robots": "noindex, nofollow",
+      "schemas": [
+        {
+          "valid": true,
+          "type": "Organization"
+        },
+        {
+          "valid": true
+        }
+      ],
+      "csp": true,
+      "cache": "s-maxage=31536000"
+    },
+    {
+      "path": "/non-esiste-qa",
+      "status": 404,
+      "location": null,
+      "title": "Pagina non trovata · Proemios",
+      "h1": "Questa pagina non esiste",
+      "canonical": "https://proemios.it",
+      "robots": "noindex",
+      "schemas": [
+        {
+          "valid": true,
+          "type": "Organization"
+        }
+      ],
+      "csp": true,
+      "cache": "private, no-cache, no-store, max-age=0, must-revalidate"
+    },
+    {
+      "path": "/nuova-password",
+      "status": 200,
+      "location": null,
+      "title": "Nuova password · Proemios",
+      "h1": "Scegli una nuova password.",
+      "canonical": "https://proemios.it",
+      "robots": "noindex, nofollow",
+      "schemas": [
+        {
+          "valid": true,
+          "type": "Organization"
+        }
+      ],
+      "csp": true,
+      "cache": "private, no-store"
+    },
+    {
+      "path": "/opengraph-image",
+      "status": 200,
+      "location": null,
+      "schemas": [],
+      "csp": true,
+      "cache": "public, immutable, no-transform, max-age=31536000"
+    },
+    {
+      "path": "/per-agenzie",
+      "status": 200,
+      "location": null,
+      "title": "Per agenzie · Proemios",
+      "h1": "Il tuo cliente.Il tuo brand.Un percorso coordinato.",
+      "canonical": "https://proemios.it/per-agenzie",
+      "robots": "noindex, nofollow",
+      "schemas": [
+        {
+          "valid": true,
+          "type": "Organization"
+        }
+      ],
+      "csp": true,
+      "cache": "s-maxage=31536000"
+    },
+    {
+      "path": "/percorsi",
+      "status": 200,
+      "location": null,
+      "title": "Percorsi editoriali · Proemios",
+      "h1": "Il tuo libro ha giàun inizio.",
+      "canonical": "https://proemios.it/percorsi",
+      "robots": "noindex, nofollow",
+      "schemas": [
+        {
+          "valid": true,
+          "type": "Organization"
+        }
+      ],
+      "csp": true,
+      "cache": "s-maxage=31536000"
+    },
+    {
+      "path": "/percorsi/idea-da-sviluppare",
+      "status": 200,
+      "location": null,
+      "title": "Ho un’idea da sviluppare · Proemios",
+      "h1": "Ho un’idea da sviluppare.Mettiamo a fuoco l’idea e la trasformiamo in un progetto di libro.",
+      "canonical": "https://proemios.it/percorsi/idea-da-sviluppare",
+      "robots": "noindex, nofollow",
+      "schemas": [
+        {
+          "valid": true,
+          "type": "Organization"
+        }
+      ],
+      "csp": true,
+      "cache": "s-maxage=31536000"
+    },
+    {
+      "path": "/percorsi/libro-gia-scritto",
+      "status": 200,
+      "location": null,
+      "title": "Ho già scritto il libro · Proemios",
+      "h1": "Ho già scritto il libro.Hai un manoscritto: lavoriamo su revisione, copertina e pubblicazione.",
+      "canonical": "https://proemios.it/percorsi/libro-gia-scritto",
+      "robots": "noindex, nofollow",
+      "schemas": [
+        {
+          "valid": true,
+          "type": "Organization"
+        }
+      ],
+      "csp": true,
+      "cache": "s-maxage=31536000"
+    },
+    {
+      "path": "/percorsi/libro-professionale",
+      "status": 200,
+      "location": null,
+      "title": "Sono un professionista o un formatore · Proemios",
+      "h1": "Sono un professionista o un formatore.Trasformiamo il tuo metodo, le tue competenze e i materiali dei tuoi corsi in un libro.",
+      "canonical": "https://proemios.it/percorsi/libro-professionale",
+      "robots": "noindex, nofollow",
+      "schemas": [
+        {
+          "valid": true,
+          "type": "Organization"
+        }
+      ],
+      "csp": true,
+      "cache": "s-maxage=31536000"
+    },
+    {
+      "path": "/percorsi/memoir",
+      "status": 200,
+      "location": null,
+      "title": "Voglio raccontare una storia vera · Proemios",
+      "h1": "Voglio raccontare una storia vera.Ricordi, esperienze e testimonianze diventano un racconto.",
+      "canonical": "https://proemios.it/percorsi/memoir",
+      "robots": "noindex, nofollow",
+      "schemas": [
+        {
+          "valid": true,
+          "type": "Organization"
+        }
+      ],
+      "csp": true,
+      "cache": "s-maxage=31536000"
+    },
+    {
+      "path": "/percorsi/storia-impresa",
+      "status": 200,
+      "location": null,
+      "title": "Voglio raccontare la mia impresa · Proemios",
+      "h1": "Voglio raccontare la mia impresa.La storia della tua azienda o del tuo percorso di lavoro, raccontata con cura.",
+      "canonical": "https://proemios.it/percorsi/storia-impresa",
+      "robots": "noindex, nofollow",
+      "schemas": [
+        {
+          "valid": true,
+          "type": "Organization"
+        }
+      ],
+      "csp": true,
+      "cache": "s-maxage=31536000"
+    },
+    {
+      "path": "/preventivo",
+      "status": 200,
+      "location": null,
+      "title": "Calcola il preventivo · Proemios",
+      "h1": "Quanto costail tuo progetto?",
+      "canonical": "https://proemios.it/preventivo",
+      "robots": "noindex, nofollow",
+      "schemas": [
+        {
+          "valid": true,
+          "type": "Organization"
+        }
+      ],
+      "csp": true,
+      "cache": "private, no-cache, no-store, max-age=0, must-revalidate"
+    },
+    {
+      "path": "/preventivo/grazie",
+      "status": 200,
+      "location": null,
+      "title": "Esito del percorso · Proemios",
+      "h1": "Verifichiamoil tuo percorso.",
+      "canonical": "https://proemios.it/preventivo/grazie",
+      "robots": "noindex, nofollow",
+      "schemas": [
+        {
+          "valid": true,
+          "type": "Organization"
+        }
+      ],
+      "csp": true,
+      "cache": "private, no-cache, no-store, max-age=0, must-revalidate"
+    },
+    {
+      "path": "/privacy",
+      "status": 200,
+      "location": null,
+      "title": "Privacy policy · Proemios",
+      "h1": "Informativa sulla privacy",
+      "canonical": "https://proemios.it/privacy",
+      "robots": "noindex, nofollow",
+      "schemas": [
+        {
+          "valid": true,
+          "type": "Organization"
+        }
+      ],
+      "csp": true,
+      "cache": "s-maxage=31536000"
+    },
+    {
+      "path": "/recupera-accesso",
+      "status": 200,
+      "location": null,
+      "title": "Recupera il tuo accesso · Proemios",
+      "h1": "Recupera l’accesso.",
+      "canonical": "https://proemios.it",
+      "robots": "noindex, nofollow",
+      "schemas": [
+        {
+          "valid": true,
+          "type": "Organization"
+        }
+      ],
+      "csp": true,
+      "cache": "private, no-store"
+    },
+    {
+      "path": "/registrati",
+      "status": 200,
+      "location": null,
+      "title": "Crea un account autore · Proemios",
+      "h1": "Il tuo libro inizia qui.",
+      "canonical": "https://proemios.it",
+      "robots": "noindex, nofollow",
+      "schemas": [
+        {
+          "valid": true,
+          "type": "Organization"
+        }
+      ],
+      "csp": true,
+      "cache": "private, no-store"
+    },
+    {
+      "path": "/robots.txt",
+      "status": 200,
+      "location": null,
+      "schemas": [],
+      "csp": true,
+      "cache": "public, max-age=0, must-revalidate"
+    },
+    {
+      "path": "/servizi",
+      "status": 200,
+      "location": null,
+      "title": "Servizi editoriali · Proemios",
+      "h1": "Tutto ciò che serve.Solo ciò che serve.",
+      "canonical": "https://proemios.it/servizi",
+      "robots": "noindex, nofollow",
+      "schemas": [
+        {
+          "valid": true,
+          "type": "Organization"
+        }
+      ],
+      "csp": true,
+      "cache": "s-maxage=31536000"
+    },
+    {
+      "path": "/servizi/copertina",
+      "status": 200,
+      "location": null,
+      "title": "Copertina · Proemios",
+      "h1": "Copertina.Il primo incontro con la tua storia.",
+      "canonical": "https://proemios.it/servizi/copertina",
+      "robots": "noindex, nofollow",
+      "schemas": [
+        {
+          "valid": true,
+          "type": "Organization"
+        }
+      ],
+      "csp": true,
+      "cache": "s-maxage=31536000"
+    },
+    {
+      "path": "/servizi/copertina-e-impaginazione",
+      "status": 200,
+      "location": null,
+      "title": "Copertina e impaginazione · Proemios",
+      "h1": "Copertina e impaginazione",
+      "canonical": "https://proemios.it/servizi/copertina-e-impaginazione",
+      "robots": "noindex, nofollow",
+      "schemas": [
+        {
+          "valid": true,
+          "type": "Organization"
+        },
+        {
+          "valid": true
+        }
+      ],
+      "csp": true,
+      "cache": "s-maxage=31536000"
+    },
+    {
+      "path": "/servizi/correzione-bozze",
+      "status": 200,
+      "location": null,
+      "title": "Correzione bozze · Proemios",
+      "h1": "Correzione bozze.L’ultima cura, prima di andare in stampa.",
+      "canonical": "https://proemios.it/servizi/correzione-bozze",
+      "robots": "noindex, nofollow",
+      "schemas": [
+        {
+          "valid": true,
+          "type": "Organization"
+        }
+      ],
+      "csp": true,
+      "cache": "s-maxage=31536000"
+    },
+    {
+      "path": "/servizi/dal-diario-al-libro",
+      "status": 200,
+      "location": null,
+      "title": "Dal diario al libro · Proemios",
+      "h1": "Dal diario al libro",
+      "canonical": "https://proemios.it/servizi/dal-diario-al-libro",
+      "robots": "noindex, nofollow",
+      "schemas": [
+        {
+          "valid": true,
+          "type": "Organization"
+        },
+        {
+          "valid": true
+        }
+      ],
+      "csp": true,
+      "cache": "s-maxage=31536000"
+    },
+    {
+      "path": "/servizi/editing",
+      "status": 200,
+      "location": null,
+      "title": "Editing · Proemios",
+      "h1": "Editing.La tua voce, nella sua forma migliore.",
+      "canonical": "https://proemios.it/servizi/editing",
+      "robots": "noindex, nofollow",
+      "schemas": [
+        {
+          "valid": true,
+          "type": "Organization"
+        }
+      ],
+      "csp": true,
+      "cache": "s-maxage=31536000"
+    },
+    {
+      "path": "/servizi/ghostwriting",
+      "status": 200,
+      "location": null,
+      "title": "Ghostwriting · Proemios",
+      "h1": "Ghostwriting.La tua storia merita di trovare le parole.",
+      "canonical": "https://proemios.it/servizi/ghostwriting",
+      "robots": "noindex, nofollow",
+      "schemas": [
+        {
+          "valid": true,
+          "type": "Organization"
+        }
+      ],
+      "csp": true,
+      "cache": "s-maxage=31536000"
+    },
+    {
+      "path": "/servizi/impaginazione",
+      "status": 200,
+      "location": null,
+      "title": "Impaginazione · Proemios",
+      "h1": "Impaginazione.Un libro bello anche da leggere.",
+      "canonical": "https://proemios.it/servizi/impaginazione",
+      "robots": "noindex, nofollow",
+      "schemas": [
+        {
+          "valid": true,
+          "type": "Organization"
+        }
+      ],
+      "csp": true,
+      "cache": "s-maxage=31536000"
+    },
+    {
+      "path": "/servizi/libro-per-professionisti",
+      "status": 200,
+      "location": null,
+      "title": "Libro per professionisti · Proemios",
+      "h1": "Libro per professionisti",
+      "canonical": "https://proemios.it/servizi/libro-per-professionisti",
+      "robots": "noindex, nofollow",
+      "schemas": [
+        {
+          "valid": true,
+          "type": "Organization"
+        },
+        {
+          "valid": true
+        }
+      ],
+      "csp": true,
+      "cache": "s-maxage=31536000"
+    },
+    {
+      "path": "/servizi/partner-white-label",
+      "status": 200,
+      "location": null,
+      "title": "Partner white label · Proemios",
+      "h1": "Partner white label",
+      "canonical": "https://proemios.it/servizi/partner-white-label",
+      "robots": "noindex, nofollow",
+      "schemas": [
+        {
+          "valid": true,
+          "type": "Organization"
+        },
+        {
+          "valid": true
+        }
+      ],
+      "csp": true,
+      "cache": "s-maxage=31536000"
+    },
+    {
+      "path": "/servizi/promozione",
+      "status": 200,
+      "location": null,
+      "title": "Promozione · Proemios",
+      "h1": "Promozione.Trova i lettori a cui parlare.",
+      "canonical": "https://proemios.it/servizi/promozione",
+      "robots": "noindex, nofollow",
+      "schemas": [
+        {
+          "valid": true,
+          "type": "Organization"
+        }
+      ],
+      "csp": true,
+      "cache": "s-maxage=31536000"
+    },
+    {
+      "path": "/servizi/pubblicazione",
+      "status": 200,
+      "location": null,
+      "title": "Pubblicazione · Proemios",
+      "h1": "Pubblicazione.Dal file pronto al libro disponibile.",
+      "canonical": "https://proemios.it/servizi/pubblicazione",
+      "robots": "noindex, nofollow",
+      "schemas": [
+        {
+          "valid": true,
+          "type": "Organization"
+        }
+      ],
+      "csp": true,
+      "cache": "s-maxage=31536000"
+    },
+    {
+      "path": "/servizi/revisione-e-pubblicazione",
+      "status": 200,
+      "location": null,
+      "title": "Revisione e pubblicazione · Proemios",
+      "h1": "Revisione e pubblicazione",
+      "canonical": "https://proemios.it/servizi/revisione-e-pubblicazione",
+      "robots": "noindex, nofollow",
+      "schemas": [
+        {
+          "valid": true,
+          "type": "Organization"
+        },
+        {
+          "valid": true
+        }
+      ],
+      "csp": true,
+      "cache": "s-maxage=31536000"
+    },
+    {
+      "path": "/servizi/valutazione-editoriale",
+      "status": 200,
+      "location": null,
+      "title": "Valutazione editoriale · Proemios",
+      "h1": "Valutazione editoriale",
+      "canonical": "https://proemios.it/servizi/valutazione-editoriale",
+      "robots": "noindex, nofollow",
+      "schemas": [
+        {
+          "valid": true,
+          "type": "Organization"
+        },
+        {
+          "valid": true
+        }
+      ],
+      "csp": true,
+      "cache": "s-maxage=31536000"
+    },
+    {
+      "path": "/sicurezza",
+      "status": 307,
+      "location": "http://localhost:3211/accedi",
+      "schemas": [],
+      "csp": true,
+      "cache": "private, no-store"
+    },
+    {
+      "path": "/sitemap.xml",
+      "status": 200,
+      "location": null,
+      "schemas": [],
+      "csp": true,
+      "cache": "public, max-age=0, must-revalidate"
+    },
+    {
+      "path": "/spazio",
+      "status": 307,
+      "location": "http://localhost:3211/accedi",
+      "schemas": [],
+      "csp": true,
+      "cache": "private, no-store"
+    },
+    {
+      "path": "/strumenti-ai",
+      "status": 200,
+      "location": null,
+      "title": "Strumenti AI per il self-publishing · Proemios",
+      "h1": "Strumenti AI",
+      "canonical": "https://proemios.it/strumenti-ai",
+      "robots": "noindex, nofollow",
+      "schemas": [
+        {
+          "valid": true,
+          "type": "Organization"
+        },
+        {
+          "valid": true
+        }
+      ],
+      "csp": true,
+      "cache": "s-maxage=31536000"
+    },
+    {
+      "path": "/termini",
+      "status": 200,
+      "location": null,
+      "title": "Termini di servizio · Proemios",
+      "h1": "Termini di servizio",
+      "canonical": "https://proemios.it/termini",
+      "robots": "noindex, nofollow",
+      "schemas": [
+        {
+          "valid": true,
+          "type": "Organization"
+        }
+      ],
+      "csp": true,
+      "cache": "s-maxage=31536000"
+    },
+    {
+      "path": "/verifica-accesso",
+      "status": 200,
+      "location": null,
+      "title": "Verifica il tuo accesso · Proemios",
+      "h1": "Verifica il tuo accesso.",
+      "canonical": "https://proemios.it",
+      "robots": "noindex, nofollow",
+      "schemas": [
+        {
+          "valid": true,
+          "type": "Organization"
+        }
+      ],
+      "csp": true,
+      "cache": "private, no-store"
+    }
+  ],
+  "api": [
+    {
+      "path": "/api/platform/projects",
+      "method": "GET",
+      "status": 503,
+      "cache": "private, no-store"
+    },
+    {
+      "path": "/api/auth/get-session",
+      "method": "GET",
+      "status": 503,
+      "cache": "private, no-store"
+    },
+    {
+      "path": "/api/analisi",
+      "method": "POST",
+      "status": 503,
+      "cache": "private, no-store"
+    },
+    {
+      "path": "/api/preventivo",
+      "method": "POST",
+      "status": 503,
+      "cache": "private, no-store"
+    },
+    {
+      "path": "/api/contatto",
+      "method": "POST",
+      "status": 503,
+      "cache": "private, no-store"
+    },
+    {
+      "path": "/api/agenzie",
+      "method": "POST",
+      "status": 503,
+      "cache": "private, no-store"
+    },
+    {
+      "path": "/api/lista-attesa",
+      "method": "POST",
+      "status": 503,
+      "cache": "private, no-store"
+    },
+    {
+      "path": "/api/checkout",
+      "method": "POST",
+      "status": 503,
+      "cache": "private, no-store"
+    },
+    {
+      "path": "/api/webhooks/stripe",
+      "method": "POST",
+      "status": 503,
+      "cache": "private, no-store"
+    },
+    {
+      "path": "/api/cron",
+      "method": "GET",
+      "status": 503,
+      "cache": "private, no-store"
+    }
+  ],
+  "limitations": [
+    "HTTP/SSR verification, no JavaScript rendering or authenticated provider/browser flow",
+    "No Lighthouse/WCAG certification"
+  ]
+}

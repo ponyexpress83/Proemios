@@ -42,6 +42,7 @@ export default function DalDiarioAlLibroPage() {
             nome: SERVIZIO.name,
             descrizione: SERVIZIO.claim,
             slug: SERVIZIO.slug,
+            path: "/dal-diario-al-libro",
             prezzo: SERVIZIO.priceRange,
           }),
           faqJsonLd(SERVIZIO.faq),

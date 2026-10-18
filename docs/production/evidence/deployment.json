@@ -1,0 +1,26 @@
+{
+  "date": "2026-10-08",
+  "environment": "preview",
+  "deployment_id": "dpl_EzHKokmY6ahdV8R7QfavhE4h9bmu",
+  "ready_state": "READY",
+  "code_sha": "4989787d43cedd66cce235785f77bc2799201578",
+  "url": "https://proemios-6dzzkx17e-valerio-gestri-s-projects.vercel.app/",
+  "pr": "https://github.com/ponyexpress83/Proemios/pull/15",
+  "production_sha_unchanged": "16fe6960d8871b10141f251cfc9c55a2305b43a5",
+  "protected": true,
+  "noindex": true,
+  "canonical": "https://proemios.it",
+  "env_names_configured": [],
+  "hidden_production_env_count": 0,
+  "browser_latest": [
+    "home rendered",
+    "H1 visible",
+    "canonical and noindex confirmed",
+    "activation banner",
+    "no overflow at1363x936"
+  ],
+  "browser_interactions": "Detailed book/price/Escape/slider checks on6e55961, public code unchanged; see browser.json",
+  "validation": "105 tests total,31 Postgres integrations; build/typecheck/lint passed",
+  "release": "blocked",
+  "documentation_note": "This evidence commit changes documentation only; operative code and verified preview remain the SHA above."
+}

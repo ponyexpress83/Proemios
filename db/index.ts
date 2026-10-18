@@ -6,8 +6,8 @@
  * poter girare senza `DATABASE_URL`. Se manca quando serve davvero, l'errore
  * arriva lì, con un messaggio che dice cosa fare.
  */
-import { neon } from "@neondatabase/serverless";
-import { drizzle } from "drizzle-orm/neon-http";
+import { Pool } from "pg";
+import { drizzle } from "drizzle-orm/node-postgres";
 import * as schema from "./schema";
 
 type Db = ReturnType<typeof drizzle<typeof schema>>;
@@ -22,7 +22,8 @@ export function getDb(): Db {
       "DATABASE_URL non impostata. Copia .env.example in .env.local e configura la connessione Neon.",
     );
   }
-  istanza = drizzle(neon(connectionString), { schema });
+  const pool = new Pool({ connectionString, max: 5, idleTimeoutMillis: 20_000, connectionTimeoutMillis: 10_000 });
+  istanza = drizzle(pool, { schema });
   return istanza;
 }
 

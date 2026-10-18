@@ -1,0 +1,32 @@
+# Manutenzione frequente del CRM (scadenze, code, prenotazioni, webhook, email).
+# Resta inattivo finché il file non è sul ramo predefinito e finché non sono
+# impostati i segreti CRON_URL (es. https://dominio/api/cron/frequent) e
+# CRON_SECRET nel repository. GitHub esegue le pianificazioni "al meglio":
+# l'intervallo minimo è 5 minuti e i ritardi sono possibili.
+name: CRM manutenzione frequente
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+permissions: {}
+concurrency:
+  group: crm-frequent-cron
+  cancel-in-progress: false
+jobs:
+  call:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Chiama l'endpoint
+        env:
+          CRON_URL: ${{ secrets.CRON_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$CRON_URL" ] || [ -z "$CRON_SECRET" ]; then
+            echo "Segreti CRON_URL/CRON_SECRET non impostati: nessuna chiamata."
+            exit 0
+          fi
+          code=$(curl -sS -o /tmp/out.json -w '%{http_code}' --max-time 90 -X GET -H "Authorization: Bearer $CRON_SECRET" "$CRON_URL")
+          echo "HTTP $code"
+          head -c 2000 /tmp/out.json; echo
+          [ "$code" -lt 400 ]

@@ -1,0 +1,47 @@
+route,source,classification,server_check
+/accedi,app/accedi/page.tsx,"accesso/conferma, noindex",public/no personal data
+/accesso-team,app/accesso-team/page.tsx,"accesso/conferma, noindex",public/no personal data
+/admin,app/admin/page.tsx,"consolidata su /spazio, privata",pageActor + API resource checks
+/aiuto,app/aiuto/page.tsx,pubblica; preview noindex,public/no personal data
+/analisi-manoscritto,app/analisi-manoscritto/page.tsx,pubblica; preview noindex,public/no personal data
+/area-autore,app/area-autore/page.tsx,"consolidata su /spazio, privata",pageActor + API resource checks
+/area-team,app/area-team/page.tsx,"consolidata su /spazio, privata",pageActor + API resource checks
+/blog/[slug],app/blog/[slug]/page.tsx,pubblica; preview noindex,public/no personal data
+/blog,app/blog/page.tsx,pubblica; preview noindex,public/no personal data
+/casi-studio/[slug],app/casi-studio/[slug]/page.tsx,indice non pubblicabile; slug non verificato 404/noindex,public/no personal data
+/casi-studio,app/casi-studio/page.tsx,indice non pubblicabile; slug non verificato 404/noindex,public/no personal data
+/chi-siamo,app/chi-siamo/page.tsx,pubblica; preview noindex,public/no personal data
+/collega-preventivo,app/collega-preventivo/page.tsx,"accesso/conferma, noindex",public/no personal data
+/come-funziona,app/come-funziona/page.tsx,pubblica; preview noindex,public/no personal data
+/contatti,app/contatti/page.tsx,pubblica; preview noindex,public/no personal data
+/cookie,app/cookie/page.tsx,pubblica; preview noindex,public/no personal data
+/dal-diario-al-libro,app/dal-diario-al-libro/page.tsx,pubblica; preview noindex,public/no personal data
+/invito,app/invito/page.tsx,"accesso/conferma, noindex",public/no personal data
+/libro-per-professionisti,app/libro-per-professionisti/page.tsx,pubblica; preview noindex,public/no personal data
+/nuova-password,app/nuova-password/page.tsx,"accesso/conferma, noindex",public/no personal data
+/,app/page.tsx,pubblica; preview noindex,public/no personal data
+/per-agenzie,app/per-agenzie/page.tsx,pubblica; preview noindex,public/no personal data
+/percorsi/[slug],app/percorsi/[slug]/page.tsx,pubblica; preview noindex,public/no personal data
+/percorsi,app/percorsi/page.tsx,pubblica; preview noindex,public/no personal data
+/preventivo/grazie,app/preventivo/grazie/page.tsx,"accesso/conferma, noindex",public/no personal data
+/preventivo,app/preventivo/page.tsx,pubblica; preview noindex,public/no personal data
+/privacy,app/privacy/page.tsx,pubblica; preview noindex,public/no personal data
+/recupera-accesso,app/recupera-accesso/page.tsx,"accesso/conferma, noindex",public/no personal data
+/registrati,app/registrati/page.tsx,"accesso/conferma, noindex",public/no personal data
+/servizi/[slug],app/servizi/[slug]/page.tsx,pubblica; preview noindex,public/no personal data
+/servizi,app/servizi/page.tsx,pubblica; preview noindex,public/no personal data
+/sicurezza,app/sicurezza/page.tsx,"privata, noindex",pageActor + API resource checks
+/spazio,app/spazio/page.tsx,"privata, noindex",pageActor + API resource checks
+/strumenti-ai,app/strumenti-ai/page.tsx,pubblica; preview noindex,public/no personal data
+/termini,app/termini/page.tsx,pubblica; preview noindex,public/no personal data
+/verifica-accesso,app/verifica-accesso/page.tsx,"accesso/conferma, noindex",public/no personal data
+/api/agenzie,app/api/agenzie/route.ts,API no-store; private or public mutation,"origin/validation/persistent rate limit, dependencies; analysis additionally verified session"
+/api/analisi,app/api/analisi/route.ts,API no-store; private or public mutation,"origin/validation/persistent rate limit, dependencies; analysis additionally verified session"
+/api/auth/[...all],app/api/auth/[...all]/route.ts,API no-store; private or public mutation,Better Auth
+/api/checkout,app/api/checkout/route.ts,API no-store; private or public mutation,"origin/validation/persistent rate limit, dependencies; analysis additionally verified session"
+/api/contatto,app/api/contatto/route.ts,API no-store; private or public mutation,"origin/validation/persistent rate limit, dependencies; analysis additionally verified session"
+/api/cron,app/api/cron/route.ts,API no-store; private or public mutation,Bearer CRON_SECRET
+/api/lista-attesa,app/api/lista-attesa/route.ts,API no-store; private or public mutation,"origin/validation/persistent rate limit, dependencies; analysis additionally verified session"
+/api/platform/[...path],app/api/platform/[...path]/route.ts,API no-store; private or public mutation,session/grant/resource
+/api/preventivo,app/api/preventivo/route.ts,API no-store; private or public mutation,"origin/validation/persistent rate limit, dependencies; analysis additionally verified session"
+/api/webhooks/stripe,app/api/webhooks/stripe/route.ts,API no-store; private or public mutation,Stripe signature
