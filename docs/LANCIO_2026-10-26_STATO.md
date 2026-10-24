@@ -41,7 +41,6 @@ La prova HTTP usa l'accesso temporaneo autorizzato di Vercel: non dimostra l'acc
 | 11 | Testi e processi legali non validati da questa verifica | Verificare termini, privacy, fornitori AI/scanner, conservazione e cicli di revisione rispetto ai servizi effettivamente attivati. La presenza dei testi nel repository non prova l'approvazione |
 | 12 | Produzione priva di configurazione e dominio del marchio | Dopo il collaudo: DB Production distinto e backup provato, migrazioni manuali, configurazione Production, rilascio della PR #28 con il candidato finale, collegamento e HTTPS di proemios.it e accesso anonimo. Controllare i record DNS esistenti prima di modificarli |
 | 13 | Indicizzazione disabilitata | Solo dopo esito positivo sul dominio definitivo, impostare PROEMIOS_PRODUCTION_READY=1, verificare robots, sitemap, canonical e rimozione del banner demo |
-| 14 | Build finale locale non conclusa | Compilazione e generazione di 74 pagine riuscite, ma pulizia export fallita con ENOTEMPTY anche dopo pulizia iniziale. Ottenere una build completa del commit finale in CI/Vercel prima di rilasciare; non presentare la compilazione riuscita come build finale superata |
 
 Google Docs, Brevo, GA4 e API esterne sono facoltativi: possono restare disattivati se non fanno parte del servizio offerto al lancio. Non sono necessari per lavorare nell'editor interno.
 
@@ -53,6 +52,8 @@ Questa correzione non applica migrazioni e non configura i servizi. Nessun rilas
 
 ## Verifica del codice
 
-TypeScript e lint superati. La suite completa passa con 228/228 test (16 file) usando un worker e un timeout di 15 secondi per test. Con il timeout predefinito di 5 secondi, i test CRM delle attività automatiche sono andati in timeout: questo limite di collaudo è registrato, non nascosto aumentando la soglia nel repository. La build iniziale del candidato è riuscita; le due build successive alla correzione hanno compilato e generato 74 pagine, ma si sono interrotte nella pulizia export con ENOTEMPTY. La build completa del commit finale resta da confermare su CI/Vercel.
+TypeScript e lint superati. La suite completa passa con 228/228 test (16 file) usando un worker e un timeout di 15 secondi per test. Con il timeout predefinito di 5 secondi, i test CRM delle attività automatiche sono andati in timeout: questo limite di collaudo è registrato, non nascosto aumentando la soglia nel repository. La build iniziale del candidato è riuscita; le due build locali successive alla correzione hanno compilato e generato 74 pagine, ma si sono interrotte nella pulizia export con ENOTEMPTY.
+
+**Verifica successiva su Vercel:** la build del codice corretto, commit `e45955dd562c7f5a118bdfa976398250c8629b4a`, è **READY**, deployment `dpl_GaA6dUNq1nwpuL4wJoddsPiiTQST`, anteprima `https://proemios-amdjviwyj-valerio-gestri-s-projects.vercel.app`. Il commit successivo `1e1794462dc43272156a283d1b898670006e21a8` modifica soltanto questo rapporto. La build del codice è quindi verificata su Vercel; restano tutti i blocchi operativi elencati sopra.
 
 I test locali usano database isolati e servizi simulati: non certificano Stripe, email, scanner, storage o AI reali.
