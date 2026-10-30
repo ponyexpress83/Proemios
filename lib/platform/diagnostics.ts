@@ -42,6 +42,15 @@ export async function migrationStatus() {
     const missing = [] as string[];
     if (!(await probe("crm_contacts"))) missing.push("0012_crm_relations");
     if (!(await probe("job_runs"))) missing.push("0013_automation_runs");
+    // Il registro può mancare anche dopo un aggiornamento solo parziale:
+    // CRM e cron presenti non provano che Document Studio sia installato.
+    const studioTables = ["doc_documents", "doc_revisions", "doc_versions", "doc_suggestions", "doc_comments", "doc_revision_cycles", "ai_jobs", "ai_job_chunks", "ai_usage", "project_costs", "external_connections"];
+    for (const table of studioTables) {
+      if (!(await probe(table))) {
+        missing.push("0014_document_studio");
+        break;
+      }
+    }
     return { tracked: false, expected: expected.length, applied: null, missing, latest: expected.at(-1)?.tag ?? null };
   }
 }
