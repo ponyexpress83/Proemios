@@ -235,7 +235,7 @@ type StudioDoc = {
   document: { id: string; title: string; status: string; provider: string; externalId: string | null; clientAccess: string; words: number; sourceFormat: string };
   project: { id: string; title: string; opsStatus: string; qaOwnerId: string | null; revisionRounds: number | null; contractRevisions: string | null; contractService: string | null };
   revision: { id: string; number: number; hash: string; paragraphs: Paragraph[] };
-  proposals: Proposal[]; comments: Comment[]; versions: Version[]; cycles: Cycle[]; jobs: StudioJob[]; canEdit: boolean; canDeliver: boolean;
+  proposals: Proposal[]; comments: Comment[]; versions: Version[]; cycles: Cycle[]; jobs: StudioJob[]; canEdit: boolean; canDeliver: boolean; finalDeliveryAllowed: boolean;
 };
 const ORIGIN: Record<string, string> = { ai: "AI", editor: "Editor", client: "Cliente" };
 export function StudioView({ user }: { user: Profile }) {
@@ -431,6 +431,7 @@ function DeliveryCard({ s, id, user, after, openCycles }: { s: StudioDoc; id: st
           {openCycles.length ? <label>Chiude la revisione<select name="cycle"><option value="">Nessuna</option>{openCycles.map((c) => <option key={c.id} value={c.id}>Revisione n. {c.number}</option>)}</select></label> : null}
           <label className="platform-check"><input type="checkbox" name="deliver" defaultChecked />Consegna al cliente (DOCX pulito e PDF nella sua area)</label>
           <label className="platform-check"><input type="checkbox" name="final" />Versione definitiva</label>
+          {!s.finalDeliveryAllowed ? <p className="platform-notice">La consegna definitiva si sblocca con il saldo confermato. Puoi approvarla senza consegnarla.</p> : null}
           <button className="platform-button" disabled={busy || (inQa && !qaIsMe && !user.roles.includes("owner"))}>Approva la revisione {s.revision.number}</button>
         </form>
       ) : null}

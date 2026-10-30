@@ -21,6 +21,7 @@ import { notify, type NotificationEvent } from "../crm-notify";
 import type { Tx } from "../crm-relations";
 import { impaginaEmail, esc } from "@/lib/email";
 import { appOrigin } from "../config";
+import { assertBalanceForFinalDelivery, finalDeliveryAllowed } from "../final-delivery";
 import { SimplePdf } from "../pdf";
 import { estraiTesto } from "@/lib/extract";
 import { applyAll, applyProposal, hashParagraphs, locate, paragraphsFromText, wordCount, type Proposal } from "./text";
@@ -123,6 +124,7 @@ export async function staffDocumentView(actor: Actor, id: string) {
     jobs: can(actor.grants, "project.assign") || can(actor.grants, "operations.read") || can(actor.grants, "project.write", { assigned: true }) ? jobs : [],
     canEdit: can(actor.grants, "project.write", { assigned: true }),
     canDeliver: can(actor.grants, "file.deliver", { assigned: true }),
+    finalDeliveryAllowed: await finalDeliveryAllowed(project),
   };
 }
 
@@ -216,12 +218,15 @@ const versionInput = z.object({ label: z.string().trim().min(2).max(80).optional
  * Approvazione di una versione ufficiale: immutabile, con DOCX pulito, PDF e
  * impronta. Con «deliver» i file diventano consegne visibili al cliente e il
  * ciclo di revisione si chiude. Se il progetto è in controllo qualità, consegna
- * solo chi ne è responsabile.
+ * solo chi ne è responsabile. La Definitiva si consegna solo a saldo confermato
+ * quando la regola d'acquisto lo prevede.
  */
 export async function approveVersion(actor: Actor, id: string, request: Request) {
   const { doc, project } = await staffAccess(actor, id, "file.deliver");
   const body = await readBody(request, versionInput);
   if (body.deliver && project.opsStatus === "quality_check" && project.qaOwnerId && project.qaOwnerId !== actor.id && !actor.roles.includes("owner")) throw new PlatformError(409, "QA_PENDING", "Il documento è in controllo qualità: la consegna spetta a chi ne è responsabile.");
+  // La Definitiva consegnata è la consegna finale: stesso vincolo del saldo della fase «consegnato», prima di qualunque scrittura.
+  if (body.final && body.deliver) await assertBalanceForFinalDelivery(project);
   const pendingJobs = await getDb().select({ id: aiJobs.id }).from(aiJobs).where(and(eq(aiJobs.documentId, id), inArray(aiJobs.status, ["queued", "running"])));
   if (pendingJobs.length) throw new PlatformError(409, "AI_RUNNING", "C'è una lavorazione AI in corso su questo documento: aspetta la fine o fermala.");
   const rev = await currentRevision(doc);

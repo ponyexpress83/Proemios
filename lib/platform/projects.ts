@@ -2,7 +2,6 @@ import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import { createHash } from "node:crypto";
 import { getDb } from "@/db";
-import { quotes } from "@/db/schema";
 import { user } from "@/db/auth-schema";
 import {
   projects,
@@ -31,6 +30,7 @@ import { limitRequest } from "./rate-limit";
 import { storePrivate, readPrivate, deletePrivate, inspectUpload, scanUpload, DIRECT_UPLOAD_MAX_BYTES } from "./storage";
 import { enqueueMail } from "./mail";
 import { appOrigin } from "./config";
+import { assertBalanceForFinalDelivery } from "./final-delivery";
 import { impaginaEmail, esc } from "@/lib/email";
 
 const projectBody = z
@@ -240,14 +240,7 @@ export async function projectDetail(request: Request, actor: Actor, id: string) 
     // o saldo); i materiali e le consegne di revisione non sono mai bloccati.
     if (body.stage === "editing" && access.project.quoteId && !access.project.startedAt)
       throw new PlatformError(409, "PAYMENT_REQUIRED", access.project.startCondition === "balance" ? "Per questo servizio la lavorazione parte dopo il saldo confermato." : "La lavorazione parte dopo l'acconto confermato dal servizio di pagamento.");
-    if (body.stage === "delivered" && access.project.quoteId) {
-      const { resolvePurchaseRule } = await import("./crm");
-      const rule = await resolvePurchaseRule();
-      if (rule.balanceBeforeDelivery) {
-        const [quoteRow] = await getDb().select({ stato: quotes.stato }).from(quotes).where(eq(quotes.id, access.project.quoteId));
-        if (quoteRow?.stato !== "won") throw new PlatformError(409, "BALANCE_REQUIRED", "La consegna finale avviene dopo il saldo confermato. Il cliente trova il pagamento nella sua area.");
-      }
-    }
+    if (body.stage === "delivered") await assertBalanceForFinalDelivery(access.project);
     if (body.stage === "delivered") {
       const files = await getDb()
         .select({ id: projectFiles.id })

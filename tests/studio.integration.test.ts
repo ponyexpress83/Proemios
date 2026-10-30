@@ -574,3 +574,72 @@ describe("direct upload of large files (Blob simulated by the local file store)"
     await expect(exists(join(dir, bad))).rejects.toThrow();
   });
 });
+
+describe("final version: delivered to the client only after the confirmed balance", () => {
+  const deliveries = async () => (await db.select().from(platform.projectFiles).where(and(eq(platform.projectFiles.projectId, projectId), eq(platform.projectFiles.kind, "delivery")))).length;
+  const versionCount = async () => (await db.select().from(docs.docVersions).where(eq(docs.docVersions.documentId, documentId))).length;
+  const clientNotices = async () => (await notificationsOf("writer")).filter((n) => n.title === "Nuova versione del tuo testo").length;
+  const projectState = async () => { const [p] = await db.select({ stage: platform.projects.stage, opsStatus: platform.projects.opsStatus }).from(platform.projects).where(eq(platform.projects.id, projectId)); return p; };
+  /** Una nuova revisione del testo, così ogni approvazione ha qualcosa da approvare. */
+  const bump = async (text: string) => {
+    const view = await data(await call("owner", `studio/documents/${documentId}`));
+    const last = view.revision.paragraphs[view.revision.paragraphs.length - 1];
+    await data(await call("owner", `studio/documents/${documentId}/edit`, "POST", { expectedRevision: view.revision.number, changes: [{ paragraphId: last.id, text }] }));
+  };
+  const approvals = async () => (await db.select().from(platform.auditEvents).where(and(eq(platform.auditEvents.resourceId, documentId), eq(platform.auditEvents.action, "document.version_approved")))).length;
+  const setQuote = (stato: "deposit_paid" | "won") => db.update(schema.quotes).set({ stato }).where(eq(schema.quotes.id, quoteId));
+
+  it("refuses a delivered final version before the balance, for every role, without writing anything", async () => {
+    await setQuote("deposit_paid");
+    expect((await data(await call("coord", `studio/documents/${documentId}`))).finalDeliveryAllowed).toBe(false);
+    await bump("Il treno ripartì all'alba.");
+    const before = { files: await deliveries(), versions: await versionCount(), notices: await clientNotices(), project: await projectState(), approvals: await approvals() };
+    for (const who of ["coord", "owner"]) {
+      const refused = await call(who, `studio/documents/${documentId}/versions`, "POST", { final: true, deliver: true });
+      expect(refused.status).toBe(409); expect((await refused.json()).code).toBe("BALANCE_REQUIRED");
+    }
+    expect(await deliveries()).toBe(before.files);
+    expect(await versionCount()).toBe(before.versions);
+    expect(await clientNotices()).toBe(before.notices);
+    expect(await projectState()).toEqual(before.project);
+    expect(await approvals()).toBe(before.approvals);
+  });
+  it("still delivers intermediate versions and approves an undelivered final version after the deposit", async () => {
+    const files = await deliveries();
+    const intermediate = await data(await call("owner", `studio/documents/${documentId}/versions`, "POST", {}), 201);
+    expect(intermediate.version.kind).toBe("delivery"); expect(intermediate.version.docxFileId).toBeTruthy();
+    expect(await deliveries()).toBe(files + 2);
+    expect((await data(await call("writer", `studio/client/${projectId}`))).documents[0].versions[0].label).toBe(intermediate.version.label);
+    await bump("Il treno ripartì all'alba, senza fretta.");
+    const notices = await clientNotices();
+    const undelivered = await data(await call("owner", `studio/documents/${documentId}/versions`, "POST", { final: true, deliver: false }), 201);
+    expect(undelivered.version).toMatchObject({ kind: "final", label: "Definitiva", docxFileId: null, pdfFileId: null });
+    expect(await deliveries()).toBe(files + 2);
+    expect(await clientNotices()).toBe(notices);
+    expect((await data(await call("writer", `studio/client/${projectId}`))).documents[0].versions.map((v: { label: string }) => v.label)).not.toContain("Definitiva");
+  });
+  it("delivers the final version once the balance is confirmed", async () => {
+    await setQuote("won");
+    expect((await data(await call("coord", `studio/documents/${documentId}`))).finalDeliveryAllowed).toBe(true);
+    await bump("Il treno ripartì all'alba, senza fretta, verso il mare.");
+    const notices = await clientNotices();
+    const final = await data(await call("coord", `studio/documents/${documentId}/versions`, "POST", { final: true, deliver: true, label: "Definitiva consegnata" }), 201);
+    expect(final.version).toMatchObject({ kind: "final" }); expect(final.version.docxFileId).toBeTruthy(); expect(final.version.pdfFileId).toBeTruthy();
+    expect((await call("writer", `files/${final.version.docxFileId}/download`)).status).toBe(200);
+    expect((await data(await call("writer", `studio/client/${projectId}`))).documents[0].versions[0].label).toBe("Definitiva consegnata");
+    expect(await clientNotices()).toBe(notices + 1);
+  });
+  it("follows the approved purchase rule: without balanceBeforeDelivery the final version is not held back", async () => {
+    await setQuote("deposit_paid");
+    await data(await call("owner", "settings", "PUT", { key: "purchase-rule", value: { version: "consegna-senza-saldo", autoOfferSingleServices: [], autoOfferFullPath: false, validityDays: 30, maxInstallments: 1, startAfter: {}, balanceBeforeDelivery: false } }));
+    try {
+      expect((await data(await call("coord", `studio/documents/${documentId}`))).finalDeliveryAllowed).toBe(true);
+      await bump("Il treno ripartì all'alba, senza fretta, verso il mare d'inverno.");
+      const final = await data(await call("coord", `studio/documents/${documentId}/versions`, "POST", { final: true, deliver: true, label: "Definitiva senza vincolo" }), 201);
+      expect(final.version.docxFileId).toBeTruthy();
+    } finally {
+      await db.delete(platform.platformSettings).where(eq(platform.platformSettings.key, "purchase-rule"));
+    }
+    expect((await data(await call("coord", `studio/documents/${documentId}`))).finalDeliveryAllowed).toBe(false);
+  });
+});
