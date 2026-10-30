@@ -20,6 +20,8 @@ Una stima non si può accettare (`409 NOT_PURCHASABLE`). Solo il team rende una 
 
 Predefinita, prudente: diventano acquistabili da sole solo le richieste di **un servizio singolo a prezzo fisso di listino** (copertina, EPUB, pubblicazione KDP, assistenza ISBN, scheda Amazon). Servizi a parola (editing, correzione, impaginazione), percorsi completi, memoir, bozze e ghostwriting restano stime finché il team non verifica. Il proprietario cambia la regola in *Regole economiche → Cosa è acquistabile subito* (`autoOfferSingleServices`, `autoOfferFullPath`, `validityDays`).
 
+La stessa regola decide anche quando la lavorazione parte (`startAfter`: dopo l'acconto, predefinito, o dopo il saldo) e se la **consegna finale** richiede il saldo confermato (`balanceBeforeDelivery`, predefinito attivo). La consegna finale è sia il passaggio di fase «consegnato» sia la versione Definitiva consegnata dallo Studio: entrambe rispondono `409 BALANCE_REQUIRED` finché il preventivo non è saldato, rate comprese. Le consegne intermedie restano disponibili dopo l'acconto.
+
 ### Come si compone il prezzo
 
 Il listino (`config/pricing.ts`) non cambia; cambia solo la composizione quando il cliente indica che cosa vuole:

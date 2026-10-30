@@ -16,7 +16,7 @@ Data: 18/10/2026. Codice: `lib/platform/documents/` (`service.ts`, `text.ts`, `o
    - «DOCX con revisioni» parte dall'originale e scrive revisioni native di Word (`w:ins`/`w:del`, autore e data) solo nei paragrafi cambiati: tabelle, sezioni e paragrafi non toccati restano byte per byte.
    - «DOCX pulito» contiene il testo approvato.
 6. **Controllo qualità.** Facoltativo: «Invia al controllo qualità» richiede un responsabile diverso da chi ha lavorato il testo. Durante il controllo consegna solo il responsabile della qualità.
-7. **Consegna.** «Approva la revisione N» crea una versione immutabile (V1, V2… o Definitiva) con impronta, DOCX pulito e PDF. I file diventano consegne nell'area del cliente, il ciclo di revisione si chiude e il cliente riceve un avviso in app e per email. La consegna non parte se c'è una lavorazione AI in corso.
+7. **Consegna.** «Approva la revisione N» crea una versione immutabile (V1, V2… o Definitiva) con impronta, DOCX pulito e PDF. I file diventano consegne nell'area del cliente, il ciclo di revisione si chiude e il cliente riceve un avviso in app e per email. La consegna non parte se c'è una lavorazione AI in corso. La **Definitiva** consegnata è la consegna finale: se il progetto nasce da una proposta e la regola d'acquisto approvata ha `balanceBeforeDelivery` attivo (predefinito), si consegna solo con il saldo confermato (`409 BALANCE_REQUIRED`, prima di creare file o versioni), come la fase «consegnato». Le versioni intermedie restano consegnabili dopo l'acconto e la Definitiva si può approvare senza consegnarla.
 
 ## Il cliente
 
@@ -41,10 +41,25 @@ Limite noto: nei paragrafi modificati la formattazione interna (ad esempio un co
 
 L'architettura è neutra rispetto al fornitore (`EditorProvider`). Oggi c'è l'adattatore Google Docs, descritto in `PROEMIOS_INTEGRAZIONI.md`. Il documento Google si condivide col cliente solo in lettura o commento, e le note interne restano in Proemios.
 
+## Strade di consegna
+
+Verifica del 30/10/2026 sulle strade da cui un testo può arrivare al cliente prima del saldo. Solo la prima è vincolata al saldo; le altre sono descritte, non modificate.
+
+| Strada | Prima del saldo | Note |
+|---|---|---|
+| Studio, versione Definitiva con consegna | **bloccata** (`BALANCE_REQUIRED`) | funzione condivisa `lib/platform/final-delivery.ts`, la stessa della fase «consegnato» |
+| Studio, versioni intermedie (V1, V2…) | permessa | consegne di lavoro previste dal contratto; il cliente scarica DOCX e PDF |
+| Caricamento manuale di un file di consegna (`kind: "delivery"`, vecchio flusso) | permesso | il flusso non distingue una consegna definitiva da una intermedia: ogni file è una versione da approvare. La consegna finale in quel flusso è solo il passaggio di fase «consegnato», che richiede il saldo. Un file definitivo caricato prima del saldo resta visibile al cliente: è una regola di lavoro per il team, non un controllo del sistema |
+| Condivisione del documento Google | permessa | chi ha `project.assign` condivide il documento di lavoro con il cliente in lettura o commento, in qualunque momento; il cliente legge il testo corrente, non una versione approvata |
+| Area del cliente (`studio/client`) | — | mostra solo versioni `delivery` e `final` con file; dopo la correzione una `final` con file esiste solo a saldo confermato (o con la regola disattivata, o senza proposta) |
+| Saldo a rate | — | il preventivo passa a `won` solo quando tutte le voci del piano (acconto e ogni rata) sono pagate (`lib/platform/payments.ts`): la Definitiva si consegna dopo l'ultima rata |
+| Rimborso o contestazione dopo la consegna | — | aggiornano l'ordine di pagamento e le provvigioni, non lo stato del preventivo, che resta `won`; i file già consegnati restano scaricabili |
+
 ## Verifica
 
 | Voce | Stato |
 |---|---|
 | Importazione DOCX, permessi, revisioni, conflitti, proposte superate, esportazione con revisioni, consegna, controllo qualità, isolamento del cliente | verificato nei test locali (`tests/studio.integration.test.ts`, `tests/documents.test.ts`) |
 | Percorso nel browser su Postgres locale: importazione → proposta → accettazione → V1/V2 con DOCX e PDF → osservazione e richiesta del cliente; desktop e telefono senza scorrimento orizzontale | verificato in locale (Playwright) |
+| Definitiva bloccata senza saldo per ogni ruolo e senza scritture; intermedie e Definitiva senza consegna permesse; consegna dopo il saldo; regola con `balanceBeforeDelivery` disattivo | verificato nei test locali (`tests/studio.integration.test.ts`) |
 | Staging / produzione | no |
