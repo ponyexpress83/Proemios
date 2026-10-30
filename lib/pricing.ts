@@ -45,6 +45,8 @@ export type PricingInput = {
   materialAmount?: MaterialAmount;
   /** Servizi esplicitamente richiesti dal cliente (inclusi in tutti i pacchetti). */
   requestedServices?: ServiceKey[];
+  /** Acquisto di una sola lavorazione: non aggiunge pacchetti o altri servizi. */
+  singleService?: ServiceKey;
   urgency?: Urgency;
 };
 
@@ -364,11 +366,65 @@ export function computeQuote(input: PricingInput): QuoteResult {
   const wordCount = Math.max(0, Math.floor(input.wordCount || 0));
   const withWords: PricingInput = { ...input, wordCount };
 
+  if (input.singleService) {
+    const key = input.singleService;
+    const amount = serviceCost(key, wordCount);
+    const volumeDiscount = PER_WORD_KEYS.has(key)
+      ? round(amount * volumeDiscountRate(wordCount))
+      : 0;
+    const subtotal = amount - volumeDiscount;
+    const rushSurcharge = input.urgency === "prioritaria" ? round(subtotal * RUSH_SURCHARGE) : 0;
+    const totalBeforeMinimum = subtotal + rushSurcharge;
+    const total = round(Math.max(PROJECT_MINIMUM, totalBeforeMinimum));
+    const single: QuotePackage = {
+      tier: "essenziale",
+      name: LABELS[key]!,
+      headline: "Solo la lavorazione che hai richiesto, senza servizi aggiunti.",
+      recommended: true,
+      lineItems: [{ key, label: LABELS[key]!, amount }],
+      includes: [LABELS[key]!],
+      excludes: (ALL_PUBLICATION_KEYS as readonly string[]).filter((k) => k !== key).map((k) => LABELS[k]!),
+      subtotal: amount,
+      volumeDiscount,
+      rushSurcharge,
+      minimumApplied: total > totalBeforeMinimum,
+      total,
+      deposit: round(total * DEPOSIT_RATE),
+    };
+    return {
+      wordCount,
+      estimatedPages: estimatePages(wordCount),
+      isGhostwriting: false,
+      packages: [single, single, single],
+      disclaimer: DISCLAIMER,
+    };
+  }
+
   const tiers = composeTiers(withWords);
 
   // Ogni proposta deve rispettare i servizi richiesti, senza duplicarne il costo.
+  // La revisione richiesta (editing o correzione bozze) sostituisce quella di
+  // base del pacchetto invece di sommarsi: nessun cliente paga due revisioni
+  // che non ha chiesto. Solo Signature, il percorso completo, le tiene entrambe.
   if (input.requestedServices?.length) {
+    const requested = new Set(input.requestedServices);
+    const wantsEditing = requested.has("editing");
+    const wantsProofreading = requested.has("proofreading");
+    const revisionRequested = (wantsEditing || wantsProofreading) && !(wantsEditing && wantsProofreading);
+    if (revisionRequested && input.projectType !== "solo-grafica" && input.textState !== "solo-materiali") {
+      const chosen: ServiceKey = wantsEditing ? "editing" : "proofreading";
+      tiers.essenziale.serviceKeys = tiers.essenziale.serviceKeys.filter((k) => k !== "editing" && k !== "proofreading");
+      tiers.essenziale.serviceKeys.push(chosen);
+      // Consigliato porta sempre l'editing: se il cliente ha chiesto la sola
+      // correzione, qui la correzione è compresa nel livello superiore.
+      tiers.consigliato.serviceKeys = tiers.consigliato.serviceKeys.filter((k) => k !== "proofreading");
+      if (!tiers.consigliato.serviceKeys.includes("editing")) tiers.consigliato.serviceKeys.push("editing");
+      for (const key of ["editing", "proofreading"] as const) {
+        if (!tiers.signature.serviceKeys.includes(key)) tiers.signature.serviceKeys.push(key);
+      }
+    }
     for (const key of input.requestedServices) {
+      if (revisionRequested && (key === "editing" || key === "proofreading")) continue;
       for (const tier of Object.values(tiers)) {
         if (!tier.serviceKeys.includes(key)) tier.serviceKeys.push(key);
       }

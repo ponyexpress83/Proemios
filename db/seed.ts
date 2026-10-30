@@ -1,3 +1,5 @@
+// Synthetic seeding is explicitly restricted to isolated non-Vercel tests.
+if (process.env.PROEMIOS_TEST_RUN !== "1" || process.env.VERCEL || process.env.VERCEL_ENV === "production") throw new Error("Seed consentito soltanto nei test isolati.");
 /**
  * Seed di sviluppo — dati realistici per lavorare sull'admin.
  * Esegui con: npm run db:seed  (richiede DATABASE_URL).

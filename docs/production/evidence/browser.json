@@ -1,0 +1,45 @@
+{
+  "date": "2026-10-08",
+  "deployment_id": "dpl_3NkW85gCvtZPXGyFPedVRrfrREKF",
+  "sha": "6e5596166b1057cbc2428766f809c6e793c633a0",
+  "url": "https://proemios-mofk5bsh3-valerio-gestri-s-projects.vercel.app/",
+  "state": "READY",
+  "protection": "enabled; temporary access not stored",
+  "viewport": [
+    1363,
+    936
+  ],
+  "checks": {
+    "ivory_header": "rgb(250,248,245)",
+    "dark_footer": "rgb(24,36,61)",
+    "horizontal_overflow": false,
+    "canonical": "https://proemios.it",
+    "robots": "noindex,nofollow",
+    "book_assistant": "completed five questions without personal information",
+    "synthetic_quote_input": {
+      "type": "romanzo",
+      "state": "finito-da-revisionare",
+      "wordCount": 50000,
+      "services": [
+        "editing"
+      ],
+      "urgency": "standard"
+    },
+    "prices_shown_eur": [
+      1760,
+      2260,
+      3810
+    ],
+    "escape": "closes dialog and returns focus to book",
+    "slider_keyboard": "ArrowRight changes 50 to51",
+    "login": "in activation; no fake account access",
+    "analysis": "in activation; no upload until providers/policy ready"
+  },
+  "screenshot": "preview-quote.jpg",
+  "limits": [
+    "Six exact viewports/reduced-motion emulation unavailable in exposed browser API",
+    "Zoom shortcut had no effect; not recorded as a successful zoom test",
+    "No new Lighthouse or axe audit",
+    "No authenticated Vercel provider flow"
+  ]
+}

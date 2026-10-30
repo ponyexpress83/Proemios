@@ -1,72 +1,21 @@
 "use client";
-
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useReducer, useRef, useState, type CSSProperties } from "react";
+import { Pause, Play, RotateCcw } from "lucide-react";
 import {
-  FileText,
-  PenLine,
-  Check,
-  Palette,
-  LayoutTemplate,
-  BookOpen,
-  Pause,
-  Play,
-} from "lucide-react";
-
-const stages = [
-  {
-    label: "Manoscritto",
-    title: "Tutto comincia con la tua voce.",
-    detail: "Un’idea, una bozza, una storia da raccontare. Partiamo da qui.",
-    icon: FileText,
-    output: "Il punto di partenza",
-  },
-  {
-    label: "Editing",
-    title: "La storia trova il suo ritmo.",
-    detail: "L’editor lavora su struttura e stile, insieme a te.",
-    icon: PenLine,
-    output: "Struttura e voce",
-  },
-  {
-    label: "Revisione",
-    title: "Ogni parola, al suo posto.",
-    detail: "Rileggi, commenti e approvi le modifiche al tuo testo.",
-    icon: Check,
-    output: "Il testo approvato",
-  },
-  {
-    label: "Copertina",
-    title: "La prima impressione conta.",
-    detail: "Una direzione visiva che parla del libro e ai suoi lettori.",
-    icon: Palette,
-    output: "L’identità del libro",
-  },
-  {
-    label: "Impaginazione",
-    title: "Le parole diventano pagine.",
-    detail: "Tipografia, spazi e formati: la lettura prende forma.",
-    icon: LayoutTemplate,
-    output: "Carta e digitale",
-  },
-  {
-    label: "Pubblicazione",
-    title: "Pronto per il prossimo capitolo.",
-    detail: "I file approvati sono pronti per il canale che hai scelto.",
-    icon: BookOpen,
-    output: "Il tuo libro, pronto",
-  },
-];
+  editorialStages,
+  editorialScene,
+  initialJourney,
+  journeyReducer,
+} from "@/lib/editorial-journey";
 
 export function BookPath({
   hovered,
-  active,
   onStageChange,
 }: {
   hovered: boolean;
-  active: number;
   onStageChange: (stage: number) => void;
 }) {
-  const [paused, setPaused] = useState(false);
+  const [journey, dispatch] = useReducer(journeyReducer, initialJourney);
   const [reduced, setReduced] = useState(true);
   const [visible, setVisible] = useState(false);
   const [pageVisible, setPageVisible] = useState(true);
@@ -76,85 +25,103 @@ export function BookPath({
     const update = () => setReduced(media.matches);
     update();
     media.addEventListener("change", update);
-    const updateVisibility = () => setPageVisible(!document.hidden);
-    updateVisibility();
-    document.addEventListener("visibilitychange", updateVisibility);
-    const observer =
-      "IntersectionObserver" in window
-        ? new IntersectionObserver(([entry]) => setVisible(Boolean(entry?.isIntersecting)), {
-            threshold: 0.25,
-          })
-        : null;
-    if (!observer) setVisible(true);
-    if (ref.current) observer?.observe(ref.current);
+    const visibility = () => setPageVisible(!document.hidden);
+    visibility();
+    document.addEventListener("visibilitychange", visibility);
+    const observer = new IntersectionObserver(
+      ([entry]) => setVisible(Boolean(entry?.isIntersecting)),
+      { threshold: 0.25 },
+    );
+    if (ref.current) observer.observe(ref.current);
     return () => {
       media.removeEventListener("change", update);
-      document.removeEventListener("visibilitychange", updateVisibility);
-      observer?.disconnect();
+      document.removeEventListener("visibilitychange", visibility);
+      observer.disconnect();
     };
   }, []);
   useEffect(() => {
-    if (reduced || paused || hovered || !visible || !pageVisible) return;
-    const timer = window.setTimeout(() => onStageChange((active + 1) % stages.length), 6000);
+    onStageChange(journey.phase);
+  }, [journey.phase, onStageChange]);
+  useEffect(() => {
+    if (reduced || journey.mode !== "playing" || hovered || !visible || !pageVisible) return;
+    // 780 ms to compose the paper, then more than five seconds to read it.
+    const timer = window.setTimeout(() => dispatch({ type: "tick" }), 6000);
     return () => window.clearTimeout(timer);
-  }, [active, reduced, paused, hovered, visible, pageVisible, onStageChange]);
-  const stage = stages[active]!;
-  const Icon = stage.icon;
+  }, [journey, reduced, hovered, visible, pageVisible]);
+  const stage = editorialStages[journey.phase]!;
+  const scene = editorialScene(journey.phase);
   return (
-    <div ref={ref} className="editorial-story">
+    <div
+      ref={ref}
+      className="editorial-story"
+      data-motion={reduced ? "reduced" : "full"}
+      data-playback={journey.mode}
+    >
       <div className="studio-story-heading">
         <span>UN LIBRO PRENDE FORMA</span>
-        <button
-          type="button"
-          className="studio-playback"
-          aria-label={
-            reduced
-              ? "Avanza di una fase"
-              : paused
-                ? "Riprendi il percorso"
-                : "Metti in pausa il percorso"
-          }
-          onClick={() =>
-            reduced ? onStageChange((active + 1) % stages.length) : setPaused((p) => !p)
-          }
-        >
-          {paused || reduced ? <Play size={16} /> : <Pause size={16} />}
-          <span>{reduced ? "Avanti" : paused ? "Riprendi" : "Pausa"}</span>
-        </button>
+        {!reduced && (
+          <button
+            type="button"
+            className="studio-playback"
+            onClick={() => dispatch({ type: journey.mode === "finished" ? "replay" : "toggle" })}
+          >
+            {journey.mode === "finished" ? (
+              <RotateCcw size={16} />
+            ) : journey.mode === "paused" ? (
+              <Play size={16} />
+            ) : (
+              <Pause size={16} />
+            )}
+            {journey.mode === "finished"
+              ? "Rivedi il percorso"
+              : journey.mode === "paused"
+                ? "Riprendi"
+                : "Pausa"}
+          </button>
+        )}
+        {reduced && <span className="studio-static-note">Scegli una fase</span>}
+      </div>
+      <div className="studio-paper-panel" aria-hidden="true">
+        <div className="studio-paper-tiles" key={journey.phase}>
+          {Array.from({ length: 16 }, (_, i) => (
+            <span
+              key={i}
+              style={
+                {
+                  backgroundImage: `url("${scene}")`,
+                  backgroundPosition: `${((i % 4) * 100) / 3}% ${(Math.floor(i / 4) * 100) / 3}%`,
+                  "--tile-delay": `${((i % 4) + Math.floor(i / 4)) * 30}ms`,
+                  "--tile-x": `${((i % 4) - 1.5) * 9}px`,
+                  "--tile-y": `${(Math.floor(i / 4) - 1.5) * 9}px`,
+                } as CSSProperties
+              }
+            />
+          ))}
+        </div>
       </div>
       <div
         className="studio-story-slide"
-        key={active}
-        aria-live={paused || reduced ? "polite" : "off"}
+        aria-live={journey.mode === "playing" && !reduced ? "off" : "polite"}
       >
-        <span className="studio-slide-icon">
-          <Icon size={24} strokeWidth={1.5} />
-        </span>
         <span className="studio-slide-step">
-          0{active + 1} / 06 · {stage.label}
+          0{journey.phase + 1} / 06 · {stage.label}
         </span>
         <h2>{stage.title}</h2>
         <p>{stage.detail}</p>
-        <span className="studio-slide-output">
-          <Check size={14} /> {stage.output}
-        </span>
       </div>
       <div
         className="studio-story-steps"
         role="group"
         aria-label="Scegli una fase del percorso editoriale"
       >
-        {stages.map((item, i) => (
+        {editorialStages.map((item, i) => (
           <button
             type="button"
             key={item.label}
             aria-label={item.label + ": " + item.detail}
-            aria-pressed={active === i}
-            className={active === i ? "active" : ""}
-            onClick={() => {
-              onStageChange(i);
-              setPaused(true);
-            }}
+            aria-pressed={journey.phase === i}
+            className={journey.phase === i ? "active" : ""}
+            onClick={() => dispatch({ type: "select", phase: i })}
           >
             <span>0{i + 1}</span>
             <small>{item.label}</small>

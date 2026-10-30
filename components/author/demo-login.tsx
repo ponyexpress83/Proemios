@@ -1,25 +1,21 @@
 "use client";
 import { useState } from "react";
-import { ArrowRight, Eye, EyeOff } from "lucide-react";
-import { DEMO_EMAIL, DEMO_PASSWORD, DEMO_SESSION_KEY } from "@/lib/author-demo";
+import { ArrowRight } from "lucide-react";
+import { DEMO_SESSION_KEY, validDemoSession } from "@/lib/author-demo";
 import { Book } from "@/components/editorial/book";
 import Link from "@/components/editorial/link";
 import { authorSection } from "./navigation";
 export function DemoLogin() {
-  const [email, setEmail] = useState(DEMO_EMAIL);
-  const [password, setPassword] = useState(DEMO_PASSWORD);
-  const [show, setShow] = useState(false);
   const [error, setError] = useState("");
-  function login(direct = false) {
-    if (!direct && (email.trim().toLowerCase() !== DEMO_EMAIL || password !== DEMO_PASSWORD)) {
-      setError("Questa è l’area demo: usa le credenziali di esempio indicate sotto.");
-      return;
-    }
+  function login() {
     try {
       sessionStorage.setItem(
         DEMO_SESSION_KEY,
         JSON.stringify({ user: "demo-author", createdAt: Date.now() }),
       );
+      if (!validDemoSession(sessionStorage.getItem(DEMO_SESSION_KEY))) {
+        throw new Error("Sessione demo non conservata dal browser");
+      }
       const section = authorSection(new URLSearchParams(window.location.search).get("sezione"));
       window.location.assign("/area-autore?sezione=" + section);
     } catch {
@@ -47,55 +43,19 @@ export function DemoLogin() {
       <div className="login-card">
         <h2>Benvenuto nel tuo spazio.</h2>
         <p>Un ingresso dedicato agli autori, con la stessa cura del tuo libro.</p>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            login();
-          }}
-        >
-          <label htmlFor="demo-email">Email demo</label>
-          <input
-            id="demo-email"
-            type="email"
-            autoComplete="username"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-          <label htmlFor="demo-password">Password demo</label>
-          <div className="password-field">
-            <input
-              id="demo-password"
-              type={show ? "text" : "password"}
-              autoComplete="current-password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-            <button
-              type="button"
-              className="icon-button"
-              aria-label={show ? "Nascondi password" : "Mostra password"}
-              onClick={() => setShow(!show)}
-            >
-              {show ? <EyeOff size={19} /> : <Eye size={19} />}
-            </button>
-          </div>
+        <div className="demo-entry-details">
+          <strong>Esplora il progetto di esempio</strong>
+          <p>
+            Non occorrono email o password. Questa è una simulazione pubblica, non l’accesso a un
+            account cliente.
+          </p>
           {error && (
             <p className="assistant-error" role="alert">
               {error}
             </p>
           )}
-          <button className="button" type="submit">
-            Accedi alla demo <ArrowRight size={18} />
-          </button>
-        </form>
-        <div className="demo-credentials">
-          <strong>Credenziali pubbliche di esempio</strong>
-          <span>{DEMO_EMAIL}</span>
-          <code>{DEMO_PASSWORD}</code>
-          <button className="text-link" onClick={() => login(true)}>
-            Entra con un clic →
+          <button className="button" type="button" onClick={login}>
+            Entra con un clic → <ArrowRight size={18} />
           </button>
         </div>
         <p className="assistant-note">
