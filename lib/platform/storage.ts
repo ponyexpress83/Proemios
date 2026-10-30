@@ -66,11 +66,13 @@ export async function deletePrivate(key: string) {
   }
   await del(key);
 }
-export function inspectUpload(name: string, bytes: Uint8Array): { mime: string; text: boolean } {
+/** Limite del caricamento diretto su Blob (file oltre i 4 MB del corpo delle funzioni). */
+export const DIRECT_UPLOAD_MAX_BYTES = Math.min(100, Math.max(5, Number(process.env.UPLOAD_DIRECT_MAX_MB) || 40)) * 1024 * 1024;
+export function inspectUpload(name: string, bytes: Uint8Array, maxBytes = 4 * 1024 * 1024): { mime: string; text: boolean } {
   if (!name || name.length > 200 || /[\x00-\x1f/\\]/.test(name))
     throw new PlatformError(422, "INVALID_FILE", "Nome del file non valido.");
-  if (bytes.byteLength === 0 || bytes.byteLength > 4 * 1024 * 1024)
-    throw new PlatformError(413, "INVALID_FILE_SIZE", "Carica un file non vuoto di massimo 4 MB.");
+  if (bytes.byteLength === 0 || bytes.byteLength > maxBytes)
+    throw new PlatformError(413, "INVALID_FILE_SIZE", `Carica un file non vuoto di massimo ${Math.round(maxBytes / 1024 / 1024)} MB.`);
   const extension = name.split(".").pop()?.toLowerCase();
   if (extension === "txt") {
     try {
@@ -104,7 +106,7 @@ export function inspectUpload(name: string, bytes: Uint8Array): { mime: string; 
         const entry = new TextDecoder().decode(bytes.slice(offset + 46, offset + 46 + nameLength));
         if (
           flags & 1 ||
-          size > 20 * 1024 * 1024 ||
+          size > Math.max(20 * 1024 * 1024, maxBytes * 3) ||
           entry.startsWith("/") ||
           entry.split("/").includes("..")
         )
@@ -118,7 +120,7 @@ export function inspectUpload(name: string, bytes: Uint8Array): { mime: string; 
         document ||= entry === "word/document.xml";
         types ||= entry === "[Content_Types].xml";
       }
-    if (!document || !types || expanded > 30 * 1024 * 1024 || entries > 1000)
+    if (!document || !types || expanded > Math.max(30 * 1024 * 1024, maxBytes * 4) || entries > 1000)
       throw new PlatformError(
         422,
         "INVALID_DOCX",

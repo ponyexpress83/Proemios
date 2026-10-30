@@ -1,6 +1,8 @@
 import { randomBytes, createHash } from "node:crypto";
 import { eq, and, sql } from "drizzle-orm";
 import { z } from "zod";
+import { sanitizeAttribution, scoreLead, type LeadAttribution } from "@/lib/attribution";
+import { syncBrevoContact } from "./brevo";
 import { getDb } from "@/db";
 import { leads, quotes, agencyLeads } from "@/db/schema";
 import {
@@ -10,25 +12,53 @@ import {
   affiliateProfiles,
   affiliateConversions,
   emailOutbox,
+  notifications,
+  funnelEvents,
 } from "@/db/platform-schema";
 import { user } from "@/db/auth-schema";
 import { preventivoSchema, contattoSchema, agenziaSchema, waitlistSchema } from "@/lib/validation";
 import { computeQuote } from "@/lib/pricing";
 import { impaginaEmail, esc, destinatarioInterno } from "@/lib/email";
-import { json, readBody, checkMutationOrigin, hashToken, unavailable, PlatformError } from "./http";
+import { json, readBody, checkMutationOrigin, hashToken, unavailable, PlatformError, afterResponse } from "./http";
 import { limitRequest, requestIdentity } from "./rate-limit";
 import {
   mailConfigured,
   authConfigured,
   pricingVersion,
-  paymentPolicySchema,
   commissionRuleSchema,
   appOrigin,
 } from "./config";
-import { getSetting } from "./crm";
+import { getSetting, resolvePaymentPolicy, resolvePurchaseRule } from "./crm";
+import { initialCommercialState } from "./commercial";
+import { recordFunnel } from "./funnel";
 import { assignInboundLead } from "./inbound-routing";
+import { routeLead } from "./crm-routing";
+
+/** Tipo di origine dalla sessione: campagna, social o modulo del sito. */
+export function sourceKindOf(attribution: LeadAttribution | null): "campaign" | "social" | "form" {
+  if (!attribution) return "form";
+  if (attribution.fbclid || /social|instagram|facebook|tiktok|linkedin/i.test(`${attribution.utmMedium ?? ""} ${attribution.utmSource ?? ""}`)) return attribution.campaignId || attribution.utmMedium === "cpc" || attribution.utmMedium === "paid" ? "campaign" : "social";
+  return attribution.gclid || attribution.campaignId || attribution.utmCampaign ? "campaign" : "form";
+}
 import { protectMailHtml } from "./mail";
 
+type Tx = Parameters<Parameters<ReturnType<typeof getDb>["transaction"]>[0]>[0];
+/** Il venditore assegnato lo sa subito: notifica nello spazio e email con il link. */
+async function notifySeller(tx: Tx, sellerId: string | null, leadId: string, title: string, body: string) {
+  if (!sellerId) return;
+  await tx.insert(notifications).values({ userId: sellerId, title, body, href: `/spazio?lead=${leadId}` });
+  const [seller] = await tx.select({ email: user.email }).from(user).where(eq(user.id, sellerId));
+  if (seller)
+    await tx
+      .insert(emailOutbox)
+      .values({
+        eventKey: `lead:${leadId}:seller`,
+        recipient: seller.email,
+        subject: `${title} · Proemios`,
+        html: await protectMailHtml(impaginaEmail(title, `<p>${esc(body)}</p><p><a href="${esc(appOrigin())}/spazio?lead=${esc(leadId)}">Apri il contatto nello spazio del team</a></p>`)),
+      })
+      .onConflictDoNothing();
+}
 export function publicFormReady() {
   return Boolean(
     process.env.DATABASE_URL &&
@@ -55,8 +85,11 @@ export async function publicQuote(request: Request) {
     throw new PlatformError(400, "IDEMPOTENCY_REQUIRED", "Aggiorna la pagina e riprova.");
   const result = computeQuote(body.input),
     selected = result.packages.find((p) => p.recommended)!;
-  const tax = paymentPolicySchema.safeParse(await getSetting("payment-policy")),
-    rule = commissionRuleSchema.safeParse(await getSetting("commission-rule"));
+  const tax = await resolvePaymentPolicy(),
+    rule = commissionRuleSchema.safeParse(await getSetting("commission-rule")),
+    purchase = await resolvePurchaseRule();
+  // Stima o proposta acquistabile: lo decide la regola, mai il browser.
+  const commercialState = initialCommercialState(body.input, purchase);
   const token = randomBytes(32).toString("base64url"),
     requestHash = createHash("sha256").update(JSON.stringify(body)).digest("hex");
   const response = await getDb().transaction(async (tx) => {
@@ -74,16 +107,28 @@ export async function publicQuote(request: Request) {
         );
       return previous.result;
     }
+    const { ricontatto, ...contatto } = body.contatto;
+    const attribution = sanitizeAttribution(body.attribution);
     const [lead] = await tx
       .insert(leads)
       .values({
-        ...body.contatto,
+        ...contatto,
+        note: [ricontatto ? `[Chiede di essere ricontattato${contatto.telefono ? ` al ${contatto.telefono}` : ""}]` : "", contatto.note ?? ""].filter(Boolean).join(" ") || null,
         email: body.contatto.email.toLowerCase(),
         fonte: "preventivo",
         stage: "new",
+        attribution,
+        sourceDetail: attribution?.utmCampaign ?? attribution?.utmSource ?? null,
+        marketingConsentAt: contatto.consensoMarketing ? new Date() : null,
+        contactPreferences: { email: true, phone: ricontatto && Boolean(contatto.telefono), whatsapp: false, sms: false },
+        sourceKind: sourceKindOf(attribution),
+        priority: body.input.urgency === "prioritaria" ? "high" : "normal",
+        requiredSkill: body.input.singleService ?? null,
+        leadScore: scoreLead({ hasPhone: Boolean(contatto.telefono), wordCount: body.input.wordCount, projectType: body.input.projectType, urgency: body.input.urgency, requestedServices: body.input.requestedServices.length, noteLength: contatto.note?.length }),
       })
       .returning();
-    await assignInboundLead(tx, lead!.id);
+    const routed = await routeLead(tx, lead!.id, { notifyAssignee: false });
+    const seller = routed.assignee;
     const [quote] = await tx
       .insert(quotes)
       .values({
@@ -99,17 +144,22 @@ export async function publicQuote(request: Request) {
       .insert(quoteRecords)
       .values({
         quoteId: quote!.id,
+        dealId: routed.dealId,
         pricingVersion,
-        taxPolicy: tax.success ? tax.data : null,
+        taxPolicy: tax,
         commissionPolicy: rule.success ? rule.data : null,
+        commercialState,
+        offeredAt: commercialState === "offer" ? new Date() : null,
+        expiresAt: commercialState === "offer" ? new Date(Date.now() + purchase.validityDays * 86400_000) : null,
       });
+    await recordFunnel(tx, "quote_saved", quote!.id, { state: commercialState, path: body.input.singleService ? "single" : "full" });
     await tx
       .insert(quoteClaims)
       .values({
         quoteId: quote!.id,
         email: body.contatto.email.toLowerCase(),
         tokenHash: hashToken(token),
-        expiresAt: new Date(Date.now() + 48 * 3600_000),
+        expiresAt: new Date(Date.now() + 30 * 86400_000),
       });
     if (body.ref && rule.success) {
       const [referral] = await tx
@@ -122,6 +172,7 @@ export async function publicQuote(request: Request) {
           .insert(affiliateConversions)
           .values({ affiliateId: referral.id, quoteId: quote!.id, ruleVersion: rule.data.version });
     }
+    await notifySeller(tx, seller, lead!.id, "Nuovo preventivo da seguire", `${body.contatto.nome} (${body.contatto.email}) ha chiesto un preventivo: ${result.packages.map((p) => `${p.name} € ${p.total.toLocaleString("it-IT")}`).join(", ")}. ${body.contatto.note ? `Nota: ${body.contatto.note}` : ""}`.trim());
     const link = `${appOrigin()}/collega-preventivo?token=${token}`;
     await tx.insert(emailOutbox).values(await Promise.all([
       {
@@ -130,7 +181,7 @@ export async function publicQuote(request: Request) {
         subject: "Il tuo preventivo · Proemios",
         html: impaginaEmail(
           "Tre percorsi per il tuo libro",
-          `<p>Ciao ${esc(body.contatto.nome)}, abbiamo ricevuto la tua richiesta.</p><p>Le stime sono ${result.packages.map((p) => `${esc(p.name)}: € ${p.total.toLocaleString("it-IT")}`).join(" · ")}. Il team confermerà condizioni e servizi dopo aver esaminato il progetto.</p><p><a href="${esc(link)}">Collega il preventivo al tuo account</a></p><p>Usa questo indirizzo verificato. Il collegamento scade tra 48 ore.</p>`,
+          `<p>Ciao ${esc(body.contatto.nome)}, abbiamo ricevuto la tua richiesta.</p><p>Le stime sono ${result.packages.map((p) => `${esc(p.name)}: € ${p.total.toLocaleString("it-IT")}`).join(" · ")}. Il team confermerà condizioni e servizi dopo aver esaminato il progetto.</p><p><a href="${esc(link)}">Collega il preventivo al tuo account</a></p><p>Usa questo indirizzo verificato. Il collegamento vale 30 giorni. Se crei l’account con lo stesso indirizzo, il preventivo compare da solo nella tua area autore.</p>`,
         ),
       },
       {
@@ -139,11 +190,11 @@ export async function publicQuote(request: Request) {
         subject: "Nuova richiesta di preventivo · Proemios",
         html: impaginaEmail(
           "Nuova richiesta",
-          `<p>${esc(body.contatto.nome)} · ${esc(body.contatto.email)}</p><p>${esc(body.contatto.note ?? "")}</p><p>Proposta ${quote!.id}. Apri lo spazio del team per assegnare il contatto.</p>`,
+          `<p>${esc(body.contatto.nome)} · ${esc(body.contatto.email)}${body.contatto.telefono ? ` · ${esc(body.contatto.telefono)}` : ""}</p><p>${esc(body.contatto.note ?? "")}</p><p>${result.packages.map((p) => `${esc(p.name)}: € ${p.total.toLocaleString("it-IT")}`).join(" · ")} (IVA esclusa, ${result.wordCount.toLocaleString("it-IT")} parole).</p><p>${seller ? "Assegnata a un venditore." : "Nessun venditore attivo: resta nella coda del team."} <a href="${esc(appOrigin())}/spazio?preventivo=${esc(quote!.id)}">Apri la proposta</a></p>`,
         ),
       },
     ].map(async m => ({ ...m, html: await protectMailHtml(m.html) }))));
-    const saved = { quoteId: quote!.id, preventivo: result, emailStatus: "queued" };
+    const saved = { quoteId: quote!.id, preventivo: result, emailStatus: "queued", commercialState, expiresAt: commercialState === "offer" ? new Date(Date.now() + purchase.validityDays * 86400_000).toISOString() : null };
     await tx
       .insert(operationKeys)
       .values({
@@ -154,6 +205,7 @@ export async function publicQuote(request: Request) {
       });
     return saved;
   });
+  if (body.contatto.consensoMarketing) afterResponse(() => getDb().select({ id: leads.id }).from(leads).where(eq(leads.email, body.contatto.email.toLowerCase())).then((rows) => Promise.all(rows.map((r) => syncBrevoContact(r.id)))).catch(() => undefined));
   return json(response, 201);
 }
 export async function publicContact(request: Request, agency = false) {
@@ -200,12 +252,17 @@ export async function publicContact(request: Request, agency = false) {
         fonte: agency ? "agenzie" : "contatto",
         consensoPrivacy: true,
         consensoMarketing: contact.success ? contact.data.consensoMarketing : false,
+        marketingConsentAt: contact.success && contact.data.consensoMarketing ? new Date() : null,
+        attribution: contact.success ? sanitizeAttribution(contact.data.attribution) : null,
+        sourceDetail: contact.success ? sanitizeAttribution(contact.data.attribution)?.utmCampaign ?? null : null,
+        sourceKind: agency ? "partner" : sourceKindOf(contact.success ? sanitizeAttribution(contact.data.attribution) : null),
         note: message,
       })
       .returning();
-    await assignInboundLead(tx, lead!.id);
+    const seller = await assignInboundLead(tx, lead!.id);
     if (agencyBody.success)
       await tx.insert(agencyLeads).values({ ...agencyBody.data, leadId: lead!.id });
+    await notifySeller(tx, seller, lead!.id, agency ? "Nuova richiesta da un'agenzia" : "Nuovo contatto da seguire", `${name} (${body.email}${body.telefono ? `, ${body.telefono}` : ""}): ${message}`);
     await tx.insert(emailOutbox).values(await Promise.all([
       {
         eventKey: `contact:${lead!.id}:author`,
@@ -223,7 +280,7 @@ export async function publicContact(request: Request, agency = false) {
         subject: "Nuovo contatto · Proemios",
         html: impaginaEmail(
           "Nuovo contatto",
-          `<p>${esc(name)} · ${esc(body.email)}</p><p>${esc(message)}</p>`,
+          `<p>${esc(name)} · ${esc(body.email)}${body.telefono ? ` · ${esc(body.telefono)}` : ""}</p>${agencyBody.success ? `<p>Agenzia: ${esc(agencyBody.data.nomeAgenzia)}${agencyBody.data.sito ? ` · ${esc(agencyBody.data.sito)}` : ""}${agencyBody.data.volumeStimato ? ` · volume: ${esc(agencyBody.data.volumeStimato)}` : ""}</p>` : ""}<p>${esc(message)}</p><p><a href="${esc(appOrigin())}/spazio?lead=${esc(lead!.id)}">Apri il contatto</a></p>`,
         ),
       },
     ].map(async m => ({ ...m, html: await protectMailHtml(m.html) }))));
@@ -253,4 +310,28 @@ export async function publicWaitlist(request: Request) {
     return response;
   });
   return json(result, 201);
+}
+
+/**
+ * POST /api/preventivo/scelta: il pacchetto scelto nella pagina del risultato,
+ * prima di avere un account. Si conserva sulla proposta e viene riproposto
+ * dopo registrazione o accesso. Nessun dato personale, nessuna conseguenza
+ * economica: è una preferenza.
+ */
+export async function publicQuotePreference(request: Request) {
+  checkMutationOrigin(request);
+  if (!process.env.DATABASE_URL) throw unavailable();
+  await limitRequest("quote-preference", requestIdentity(request), 60, 3600);
+  const body = await readBody(request, z.object({ quoteId: z.string().uuid(), tier: z.enum(["essenziale", "consigliato", "signature"]) }).strict());
+  // Solo un pacchetto che esiste davvero su quella proposta (un servizio singolo ne ha uno).
+  const [quote] = await getDb().select({ packages: quotes.pacchettiGenerati }).from(quotes).where(eq(quotes.id, body.quoteId));
+  if (!quote || !(quote.packages as Array<{ tier: string }>).some((p) => p.tier === body.tier))
+    throw new PlatformError(422, "INVALID_PACKAGE", "Seleziona un pacchetto valido.");
+  const rows = await getDb()
+    .update(quoteRecords)
+    .set({ preferredTier: body.tier })
+    .where(and(eq(quoteRecords.quoteId, body.quoteId), sql`${quoteRecords.acceptedAt} is null`))
+    .returning({ quoteId: quoteRecords.quoteId });
+  await getDb().insert(funnelEvents).values({ name: "package_chosen", kind: "ui", quoteId: body.quoteId, meta: { tier: body.tier } });
+  return json({ ok: true, stored: rows.length > 0 });
 }

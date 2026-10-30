@@ -14,6 +14,7 @@ import {
   analysisJobs,
   staffInvitations,
   quoteClaims,
+  projects,
 } from "@/db/platform-schema";
 import { demand, demandAvailable, demandRecent, audit, type Actor } from "./access";
 import { can } from "./permissions";
@@ -21,6 +22,10 @@ import { json, readBody, notFound, PlatformError } from "./http";
 import { authConfigured, mailConfigured, appOrigin } from "./config";
 import { storageConfigured, deletePrivate, readPrivate, scanUpload } from "./storage";
 import { flushMail } from "./mail";
+import { issueQueuedInvoices } from "./invoices";
+import { ficConfigured } from "./fic";
+import { runReminders } from "./reminders";
+import { runRecovery } from "./recovery";
 import { analysisConfigured, runAnalysisJob } from "./analysis";
 
 export async function notificationCollection(request: Request, actor: Actor) {
@@ -125,6 +130,9 @@ export async function operationsCollection(request: Request, actor: Actor) {
       payments: Boolean(process.env.STRIPE_SECRET_KEY && process.env.STRIPE_WEBHOOK_SECRET),
       cron: Boolean(process.env.CRON_SECRET),
       analysis: analysisConfigured(),
+      invoicing: ficConfigured(),
+      analytics: Boolean(process.env.NEXT_PUBLIC_GA4_MEASUREMENT_ID),
+      brevo: Boolean(process.env.BREVO_API_KEY && process.env.BREVO_WEBHOOK_SECRET),
     },
     mail,
     events,
@@ -133,7 +141,16 @@ export async function operationsCollection(request: Request, actor: Actor) {
     jobs: await getDb().select({ id: analysisJobs.id, status: analysisJobs.status, attempts: analysisJobs.attempts, errorCode: analysisJobs.errorCode, createdAt: analysisJobs.createdAt }).from(analysisJobs).orderBy(desc(analysisJobs.createdAt)).limit(100),
   });
 }
+import { runAssignmentJobs } from "./crm-routing";
+import { runMorningSummaries } from "./crm-work";
+import { deliverWebhooks } from "./crm-api";
 export async function maintenance() {
+  const invoicing = await issueQueuedInvoices(10);
+  const reminders = await runReminders().catch((error) => ({ sent: 0, skipped: true, error: error instanceof Error ? error.message : "errore" }));
+  const recovery = await runRecovery().catch((error) => ({ sent: 0, tasks: 0, stopped: 0, skipped: true, error: error instanceof Error ? error.message : "errore" }));
+  const assignment = await runAssignmentJobs().catch((error) => ({ escalated: 0, routed: 0, released: 0, error: error instanceof Error ? error.message : "errore" }));
+  const summaries = await runMorningSummaries().catch(() => ({ sent: 0 }));
+  const webhooks = await deliverWebhooks(20).catch((error) => ({ delivered: 0, failed: 0, error: error instanceof Error ? error.message : "errore" }));
   const mail = await flushMail(20);
   const quarantined = await getDb()
     .select()
@@ -152,6 +169,7 @@ export async function maintenance() {
           .update(projectFiles)
           .set({ status: "ready" })
           .where(eq(projectFiles.id, file.id));
+        if (file.kind === "manuscript") await getDb().update(projects).set({ opsStatus: "ready_for_assignment", updatedAt: new Date() }).where(and(eq(projects.id, file.projectId), eq(projects.opsStatus, "waiting_materials")));
         scanned++;
       }
     } catch (e) {
@@ -192,7 +210,7 @@ export async function maintenance() {
   if (pending[0]) await runAnalysisJob(pending[0].id);
   await getDb().update(staffInvitations).set({ status: "expired" }).where(and(eq(staffInvitations.status, "pending"), lt(staffInvitations.expiresAt, new Date())));
   await getDb().delete(quoteClaims).where(lt(quoteClaims.expiresAt, new Date()));
-  return { ...mail, scanned, deleted };
+  return { ...mail, scanned, deleted, invoices: invoicing, reminders, recovery, assignment, summaries, webhooks };
 }
 export async function mailRetry(request: Request, actor: Actor, id: string) {
   if (request.method !== "POST") throw notFound();
@@ -206,8 +224,11 @@ export async function operationRun(request: Request, actor: Actor) {
   if (request.method !== "POST") throw notFound();
   demand(actor, "operations.write");
   demandRecent(actor);
-  const result = await maintenance();
-  await audit(actor, "maintenance.executed", "operation", undefined, result);
+  // Esecuzione manuale registrata come le altre (stesso blocco anti-sovrapposizione).
+  const { runJob, dailyWork } = await import("./automation");
+  const run = await runJob("daily", "manual", () => dailyWork("manual"));
+  const result = "summary" in run && run.summary ? run.summary : run;
+  await audit(actor, "maintenance.executed", "operation", undefined, { status: run.status });
   return json(result);
 }
 
