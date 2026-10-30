@@ -62,6 +62,8 @@ Correzione di bozze, editing leggero, editing profondo, revisione di stile, risc
 
 I cicli inclusi si leggono dal contratto. Il foglio d'ordine li descrive a parole, quindi una persona li indica sul progetto, accanto al testo del contratto, oppure li imposta per servizio nelle regole. Nessun valore viene inventato.
 
+**Consegna definitiva.** La versione Definitiva consegnata dallo Studio richiede il saldo confermato quando la regola d'acquisto lo prevede (predefinito); le versioni che chiudono i cicli di revisione (V2, V3…) no. Vedi `PROEMIOS_DOCUMENT_STUDIO.md`.
+
 ## Costi AI e marginalità
 
 - Ogni chiamata è registrata in `ai_usage`.

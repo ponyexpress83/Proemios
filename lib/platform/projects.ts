@@ -2,7 +2,6 @@ import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import { createHash } from "node:crypto";
 import { getDb } from "@/db";
-import { quotes } from "@/db/schema";
 import { user } from "@/db/auth-schema";
 import {
   projects,
@@ -28,9 +27,10 @@ import {
 import { can } from "./permissions";
 import { readBody, json, notFound, forbidden, PlatformError } from "./http";
 import { limitRequest } from "./rate-limit";
-import { storePrivate, readPrivate, deletePrivate, inspectUpload, scanUpload } from "./storage";
+import { storePrivate, readPrivate, deletePrivate, inspectUpload, scanUpload, DIRECT_UPLOAD_MAX_BYTES } from "./storage";
 import { enqueueMail } from "./mail";
 import { appOrigin } from "./config";
+import { assertBalanceForFinalDelivery } from "./final-delivery";
 import { impaginaEmail, esc } from "@/lib/email";
 
 const projectBody = z
@@ -240,14 +240,7 @@ export async function projectDetail(request: Request, actor: Actor, id: string) 
     // o saldo); i materiali e le consegne di revisione non sono mai bloccati.
     if (body.stage === "editing" && access.project.quoteId && !access.project.startedAt)
       throw new PlatformError(409, "PAYMENT_REQUIRED", access.project.startCondition === "balance" ? "Per questo servizio la lavorazione parte dopo il saldo confermato." : "La lavorazione parte dopo l'acconto confermato dal servizio di pagamento.");
-    if (body.stage === "delivered" && access.project.quoteId) {
-      const { resolvePurchaseRule } = await import("./crm");
-      const rule = await resolvePurchaseRule();
-      if (rule.balanceBeforeDelivery) {
-        const [quoteRow] = await getDb().select({ stato: quotes.stato }).from(quotes).where(eq(quotes.id, access.project.quoteId));
-        if (quoteRow?.stato !== "won") throw new PlatformError(409, "BALANCE_REQUIRED", "La consegna finale avviene dopo il saldo confermato. Il cliente trova il pagamento nella sua area.");
-      }
-    }
+    if (body.stage === "delivered") await assertBalanceForFinalDelivery(access.project);
     if (body.stage === "delivered") {
       const files = await getDb()
         .select({ id: projectFiles.id })
@@ -404,10 +397,24 @@ export async function projectUpload(request: Request, actor: Actor, id: string) 
   if (kind === "delivery") demand(actor, "file.deliver", access.resource);
   if (uploaded.size > 4 * 1024 * 1024)
     throw new PlatformError(413, "FILE_TOO_LARGE", "Il file supera il limite di 4 MB.");
-  const bytes = new Uint8Array(await uploaded.arrayBuffer()),
-    inspection = inspectUpload(uploaded.name, bytes);
-  if (!inspection.text && (!process.env.FILE_SCANNER_URL || !process.env.FILE_SCANNER_TOKEN)) throw new PlatformError(503, "SCANNER_REQUIRED", "Il controllo di DOCX e PDF non è attivo. Puoi usare un file TXT UTF-8.");
-  const key = await storePrivate(id, bytes, inspection.mime);
+  return saveUpload(actor, access, id, uploaded.name, kind, new Uint8Array(await uploaded.arrayBuffer()));
+}
+/**
+ * Registra un file caricato: controllo del formato, scanner per DOCX e PDF,
+ * versione, stato del progetto, avvisi. Con `stored` il file è già nell'archivio
+ * privato (caricamento diretto dei file grandi) e non viene ricaricato; se non
+ * supera i controlli viene cancellato.
+ */
+export async function saveUpload(actor: Actor, access: Awaited<ReturnType<typeof projectAccess>>, id: string, name: string, kind: "manuscript" | "delivery", bytes: Uint8Array, stored?: string) {
+  let inspection: ReturnType<typeof inspectUpload>;
+  try {
+    inspection = inspectUpload(name, bytes, stored ? DIRECT_UPLOAD_MAX_BYTES : undefined);
+    if (!inspection.text && (!process.env.FILE_SCANNER_URL || !process.env.FILE_SCANNER_TOKEN)) throw new PlatformError(503, "SCANNER_REQUIRED", "Il controllo di DOCX e PDF non è attivo. Puoi usare un file TXT UTF-8.");
+  } catch (error) {
+    if (stored) await deletePrivate(stored).catch(() => {});
+    throw error;
+  }
+  const key = stored ?? (await storePrivate(id, bytes, inspection.mime));
   let file: typeof projectFiles.$inferSelect;
   try {
     file = await getDb().transaction(async (tx) => {
@@ -415,7 +422,7 @@ export async function projectUpload(request: Request, actor: Actor, id: string) 
       const [previous] = await tx
         .select()
         .from(projectFiles)
-        .where(and(eq(projectFiles.projectId, id), eq(projectFiles.name, uploaded.name)))
+        .where(and(eq(projectFiles.projectId, id), eq(projectFiles.name, name)))
         .orderBy(desc(projectFiles.version))
         .limit(1);
       if (previous?.hash === createHash("sha256").update(bytes).digest("hex") && previous.kind === kind && previous.status !== "rejected" && previous.status !== "deleted") return previous;
@@ -424,7 +431,7 @@ export async function projectUpload(request: Request, actor: Actor, id: string) 
         .values({
           projectId: id,
           uploadedBy: actor.id,
-          name: uploaded.name,
+          name: name,
           mime: inspection.mime,
           size: bytes.byteLength,
           hash: createHash("sha256").update(bytes).digest("hex"),

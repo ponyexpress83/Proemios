@@ -52,4 +52,19 @@ Data: 18/10/2026. «Configurato» vuol dire che le variabili ci sono; «verifica
 
 ## Upload
 
-Il limite resta di 4 MB per file, imposto dal corpo delle funzioni Vercel. Basta per DOCX e TXT di un romanzo. Per PDF più grandi serve il caricamento diretto su Blob con token firmato, che è lavoro successivo. Scanner e controlli non sono stati indeboliti: DOCX e PDF restano in quarantena finché lo scanner non li dichiara puliti.
+Fino a 4 MB il file passa dalla funzione come prima.
+
+Da 4 a 40 MB (`UPLOAD_DIRECT_MAX_MB`, tetto massimo 100) si usa il caricamento diretto:
+1. Il browser carica sull'archivio Blob **privato** con un token temporaneo di 10 minuti, emesso da `/api/platform/projects/:id/files/direct`. Il percorso è legato a progetto e persona.
+2. Poi chiede la registrazione (`/files/register`).
+3. Il server rilegge il file, applica gli stessi controlli (formato, limiti degli archivi DOCX, scanner) e registra la versione. Se il file non li supera viene cancellato. Lo stesso file non si registra due volte.
+
+Il caricamento diretto richiede `BLOB_READ_WRITE_TOKEN`; senza, oltre i 4 MB si riceve un messaggio chiaro.
+
+| Livello | Stato |
+|---|---|
+| Implementato | sì |
+| Test locali | sì, con l'archivio simulato da cartella |
+| Staging | no |
+
+Scanner e controlli non sono stati indeboliti: DOCX e PDF restano in quarantena finché lo scanner non li dichiara puliti.

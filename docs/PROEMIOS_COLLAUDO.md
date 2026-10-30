@@ -66,3 +66,4 @@ Dai test è emerso anche un problema di sicurezza, corretto: un cliente poteva c
 5. Come cliente invia una richiesta di revisione; come responsabile decidila e consegna la V2.
 6. Facoltativo: collega Google con un account di prova e prova importazione, sincronizzazione, conflitto e condivisione in commento.
 7. Prova l'assistente commerciale su una trattativa di prova (attivandolo nelle regole).
+8. **Definitiva prima e dopo il saldo.** Con il solo acconto pagato, «Approva» con «Versione definitiva» e «Consegna al cliente» deve essere rifiutata con il messaggio sul saldo e il cliente non deve ricevere nulla; senza consegna deve riuscire. Paga il saldo con la carta di test: la Definitiva con consegna riesce, il cliente la riceve e il progetto può passare a «consegnato».
