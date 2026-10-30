@@ -59,4 +59,4 @@ Data: 18/10/2026. Nessuno di questi passi è stato eseguito: richiedono la tua a
 | `UPLOAD_DIRECT_MAX_MB` | no | predefinito 40, massimo 100 |
 | `FILE_SCANNER_URL`, `FILE_SCANNER_TOKEN` | sì per DOCX/PDF | senza scanner si accettano solo TXT; risposta attesa `{"clean": true\|false}` |
 
-Il prompt operativo per eseguire questi passi con Claude Cowork è in `docs/PROMPT_COWORK_LANCIO.md`. La PR di lancio (release → ramo predefinito) è aperta in bozza e va unita solo dopo il collaudo.
+Il prompt operativo per eseguire questi passi (Claude Code per la correzione rimasta, Claude Cowork per staging e produzione) è in `docs/PROMPT_CHIUSURA_LANCIO.md`. La PR di lancio (release → ramo predefinito) è aperta in bozza e va unita solo dopo il collaudo.

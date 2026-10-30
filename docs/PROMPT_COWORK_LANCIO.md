@@ -1,5 +1,7 @@
 # Prompt per Claude Cowork: lancio di Proemios
 
+> Sostituito il 30/10/2026 da `docs/PROMPT_CHIUSURA_LANCIO.md`, che aggiunge la correzione del saldo sulla versione Definitiva, i risultati della verifica del 24 ottobre e le decisioni da prendere con il responsabile operativo. Usa quello.
+
 Da incollare in una nuova conversazione di Claude Cowork, con il browser collegato e l'accesso già fatto a Vercel, Neon, Stripe, Resend, GitHub e, se li usiamo, Anthropic Console, Google Cloud e Fatture in Cloud.
 
 ---
