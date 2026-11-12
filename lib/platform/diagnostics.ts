@@ -109,6 +109,17 @@ export async function diagnostics(now = new Date()): Promise<Diagnostic[]> {
   const aiOk = await db.select({ at: aiUsage.createdAt }).from(aiUsage).where(and(eq(aiUsage.outcome, "ok"), gte(aiUsage.createdAt, new Date(now.getTime() - 30 * 86400_000)))).orderBy(desc(aiUsage.createdAt)).limit(1);
   const aiRules = await approvedAiRules();
   const aiEnv = process.env.EDITORIAL_AI_ENABLED === "1" && Boolean(process.env.ANTHROPIC_API_KEY);
+  {
+    const { hubSpotEnabled, hubSpotSyncState } = await import("./hubspot-sync");
+    const hs = process.env.HUBSPOT_ACCESS_TOKEN ? await hubSpotSyncState() : null;
+    out.push(!process.env.HUBSPOT_ACCESS_TOKEN
+      ? { key: "hubspot", label: "HubSpot (CRM commerciale)", optional: true, state: "not_configured", detail: "Nessun token: contatti, trattative e attività non vanno in HubSpot.", action: "Creare una app privata in HubSpot e impostare HUBSPOT_ACCESS_TOKEN (vedi docs/PROEMIOS_HUBSPOT.md)." }
+      : !hubSpotEnabled()
+        ? { key: "hubspot", label: "HubSpot (CRM commerciale)", optional: true, state: "configured", detail: "Token presente, sincronizzazione spenta in anteprima (HUBSPOT_SYNC_PREVIEW=1 per provarla)." }
+        : hs?.lastError && (!hs.lastSuccessAt || (hs.lastRunAt ?? "") > hs.lastSuccessAt)
+          ? { key: "hubspot", label: "HubSpot (CRM commerciale)", optional: true, state: "error", detail: `Ultimo errore: ${hs.lastError.slice(0, 160)}`, action: "Controllare token, scope e portale." }
+          : { key: "hubspot", label: "HubSpot (CRM commerciale)", optional: true, state: hs?.lastSuccessAt ? "verified" : "configured", detail: hs?.lastSuccessAt ? `Ultima sincronizzazione riuscita il ${new Date(hs.lastSuccessAt).toLocaleString("it-IT", { timeZone: "Europe/Rome" })}${hs.failed.length ? ` · ${hs.failed.length} eventi non sincronizzati` : ""}.` : "Token presente; nessun evento sincronizzato finora." });
+  }
   out.push(!aiEnv ? { key: "anthropic", label: "Motore editoriale (Anthropic)", optional: true, state: "not_configured", detail: process.env.ANTHROPIC_API_KEY ? "Chiave presente ma lavorazioni non abilitate (EDITORIAL_AI_ENABLED)." : "Nessuna chiave Anthropic: le lavorazioni AI non partono.", action: "Impostare ANTHROPIC_API_KEY ed EDITORIAL_AI_ENABLED=1 dopo aver approvato fornitore, conservazione dei dati e costi." } : !aiRules ? { key: "anthropic", label: "Motore editoriale (Anthropic)", optional: true, state: "configured", detail: "Chiave presente, ma regole dell'AI (modello e tetti di spesa) non approvate.", action: "Approvare le regole in Impostazioni CRM → AI." } : { key: "anthropic", label: "Motore editoriale (Anthropic)", optional: true, state: aiOk.length ? "verified" : "configured", detail: aiOk.length ? `Ultima chiamata riuscita il ${aiOk[0]!.at.toLocaleDateString("it-IT")} · modello ${aiRules.model}.` : `Modello ${aiRules.model}; nessuna chiamata riuscita negli ultimi 30 giorni.` });
   const { googleStatus } = await import("./documents/google");
   const g = await googleStatus();

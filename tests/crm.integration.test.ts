@@ -110,6 +110,8 @@ async function linkFor(eventPrefix: string, recipient: string) {
 }
 
 beforeAll(async () => {
+  // Questi test coprono il CRM interno completo: modalità «platform». La modalità HubSpot ha il suo test.
+  process.env.NEXT_PUBLIC_CRM_MODE = "platform";
   const directory = await mkdtemp(join(tmpdir(), "proemios-crm-"));
   process.env.DATABASE_URL = "postgresql://test-only@localhost/test-only";
   process.env.APP_URL = origin;
@@ -659,6 +661,24 @@ describe("putting the CRM into use: invitations, configuration, simulator and sc
     expect(row.mail).toMatchObject({ status: "failed", error: "Destinatario rifiutato dal servizio di prova" });
     // Scaduto: si può invitare di nuovo.
     await data(await call("owner", "crm/team/invite", "POST", { template: "seller", email: "expiring@example.test" }), 201);
+  });
+  it("in HubSpot mode retires the marketing roles for new invitations, keeps who has them, and brings them back in platform mode", async () => {
+    await db.delete(platform.requestLimits);
+    delete process.env.NEXT_PUBLIC_CRM_MODE;
+    const templates = (await data(await call("owner", "crm/team/invite"))).templates as Array<{ key: string; retired: boolean; allowed: boolean }>;
+    expect(templates.find((t) => t.key === "marketing")).toMatchObject({ retired: true, allowed: false });
+    expect(templates.find((t) => t.key === "seller")).toMatchObject({ retired: false });
+    for (const template of ["marketing", "admin_marketing"]) {
+      const refused = await call("owner", "crm/team/invite", "POST", { template, email: `retired-${template}@example.test` });
+      expect(refused.status).toBe(409); expect((await refused.json()).code).toBe("ROLE_RETIRED");
+    }
+    expect((await call("owner", "invitations", "POST", { email: "retired-direct@example.test", role: "marketing" })).status).toBe(409);
+    // Chi ha già il ruolo lo conserva.
+    expect((await db.select().from(platform.memberships).where(eq(platform.memberships.role, "marketing"))).length).toBeGreaterThan(0);
+    process.env.NEXT_PUBLIC_CRM_MODE = "platform";
+    try {
+      await data(await call("owner", "crm/team/invite", "POST", { template: "marketing", email: "retired-marketing@example.test" }), 201);
+    } finally { process.env.NEXT_PUBLIC_CRM_MODE = "platform"; }
   });
   it("simulates assignment with the real engine, explains exclusions and writes nothing", async () => {
     const count = async () => [(await db.select().from(schema.leads)).length, (await db.select().from(platform.notifications)).length, (await db.select().from(schema.leadActivities)).length, (await db.select().from(crm.crmAssignments)).length, (await db.select().from(platform.auditEvents)).length];

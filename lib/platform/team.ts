@@ -25,6 +25,7 @@ import {
 } from "./permissions";
 import { demand, demandRecent, projectAccess, audit, type Actor } from "./access";
 import { readBody, json, hashToken, PlatformError, forbidden, notFound } from "./http";
+import { crmMode, RETIRED_ROLES } from "@/lib/crm-mode";
 import { mailConfigured, appOrigin, paymentPolicySchema, commissionRuleSchema, defaultPaymentPolicy } from "./config";
 import { purchaseRuleSchema, defaultPurchaseRule } from "./commercial";
 import { reminderRulesSchema, defaultReminderRules } from "./reminders";
@@ -117,6 +118,7 @@ export async function invitationCollection(request: Request, actor: Actor) {
 /** Crea e spedisce un invito personale: stessi controlli per l'invito libero e per i modelli di ruolo. */
 export async function createInvitation(actor: Actor, body: { email: string; role: Role; grants: Grant[] | null; projectIds: string[]; template: string | null; profile: Record<string, unknown> | null; label?: string }) {
   validateDelegation(actor, body.role, body.grants);
+  if (crmMode() === "hubspot" && RETIRED_ROLES.has(body.role)) throw new PlatformError(409, "ROLE_RETIRED", "Questo ruolo è ritirato: il marketing lavora in HubSpot. Chi lo ha già lo conserva.");
   for (const id of body.projectIds) await projectAccess(actor, id, "project.assign");
   // Nessun doppione: un invito valido per la stessa email e lo stesso ruolo basta, e chi ha già il ruolo non va reinvitato.
   const email = body.email.toLowerCase();
