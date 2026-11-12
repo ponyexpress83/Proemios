@@ -23,6 +23,7 @@ import { resolvePurchaseRule } from "./crm";
 import { notify } from "./crm-notify";
 import { mailConfigured } from "./config";
 import { limitRequest } from "./rate-limit";
+import { crmMode, RETIRED_TEMPLATES } from "@/lib/crm-mode";
 
 const org = (permissions: Permission[]): Grant[] => permissions.map((permission) => ({ permission, scope: "organization" as const }));
 const adminBase: Permission[] = ["crm.read", "crm.write", "crm.assign", "quote.read", "quote.write", "quote.send", "task.read", "task.write", "support.read", "support.write", "report.read"];
@@ -70,7 +71,8 @@ const SELF_FIELDS = new Set(["hours", "absences", "languages"]);
 export async function templateInvite(request: Request, actor: Actor) {
   if (request.method === "GET") {
     demand(actor, "invite.manage");
-    return json({ templates: Object.entries(ROLE_TEMPLATES).map(([key, t]) => ({ key, label: t.label, role: t.role, asks: t.asks, allowed: canDelegate(actor.grants, t.grants ?? ROLE_GRANTS[t.role]) && (t.role !== "owner") })) });
+    const retired = crmMode() === "hubspot" ? RETIRED_TEMPLATES : new Set<string>();
+    return json({ templates: Object.entries(ROLE_TEMPLATES).map(([key, t]) => ({ key, label: t.label, role: t.role, asks: t.asks, retired: retired.has(key), allowed: !retired.has(key) && canDelegate(actor.grants, t.grants ?? ROLE_GRANTS[t.role]) && (t.role !== "owner") })) });
   }
   if (request.method !== "POST") throw notFound();
   demand(actor, "invite.manage");
@@ -79,6 +81,11 @@ export async function templateInvite(request: Request, actor: Actor) {
   await limitRequest("staff-invite", actor.id, 20, 3600);
   const body = await readBody(request, z.object({ template: z.enum(Object.keys(ROLE_TEMPLATES) as [string, ...string[]]), email: z.string().trim().email().max(320), profile: profileInput.default({}) }).strict());
   const template = ROLE_TEMPLATES[body.template]!;
+  // Modalità HubSpot: il marketing lavora in HubSpot; chi ha già il ruolo lo conserva.
+  if (crmMode() === "hubspot" && RETIRED_TEMPLATES.has(body.template)) {
+    if (!canDelegate(actor.grants, template.grants ?? ROLE_GRANTS[template.role])) throw forbidden();
+    throw new PlatformError(409, "ROLE_RETIRED", "Questo ruolo è ritirato: il marketing lavora in HubSpot. Chi lo ha già lo conserva.");
+  }
   const purchase = await resolvePurchaseRule();
   if (body.profile.maxDiscountBps && body.profile.maxDiscountBps > purchase.maxDiscountBps) throw new PlatformError(422, "DISCOUNT_ABOVE_RULE", `Il limite personale non può superare il massimo della regola (${purchase.maxDiscountBps / 100}%).`);
   const profile = { team: template.team, participates: template.participates, external: template.external ?? false, ...body.profile };

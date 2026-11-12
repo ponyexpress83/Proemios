@@ -23,6 +23,7 @@ Proemios è un'app Next.js 15 (App Router, React 19, TypeScript) con Postgres vi
 | Attribuzione di sessione | `lib/attribution.ts`, `lib/attribution-client.ts`, `components/marketing/session-attribution.tsx` |
 | Analytics con consenso | `lib/analytics.ts`, `components/marketing/analytics.tsx` |
 | Brevo (predisposto) | `lib/platform/brevo.ts`, `app/api/webhooks/brevo/route.ts` |
+| HubSpot (CRM commerciale): client, sincronizzazione dagli eventi `crm_events`, modalità CRM e ruoli ritirati | `lib/platform/hubspot.ts`, `lib/platform/hubspot-sync.ts` (passo del lavoro frequente), `lib/crm-mode.ts`, `docs/PROEMIOS_HUBSPOT.md` |
 | Permessi e ruoli | `lib/platform/permissions.ts`, `lib/platform/access.ts`, `lib/platform/realms.ts` |
 | Router della piattaforma | `app/api/platform/[...path]/route.ts` |
 | Interfacce | `components/platform/workspace.tsx` (team), `components/author/*` (autori) |

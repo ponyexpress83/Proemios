@@ -9,6 +9,7 @@ import { WorkView, DealsView, ContactsView, PoolView, ApprovalsView, PeopleView,
 import { SetupView, CrmSettingsView } from "./crm-settings";
 import { ControlRoomView, ProductionView, StudioView } from "./studio-views";
 import { SellerHomeView } from "./seller-views";
+import { crmMode, HUBSPOT_TABS } from "@/lib/crm-mode";
 const CRM_TABS = ["work", "deals", "contacts", "pool", "approvals", "people", "crm-setup", "crm-settings", "control", "production", "studio", "sales-home"];
 import {
   can,
@@ -306,7 +307,7 @@ const tabRules: Array<{ id: string; label: string; permission?: Permission; anyO
 ];
 
 export function PlatformWorkspace({ user }: { user: Profile }) {
-  const tabs = tabRules.filter((t) => (!t.staffOnly || user.staff) && (!t.permission || hasPermission(user.grants, t.permission)) && (!t.anyOf || t.anyOf.some((p) => hasPermission(user.grants, p))));
+  const tabs = tabRules.filter((t) => !(crmMode() === "hubspot" && HUBSPOT_TABS.has(t.id)) && (!t.staffOnly || user.staff) && (!t.permission || hasPermission(user.grants, t.permission)) && (!t.anyOf || t.anyOf.some((p) => hasPermission(user.grants, p))));
   const [tab, setTab] = useState(tabs[0]?.id ?? "notifications"),
     [data, setData] = useState<Collection>({}),
     [error, setError] = useState(""),
@@ -326,7 +327,7 @@ export function PlatformWorkspace({ user }: { user: Profile }) {
     if (quote && hasPermission(user.grants, "quote.read")) { setTab("quotes"); setSelected(quote); }
     else if (project && hasPermission(user.grants, "project.read")) { setTab("projects"); setSelected(project); }
     else if (lead && hasPermission(user.grants, "crm.read")) { setTab("leads"); setSelected(lead); }
-    else if (params.get("tab") && tabRules.some((t) => t.id === params.get("tab"))) setTab(params.get("tab")!);
+    else if (params.get("tab") && tabRules.some((t) => t.id === params.get("tab")) && !(crmMode() === "hubspot" && HUBSPOT_TABS.has(params.get("tab")!))) setTab(params.get("tab")!);
   }, [user.grants]);
   useEffect(() => {
     let active = true;
